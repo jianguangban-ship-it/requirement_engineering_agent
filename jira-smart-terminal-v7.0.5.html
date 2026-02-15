@@ -1,0 +1,2291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JIRA AI-Powered Task Workstation v7.0.5</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================
+       CUSTOM CSS VARIABLES & BASE STYLES
+    ============================================ */
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #21262d;
+      --border-color: #30363d;
+      --text-primary: #e6edf3;
+      --text-secondary: #f6f7f8;
+      --text-muted: #8b949e; /* Adjusted for better contrast */
+      --accent-green: #3fb950;
+      --accent-blue: #58a6ff;
+      --accent-red: #f85149;
+      --accent-orange: #d29922;
+      --accent-purple: #a371f7;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ============================================
+       SCROLLBAR STYLING
+    ============================================ */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    /* ============================================
+       FORM ELEMENT STYLES
+    ============================================ */
+    .input-base {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 14px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      width: 100%;
+    }
+    .input-base:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+    }
+    .input-base::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* ============================================
+       ANIMATIONS
+    ============================================ */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+
+    /* Quick Action Chips */
+    .quick-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 12px;
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-secondary);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .quick-chip:hover {
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      background-color: rgba(88, 166, 255, 0.08);
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+    .animate-pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* ============================================
+       JSON DISPLAY STYLING
+    ============================================ */
+    .json-display {
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+      font-size: 11px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .json-key { color: #79c0ff; }
+    .json-string { color: #a5d6ff; }
+    .json-number { color: #79c0ff; }
+    .json-boolean { color: #ff7b72; }
+    .json-null { color: #8b949e; }
+
+    /* ============================================
+       RESPONSE PANEL STYLING
+    ============================================ */
+    .response-panel {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .response-panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--bg-tertiary);
+      border-radius: 12px 12px 0 0;
+    }
+    .response-panel-body {
+      padding: 12px;
+      flex: 1;
+      overflow-y: auto;
+      max-height: 280px;
+      border-radius: 0 0 12px 12px;
+      background-color: var(--bg-secondary);
+    }
+    
+    /* Resizable panel body */
+    .response-panel-body-resizable {
+      padding: 12px;
+      overflow-y: auto;
+      min-height: 150px;
+      max-height: 600px;
+      height: 280px;
+      resize: vertical;
+      border-radius: 0 0 12px 12px;
+      background-color: var(--bg-secondary);
+    }
+    
+    /* Custom resize handle styling */
+    .response-panel-body-resizable::-webkit-resizer {
+      background: linear-gradient(135deg, transparent 50%, var(--border-color) 50%, var(--border-color) 60%, transparent 60%, transparent 70%, var(--border-color) 70%, var(--border-color) 80%, transparent 80%);
+      border-radius: 0 0 8px 0;
+    }
+
+    /* Coach panel: both-direction scroll + resize */
+    .response-panel-body-coach {
+      padding: 12px;
+      overflow: auto;
+      min-height: 150px;
+      max-height: 650px;
+      height: 400px;
+      resize: both;
+      border-radius: 0 0 12px 12px;
+      background-color: var(--bg-secondary);
+    }
+    .response-panel-body-coach::-webkit-resizer {
+      background: linear-gradient(135deg, transparent 50%, var(--border-color) 50%, var(--border-color) 60%, transparent 60%, transparent 70%, var(--border-color) 70%, var(--border-color) 80%, transparent 80%);
+      border-radius: 0 0 8px 0;
+    }
+
+    /* Status indicator */
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status-idle { background-color: var(--text-muted); }
+    .status-loading { background-color: var(--accent-orange); animation: pulse 1s ease-in-out infinite; }
+    .status-success { background-color: var(--accent-green); }
+    .status-error { background-color: var(--accent-red); }
+
+    /* Language toggle button */
+    .lang-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 6px;
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+    }
+    .lang-btn {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+    }
+    .lang-btn.active {
+      background-color: var(--accent-blue);
+      color: white;
+    }
+    .lang-btn:hover:not(.active) {
+      color: var(--text-primary);
+    }
+
+    /* ============================================
+       SEARCHABLE SELECT / COMBOBOX STYLING
+    ============================================ */
+    .combobox-container {
+      position: relative;
+    }
+    .combobox-input {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: 6px;
+      padding: 10px 36px 10px 14px;
+      font-size: 14px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      width: 100%;
+      cursor: text;
+    }
+    .combobox-input:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+    }
+    .combobox-input::placeholder {
+      color: var(--text-muted);
+    }
+    .combobox-arrow {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--text-muted);
+      transition: transform 0.2s ease;
+    }
+    .combobox-arrow.open {
+      transform: translateY(-50%) rotate(180deg);
+    }
+    .combobox-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: 4px;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      max-height: 240px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+    .combobox-option {
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .combobox-option:hover,
+    .combobox-option.highlighted {
+      background-color: var(--bg-tertiary);
+    }
+    .combobox-option.selected {
+      background-color: rgba(88, 166, 255, 0.15);
+    }
+    .combobox-option-name {
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+    .combobox-option-id {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'SF Mono', monospace;
+    }
+    .combobox-option-team {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background-color: var(--bg-tertiary);
+      color: var(--text-secondary);
+      margin-left: auto;
+    }
+    .combobox-no-results {
+      padding: 12px 14px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .combobox-group-header {
+      padding: 8px 14px 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      background-color: var(--bg-primary);
+      position: sticky;
+      top: 0;
+    }
+    .highlight-match {
+      background-color: rgba(88, 166, 255, 0.3);
+      color: var(--accent-blue);
+      border-radius: 2px;
+    }
+
+    /* ============================================
+       COACH MESSAGE STYLING
+    ============================================ */
+    .coach-message {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      width: max-content;
+      min-width: 100%;
+    }
+    
+    /* Status Badge */
+    .coach-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+    .coach-status-pass {
+      background-color: rgba(63, 185, 80, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(63, 185, 80, 0.3);
+    }
+    .coach-status-fail {
+      background-color: rgba(248, 81, 73, 0.15);
+      color: var(--accent-red);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+    }
+    .coach-status-warn {
+      background-color: rgba(210, 153, 34, 0.15);
+      color: var(--accent-orange);
+      border: 1px solid rgba(210, 153, 34, 0.3);
+    }
+    
+    /* Info Rows */
+    .coach-info-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .coach-info-row:last-of-type {
+      margin-bottom: 12px;
+    }
+    .coach-info-label {
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .coach-info-value {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+    
+    /* Main Message */
+    .coach-main-message {
+      background-color: var(--bg-tertiary);
+      border-radius: 8px;
+      padding: 12px;
+      margin: 12px 0;
+      border-left: 3px solid var(--accent-blue);
+    }
+    
+    /* Comment Section */
+    .coach-comment-section {
+      margin-top: 16px;
+    }
+    .coach-comment-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    /* Issues List */
+    .coach-issues-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .coach-issue-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      background-color: rgba(248, 81, 73, 0.06);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent-red);
+      white-space: nowrap;
+    }
+    .coach-issue-num {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
+      background-color: var(--accent-red);
+      color: white;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .coach-issue-text {
+      flex: 1;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .coach-highlight-error {
+      color: var(--accent-red);
+      font-weight: 600;
+    }
+    
+    /* Paragraphs and Text */
+    .coach-message .coach-para {
+      margin-bottom: 12px;
+    }
+    .coach-message .coach-h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 16px 0 8px 0;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .coach-message .coach-h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent-blue);
+      margin: 12px 0 6px 0;
+    }
+    .coach-message .coach-hr {
+      border: none;
+      border-top: 1px dashed var(--border-color);
+      margin: 16px 0;
+    }
+    .coach-message .coach-bold {
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+    .coach-message .coach-code {
+      background-color: var(--bg-tertiary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      color: var(--accent-blue);
+      white-space: nowrap;
+    }
+    .coach-message .coach-list-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin: 6px 0;
+      padding: 6px 10px;
+      background-color: var(--bg-tertiary);
+      border-radius: 6px;
+      border-left: 3px solid var(--border-color);
+      white-space: nowrap;
+    }
+    .coach-message .coach-list-num {
+      color: var(--accent-blue);
+      font-weight: 600;
+      min-width: 20px;
+    }
+    .coach-message .coach-list-bullet {
+      color: var(--accent-green);
+      font-weight: bold;
+    }
+    .coach-message .coach-icon-error {
+      color: var(--accent-red);
+    }
+    .coach-message .coach-icon-success {
+      color: var(--accent-green);
+    }
+    .coach-message .coach-icon-warning {
+      color: var(--accent-orange);
+    }
+    .coach-empty {
+      color: var(--text-muted);
+      text-align: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header class="border-b" style="border-color: var(--border-color); background-color: var(--bg-secondary);">
+      <!-- <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between"> -->
+      <div class="px-6 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full inline-block" style="background-color: #f85149;"></span>
+            <span class="w-3 h-3 rounded-full inline-block" style="background-color: #d29922;"></span>
+            <span class="w-3 h-3 rounded-full inline-block" style="background-color: #58a6ff;"></span>
+          </div>
+          <h1 class="text-sm font-semibold" style="color: var(--text-primary);">{{ t('header.title') }}</h1>
+          <span class="text-xs" style="color: var(--text-muted);">v7.0.5</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="lang-toggle">
+            <button class="lang-btn" :class="{ active: currentLang === 'en' }" @click="setLang('en')">EN</button>
+            <button class="lang-btn" :class="{ active: currentLang === 'zh' }" @click="setLang('zh')">中文</button>
+          </div>
+          <!-- URL Mode Toggle Button -->
+          <div class="lang-toggle">
+            <button class="lang-btn" 
+                    :class="{ active: !useProductionMode }" 
+                    @click="setUrlMode(false)"
+                    :title="t('urlMode.testTooltip')">
+              <span class="flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full" style="background-color: var(--accent-orange);"></span>
+                Test
+              </span>
+            </button>
+            <button class="lang-btn" 
+                    :class="{ active: useProductionMode }" 
+                    @click="setUrlMode(true)"
+                    :title="t('urlMode.prodTooltip')">
+              <span class="flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full" style="background-color: var(--accent-green);"></span>
+                Prod
+              </span>
+            </button>
+          </div>
+          <!-- Status Indicator -->
+          <span class="text-xs px-2 py-1 rounded flex items-center gap-1.5"
+                :style="{
+                  backgroundColor: useProductionMode ? 'rgba(63, 185, 80, 0.15)' : 'rgba(210, 153, 34, 0.15)',
+                  color: useProductionMode ? 'var(--accent-green)' : 'var(--accent-orange)'
+                }">
+            <span class="w-1.5 h-1.5 rounded-full animate-pulse" 
+                  :style="{ backgroundColor: useProductionMode ? 'var(--accent-green)' : 'var(--accent-orange)' }"></span>
+            {{ useProductionMode ? 'Production' : 'Test Mode' }}
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-[2000px] mx-auto px-6 py-6">
+      <div class="grid grid-cols-1 lg:grid-cols-8 gap-5">
+        
+        <!-- LEFT COLUMN: AI Coach Panel -->
+        <div class="lg:col-span-3" style="min-width: 0;">
+          <div class="response-panel">
+            <div class="response-panel-header">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4" style="color: var(--accent-green);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+                <span class="text-sm font-medium" style="color: var(--text-primary);">{{ t('coach.title') }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="status-dot" :class="coachStatus.class"></span>
+                <span class="text-xs" :style="{ color: coachStatus.color }">{{ t('status.' + coachStatus.key) }}</span>
+              </div>
+            </div>
+            <div class="response-panel-body-resizable" style="height: 400px; max-height: 650px;">
+              <!-- Empty State -->
+              <div v-if="!coachResponse && !isCoachLoading" 
+                   class="h-full flex items-center justify-center text-center py-8">
+                <div>
+                  <svg class="w-10 h-10 mx-auto mb-3" style="color: var(--text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                  </svg>
+                  <p class="text-xs mb-2" style="color: var(--text-muted);">{{ t('coach.emptyHint') }}</p>
+                  <p class="text-xs mb-4" style="color: var(--text-muted); opacity: 0.7;">{{ t('coach.emptySubHint') }}</p>
+                  <!-- Quick Action Chips -->
+                  <div class="flex flex-wrap justify-center gap-2 px-3">
+                    <button v-for="chip in coachChips" :key="chip.key"
+                            @click="applyCoachChip(chip.key)"
+                            class="quick-chip">
+                      <span class="text-xs">{{ chip.icon }}</span>
+                      <span class="text-xs">{{ chip.label }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <!-- Loading State -->
+              <div v-else-if="isCoachLoading" 
+                   class="h-full flex items-center justify-center text-center py-8">
+                <div>
+                  <svg class="w-8 h-8 mx-auto mb-2 animate-spin" style="color: var(--accent-green);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" stroke-dasharray="32" stroke-linecap="round" opacity="0.25"/>
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+                  </svg>
+                  <p class="text-xs" style="color: var(--accent-green);">{{ t('coach.analyzing') }}</p>
+                </div>
+              </div>
+              <!-- Coach Response Content -->
+              <div v-else class="space-y-3">
+                <div class="coach-message" v-html="formatCoachResponse(coachResponse)"></div>
+              </div>
+            </div>
+            <!-- Coach Action Button -->
+            <div class="p-3 border-t" style="border-color: var(--border-color);">
+              <button @click="requestCoach"
+                      :disabled="!canRequestCoach || isCoachLoading"
+                      class="w-full px-4 py-2 rounded-md font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2"
+                      :style="{
+                        backgroundColor: canRequestCoach && !isCoachLoading ? 'var(--accent-green)' : 'var(--bg-tertiary)',
+                        color: canRequestCoach && !isCoachLoading ? 'white' : 'var(--text-muted)',
+                        cursor: canRequestCoach && !isCoachLoading ? 'pointer' : 'not-allowed'
+                      }">
+                <svg v-if="isCoachLoading" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" stroke-dasharray="32" stroke-linecap="round" opacity="0.25"/>
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+                </svg>
+                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                <span>{{ isCoachLoading ? t('coach.requesting') : t('coach.requestBtn') }}</span>
+              </button>
+              <p class="text-xs mt-2 text-center" style="color: var(--text-muted);">
+                {{ t('coach.hint') }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- MIDDLE COLUMN: Form -->
+        <div class="lg:col-span-3"> <!-- 中间表单: 占 4/8 = 50% -->
+          <div v-if="errorMessage" 
+               class="mb-4 p-3 rounded-lg border animate-fade-in flex items-center justify-between"
+               style="background-color: rgba(248, 81, 73, 0.1); border-color: var(--accent-red);">
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4" style="color: var(--accent-red);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span class="text-sm" style="color: var(--accent-red);">{{ errorMessage }}</span>
+            </div>
+            <button @click="errorMessage = ''" class="p-1 rounded hover:bg-white/10 transition-colors">
+              <svg class="w-4 h-4" style="color: var(--text-secondary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="rounded-xl border" style="background-color: var(--bg-secondary); border-color: var(--border-color);">
+            
+            <div class="p-5 border-b" style="border-color: var(--border-color);">
+              <h2 class="text-xs font-medium mb-3 uppercase tracking-wide" style="color: var(--text-muted);">{{ t('form.basicInfo') }}</h2>
+              
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs mb-1.5" style="color: var(--text-secondary);">{{ t('form.projectName') }}</label>
+                  <select v-model="form.projectKey" 
+                          @change="onProjectChange"
+                          class="input-base text-sm cursor-pointer">
+                    <option v-for="project in PROJECT_CONFIG" :key="project.key" :value="project.key">
+                      {{ project.name }} ({{ project.teamName }})
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs mb-1.5" style="color: var(--text-secondary);">
+                    {{ t('form.assignee') }}
+                    <span class="ml-1" style="color: var(--text-muted);">· {{ currentTeamMemberCount }} {{ t('form.members') }}</span>
+                  </label>
+                  
+                  <div class="combobox-container" v-click-outside="closeDropdown">
+                    <input type="text"
+                           ref="comboboxInput"
+                           v-model="assigneeSearch"
+                           @focus="openDropdown"
+                           @input="onAssigneeInput"
+                           @keydown="onComboboxKeydown"
+                           class="combobox-input"
+                           :placeholder="selectedAssigneeName || t('form.searchAssignee')">
+                    <svg class="combobox-arrow w-4 h-4" :class="{ open: isDropdownOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                    
+                    <div v-if="isDropdownOpen" class="combobox-dropdown">
+                      <div class="combobox-group-header">
+                        {{ currentProjectTeamName }} - {{ filteredAssignees.length }} {{ t('form.results') }}
+                      </div>
+                      
+                      <div v-if="filteredAssignees.length > 0">
+                        <div v-for="(user, index) in filteredAssignees" 
+                             :key="user.id"
+                             @click="selectAssignee(user)"
+                             @mouseenter="highlightedIndex = index"
+                             class="combobox-option"
+                             :class="{ 
+                               highlighted: highlightedIndex === index,
+                               selected: form.assignee === user.id 
+                             }">
+                          <div>
+                            <div class="combobox-option-name" v-html="highlightMatch(user.name, assigneeSearch)"></div>
+                            <div class="combobox-option-id" v-html="highlightMatch(user.id, assigneeSearch)"></div>
+                          </div>
+                          <span v-if="user.role" class="combobox-option-team">{{ user.role }}</span>
+                        </div>
+                      </div>
+                      
+                      <div v-else class="combobox-no-results">
+                        {{ t('form.noResults') }} "{{ assigneeSearch }}"
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Task Type & Story Points - 水平布局 -->
+              <div class="mt-3 grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs mb-1.5" style="color: var(--text-secondary);">{{ t('form.taskType') }}</label>
+                  <div class="flex gap-2">
+                    <button v-for="type in TASK_TYPES" :key="type.value"
+                            @click="form.issueType = type.value"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm transition-all duration-200"
+                            :style="{
+                              backgroundColor: form.issueType === type.value ? type.bgActive : 'var(--bg-tertiary)',
+                              borderColor: form.issueType === type.value ? type.color : 'var(--border-color)',
+                              color: form.issueType === type.value ? type.color : 'var(--text-secondary)'
+                            }">
+                      <span class="w-1.5 h-1.5 rounded-full" :style="{ backgroundColor: type.color }"></span>
+                      {{ type.label }}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs mb-1.5" style="color: var(--text-secondary);">
+                    {{ t('form.storyPoints') }}
+                    <span class="ml-1" style="color: var(--text-muted);">· {{ t('form.aiWillVerify') }}</span>
+                  </label>
+                  <div class="flex gap-1.5">
+                    <button v-for="point in FIBONACCI_POINTS" :key="point"
+                            @click="form.estimatedPoints = point"
+                            class="w-10 h-8 rounded-md border text-sm font-medium transition-all duration-200"
+                            :style="{
+                              backgroundColor: form.estimatedPoints === point ? 'var(--accent-blue)' : 'var(--bg-tertiary)',
+                              borderColor: form.estimatedPoints === point ? 'var(--accent-blue)' : 'var(--border-color)',
+                              color: form.estimatedPoints === point ? 'white' : 'var(--text-secondary)'
+                            }">
+                      {{ point }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 border-b" style="border-color: var(--border-color);">
+              <h2 class="text-xs font-medium mb-2 uppercase tracking-wide" style="color: var(--text-muted);">
+                {{ t('form.taskSummary') }} <span class="font-normal normal-case">· {{ t('form.fivePartInput') }}</span>
+              </h2>
+
+              <div class="grid grid-cols-4 gap-2 mb-2">
+                <div>
+                  <label class="block text-xs mb-1" style="color: var(--text-muted);">{{ t('form.vehicle') }}</label>
+                  <select v-model="summary.vehicle" class="input-base text-xs cursor-pointer py-2">
+                    <option value="">{{ t('form.select') }}</option>
+                    <option v-for="v in VEHICLE_OPTIONS" :key="v" :value="v">{{ v }}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs mb-1" style="color: var(--text-muted);">{{ t('form.product') }}</label>
+                  <select v-model="summary.product" class="input-base text-xs cursor-pointer py-2">
+                    <option value="">{{ t('form.select') }}</option>
+                    <option v-for="p in PRODUCT_OPTIONS" :key="p" :value="p">{{ p }}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs mb-1" style="color: var(--text-muted);">{{ t('form.layer') }}</label>
+                  <select v-model="summary.layer" class="input-base text-xs cursor-pointer py-2">
+                    <option value="">{{ t('form.select') }}</option>
+                    <option v-for="l in LAYER_OPTIONS" :key="l" :value="l">{{ l }}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs mb-1" style="color: var(--text-muted);">{{ t('form.component') }}</label>
+                  <input type="text" 
+                         v-model="summary.component" 
+                         list="component-history"
+                         class="input-base text-xs py-2" 
+                         :placeholder="t('form.componentPlaceholder')">
+                  <datalist id="component-history">
+                    <option v-for="c in componentHistory" :key="c" :value="c"></option>
+                  </datalist>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs mb-1" style="color: var(--text-muted);">{{ t('form.taskDetail') }}</label>
+                <input type="text" 
+                       v-model="summary.detail" 
+                       class="input-base text-xs py-2" 
+                       :placeholder="t('form.taskDetailPlaceholder')">
+              </div>
+
+              <div class="mt-2 p-2 rounded-md" style="background-color: var(--bg-tertiary);">
+                <div class="flex items-center justify-between mb-1">
+                  <div class="flex items-center gap-1.5">
+                    <svg class="w-3 h-3" style="color: var(--accent-green);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    <span class="text-xs" style="color: var(--text-muted);">{{ t('form.livePreview') }}</span>
+                  </div>
+                  <!-- Quality Score Badge -->
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-mono font-medium" :style="{ color: qualityScoreColor }">
+                      {{ qualityScore }}%
+                    </span>
+                    <span class="text-xs" :style="{ color: qualityScoreColor }">{{ qualityScoreLabel }}</span>
+                  </div>
+                </div>
+                <!-- Quality Progress Bar -->
+                <div class="w-full rounded-full overflow-hidden mb-2" style="height: 3px; background-color: var(--bg-secondary);">
+                  <div class="h-full rounded-full transition-all duration-500 ease-out"
+                       :style="{ width: qualityScore + '%', backgroundColor: qualityScoreColor }"></div>
+                </div>
+                <code class="text-xs font-mono" :style="{ color: computedSummary ? 'var(--accent-green)' : 'var(--text-muted)' }">
+                  {{ computedSummary || t('form.previewPlaceholder') }}
+                </code>
+              </div>
+            </div>
+
+            <div class="p-4 border-b" style="border-color: var(--border-color);">
+              <h2 class="text-xs font-medium mb-2 uppercase tracking-wide" style="color: var(--text-muted);">
+                {{ t('form.taskDescription') }} <span class="font-normal normal-case" style="color: var(--accent-orange);">* {{ t('form.required') }}</span>
+              </h2>
+              <textarea v-model="form.description"
+                        class="input-base text-sm min-h-[160px] resize-y"
+                        :placeholder="t('form.descriptionPlaceholder')"></textarea>
+            </div>
+
+            <div class="p-5 flex items-center justify-between">
+              <button @click="resetForm" 
+                      class="px-3 py-1.5 rounded-md border text-sm transition-colors"
+                      style="border-color: var(--border-color); color: var(--text-secondary);"
+                      :disabled="isSubmitting"
+                      @mouseover="$event.target.style.backgroundColor = 'var(--bg-tertiary)'"
+                      @mouseout="$event.target.style.backgroundColor = 'transparent'">
+                {{ t('form.reset') }}
+              </button>
+
+              <div class="flex items-center gap-3">
+                <button v-if="aiAgentResponse"
+                        @click="handleSubmit('create')"
+                        :disabled="isSubmitting"
+                        class="px-5 py-2 rounded-md font-medium text-sm transition-all duration-200 flex items-center gap-2 animate-fade-in"
+                        style="background-color: var(--accent-green); color: white;">
+                  <svg v-if="isSubmitting && currentAction === 'create'" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" stroke-dasharray="32" stroke-linecap="round" opacity="0.25"/>
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+                  </svg>
+                  <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  <span>{{ isSubmitting && currentAction === 'create' ? t('form.creating') : t('form.confirmCreate') }}</span>
+                </button>
+
+                <button @click="handleSubmit('analyze')"
+                        :disabled="!canSubmit || isSubmitting"
+                        class="px-5 py-2 rounded-md font-medium text-sm transition-all duration-200 flex items-center gap-2"
+                        :style="{
+                          backgroundColor: canSubmit && !isSubmitting ? 'var(--accent-blue)' : 'var(--bg-tertiary)',
+                          color: canSubmit && !isSubmitting ? 'white' : 'var(--text-muted)',
+                          cursor: canSubmit && !isSubmitting ? 'pointer' : 'not-allowed',
+                          opacity: aiAgentResponse ? 0.7 : 1 /* Dim after analysis to guide user to create */
+                        }">
+                  <svg v-if="isSubmitting && currentAction === 'analyze'" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" stroke-dasharray="32" stroke-linecap="round" opacity="0.25"/>
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+                  </svg>
+                  <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                  </svg>
+                  <span>{{ isSubmitting && currentAction === 'analyze' ? t('form.analyzing') : t('form.aiAnalyze') }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Right COLUMN: AI Check Panel -->
+        <div class="lg:col-span-2 space-y-4">
+          
+          <div class="response-panel">
+            <div class="response-panel-header">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4" style="color: var(--accent-purple);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+                <span class="text-sm font-medium" style="color: var(--text-primary);">{{ t('panel.aiAgentResponse') }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="status-dot" :class="aiAgentStatus.class"></span>
+                <span class="text-xs" :style="{ color: aiAgentStatus.color }">{{ t('status.' + aiAgentStatus.key) }}</span>
+              </div>
+            </div>
+            <div class="response-panel-body-resizable">
+              <div v-if="!aiAgentResponse && !isSubmitting" 
+                   class="h-full flex items-center justify-center text-center py-8">
+                <div>
+                  <svg class="w-10 h-10 mx-auto mb-2" style="color: var(--text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                  </svg>
+                  <p class="text-xs" style="color: var(--text-muted);">{{ t('panel.waitingAI') }}</p>
+                </div>
+              </div>
+              <div v-else-if="isSubmitting && currentAction === 'analyze'" 
+                   class="h-full flex items-center justify-center text-center py-8">
+                <div>
+                  <svg class="w-8 h-8 mx-auto mb-2 animate-spin" style="color: var(--accent-purple);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" stroke-dasharray="32" stroke-linecap="round" opacity="0.25"/>
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+                  </svg>
+                  <p class="text-xs" style="color: var(--accent-purple);">{{ t('panel.aiAnalyzing') }}</p>
+                </div>
+              </div>
+              <div v-else class="json-display" v-html="formatJson(aiAgentResponse)"></div>
+            </div>
+          </div>
+
+          <div class="response-panel">
+            <div class="response-panel-header">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4" style="color: var(--accent-blue);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                </svg>
+                <span class="text-sm font-medium" style="color: var(--text-primary);">{{ t('panel.jiraResponse') }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="status-dot" :class="jiraStatus.class"></span>
+                <span class="text-xs" :style="{ color: jiraStatus.color }">{{ t('status.' + jiraStatus.key) }}</span>
+              </div>
+            </div>
+            <div class="response-panel-body">
+              <div v-if="!jiraResponse" 
+                   class="h-full flex items-center justify-center text-center py-8">
+                <div>
+                  <svg class="w-10 h-10 mx-auto mb-2" style="color: var(--text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  <p class="text-xs" style="color: var(--text-muted);">{{ t('panel.waitingJira') }}</p>
+                </div>
+              </div>
+              <div v-else class="json-display" v-html="formatJson(jiraResponse)"></div>
+            </div>
+          </div>
+        
+          <div v-if="aiAgentResponse" 
+               class="p-4 rounded-xl border animate-fade-in"
+               style="background-color: var(--bg-secondary); border-color: var(--border-color);">
+            <h3 class="text-xs font-medium mb-3 uppercase tracking-wide" style="color: var(--text-muted);">
+              {{ t('panel.summary') }}
+            </h3>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs" style="color: var(--text-secondary);">{{ t('panel.aiCorrectedPoints') }}</span>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs line-through" style="color: var(--text-muted);">{{ form.estimatedPoints }}</span>
+                  <svg class="w-3 h-3" style="color: var(--text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                  </svg>
+                  <span class="text-sm font-medium" style="color: var(--accent-green);">{{ parsedAiResponse?.ai_points || '-' }}</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs" style="color: var(--text-secondary);">{{ t('panel.subtasks') }}</span>
+                <span class="text-sm font-medium" :style="{ color: parsedAiResponse?.subtasks_created > 0 ? 'var(--accent-orange)' : 'var(--text-muted)' }">
+                  {{ parsedAiResponse?.subtasks_created || 0 }} {{ t('panel.items') }}
+                </span>
+              </div>
+              <div v-if="parsedJiraResponse?.key" class="flex items-center justify-between pt-2 border-t" style="border-color: var(--border-color);">
+                <span class="text-xs" style="color: var(--text-secondary);">JIRA Ticket</span>
+                <a :href="'https://jira.gwm.cn/browse/' + parsedJiraResponse.key" 
+                   target="_blank"
+                   class="text-sm font-mono font-medium hover:underline"
+                   style="color: var(--accent-blue);">
+                  {{ parsedJiraResponse.key }}
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <details class="mt-4">
+            <summary class="cursor-pointer text-xs py-1" style="color: var(--text-muted);">
+              {{ t('dev.viewPayload') }}
+            </summary>
+            <pre class="mt-2 p-3 rounded-lg text-xs overflow-x-auto" 
+                 style="background-color: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary);">{{ jsonPayload }}</pre>
+          </details>
+
+          <details class="mt-3">
+            <summary class="cursor-pointer text-xs py-2" style="color: var(--text-muted);">
+              ⚡ {{ t('dev.webhookConfig') }}
+            </summary>
+            <div class="mt-2 p-4 rounded-lg text-xs space-y-3" 
+                 style="background-color: var(--bg-secondary); border: 1px solid var(--border-color);">
+              <div>
+                <span style="color: var(--text-muted);">{{ t('dev.currentMode') }}：</span>
+                <span :style="{ color: useProductionMode ? 'var(--accent-green)' : 'var(--accent-orange)' }">
+                  {{ useProductionMode ? t('dev.production') : t('dev.testing') }}
+                </span>
+              </div>
+              <div>
+                <span style="color: var(--text-muted);">Active URL：</span>
+                <code class="ml-1 px-2 py-1 rounded" style="background-color: var(--bg-tertiary); color: var(--accent-blue);">
+                  {{ useProductionMode ? webhookConfig.prodUrl : webhookConfig.testUrl }}
+                </code>
+              </div>
+              <div class="pt-2 border-t" style="border-color: var(--border-color);">
+                <p style="color: var(--text-muted);">
+                  💡 {{ t('dev.configHint') }} <code style="color: var(--accent-green);">WEBHOOK_CONFIG</code>
+                </p>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, reactive, watch, nextTick } = Vue;
+
+    createApp({
+      // Custom directive for click outside
+      directives: {
+        'click-outside': {
+          mounted(el, binding) {
+            el._clickOutside = (event) => {
+              if (!(el === event.target || el.contains(event.target))) {
+                binding.value();
+              }
+            };
+            document.addEventListener('click', el._clickOutside);
+          },
+          unmounted(el) {
+            document.removeEventListener('click', el._clickOutside);
+          }
+        }
+      },
+      setup() {
+        // ==========================================
+        // I18N - INTERNATIONALIZATION
+        // ==========================================
+        
+        const currentLang = ref(localStorage.getItem('jira-terminal-lang') || 'zh');
+
+        const i18n = {
+          en: {
+            header: {
+              title: 'JIRA AI-Powered Task Workstation'
+            },
+            form: {
+              basicInfo: 'Basic Information',
+              projectName: 'Project Name',
+              assignee: 'Assignee',
+              members: 'members',
+              searchAssignee: 'Search assignee by name or ID...',
+              noResults: 'No results for',
+              results: 'results',
+              taskType: 'Task Type',
+              storyPoints: 'Story Points',
+              aiWillVerify: 'AI will verify',
+              taskSummary: 'Task Summary',
+              fivePartInput: 'Five-Part Structured Input',
+              vehicle: 'Vehicle',
+              product: 'Product',
+              layer: 'Layer',
+              component: 'Component',
+              componentPlaceholder: 'Component name',
+              taskDetail: 'Task Detail',
+              taskDetailPlaceholder: 'Brief task description',
+              livePreview: 'Live Preview',
+              previewPlaceholder: 'Please fill in the fields above...',
+              taskDescription: 'Task Description',
+              required: 'Required',
+              descriptionPlaceholder: 'Enter background info, prerequisites, change requests, defect description, design thoughts, acceptance criteria (AC), or reproduction steps...',
+              reset: 'Reset',
+              aiAnalyze: 'AI Smart Analysis',
+              confirmCreate: 'Confirm Create (JIRA)',
+              creating: 'Creating...',
+              analyzing: 'Analyzing...',
+              select: 'Select'
+            },
+            panel: {
+              aiAgentResponse: 'AI Agent Review Message',
+              jiraResponse: 'JIRA Create Issue Response',
+              waitingAI: 'Waiting for AI Agent response...',
+              aiAnalyzing: 'AI is analyzing...',
+              waitingJira: 'Waiting for JIRA creation result...',
+              summary: 'Processing Summary',
+              aiCorrectedPoints: 'AI Corrected Points',
+              subtasks: 'Subtasks',
+              items: 'items'
+            },
+            status: {
+              idle: 'Idle',
+              loading: 'Loading',
+              success: 'Success',
+              error: 'Error',
+              pending: 'Pending',
+              created: 'Created'
+            },
+            dev: {
+              viewPayload: 'View Request Payload',
+              webhookConfig: 'Webhook Configuration',
+              currentMode: 'Current Mode',
+              production: 'Production',
+              testing: 'Testing',
+              configHint: 'Modify constant to update config:'
+            },
+            error: {
+              timeout: 'Request timeout, please check if n8n service is running',
+              connectionFailed: 'Cannot connect to n8n service',
+              requestFailed: 'Request failed',
+              emptyResponse: 'Server returned empty response, please check n8n workflow configuration'
+            },
+            urlMode: {
+              testTooltip: 'Test Mode: Requires clicking "Listen" in n8n editor',
+              prodTooltip: 'Production Mode: Requires n8n workflow to be Active (green)'
+            },
+            coach: {
+              title: 'AI Coach Guidance',
+              emptyHint: 'Get AI guidance to write better task descriptions',
+              emptySubHint: 'Fill in basic info and description, then click the button below',
+              analyzing: 'AI Coach is analyzing...',
+              requestBtn: 'Get Writing Guidance',
+              requesting: 'Requesting...',
+              hint: 'Coach will help improve your description quality',
+              team: 'Team',
+              assignee: 'Assignee',
+              reviewDetails: 'Review Details'
+            }
+          },
+          zh: {
+            header: {
+              title: 'JIRA 智能任务工作站'
+            },
+            form: {
+              basicInfo: '基本信息',
+              projectName: '项目空间',
+              assignee: '经办人',
+              members: '人',
+              searchAssignee: '搜索姓名或工号...',
+              noResults: '未找到匹配',
+              results: '个结果',
+              taskType: '任务类型',
+              storyPoints: '故事点估算',
+              aiWillVerify: 'AI 将进行二次校验',
+              taskSummary: '任务摘要',
+              fivePartInput: '五段式结构化输入',
+              vehicle: '车型',
+              product: '产品',
+              layer: '分层',
+              component: '组件',
+              componentPlaceholder: '组件名',
+              taskDetail: '任务概括',
+              taskDetailPlaceholder: '简要描述任务内容',
+              livePreview: '实时预览',
+              previewPlaceholder: '请填写上方字段...',
+              taskDescription: '任务描述',
+              required: '必填',
+              descriptionPlaceholder: '请输入背景信息、前置需求、变更请求、缺陷描述、设计思路、验收标准 (AC) 或复现步骤...',
+              reset: '重置',
+              aiAnalyze: 'AI 智能分析',
+              confirmCreate: '确认创建 (JIRA)',
+              creating: '创建中...',
+              analyzing: '分析中...',
+              select: '选择'
+            },
+            panel: {
+              aiAgentResponse: 'AI Agent 审核消息',
+              jiraResponse: 'JIRA 创建结果',
+              waitingAI: '等待 AI Agent 响应...',
+              aiAnalyzing: 'AI 正在分析...',
+              waitingJira: '等待 JIRA 创建结果...',
+              summary: '处理摘要',
+              aiCorrectedPoints: 'AI 修正点数',
+              subtasks: '拆解子任务',
+              items: '个'
+            },
+            status: {
+              idle: '空闲',
+              loading: '加载中',
+              success: '成功',
+              error: '错误',
+              pending: '待处理',
+              created: '已创建'
+            },
+            dev: {
+              viewPayload: '查看请求 Payload',
+              webhookConfig: 'Webhook 配置',
+              currentMode: '当前模式',
+              production: '生产环境',
+              testing: '测试环境',
+              configHint: '修改常量以更新配置：'
+            },
+            error: {
+              timeout: '请求超时，请检查 n8n 服务是否运行',
+              connectionFailed: '无法连接到 n8n 服务',
+              requestFailed: '请求失败',
+              emptyResponse: '服务器返回空响应，请检查 n8n 工作流中 Respond_to_Webhook 节点配置'
+            },
+            urlMode: {
+              testTooltip: '测试模式：需要在 n8n 编辑器中点击 "Listen" 按钮',
+              prodTooltip: '生产模式：需要 n8n 工作流处于 Active 状态（绿色）'
+            },
+            coach: {
+              title: 'AI 任务辅导信息',
+              emptyHint: '获取 AI 辅导，写出更优质的任务描述',
+              emptySubHint: '填写基本信息和描述后，点击下方按钮',
+              analyzing: 'AI Coach 正在分析...',
+              requestBtn: '获取写作指导',
+              requesting: '请求中...',
+              hint: 'Coach 将帮助提升您的描述质量',
+              team: '所属团队',
+              assignee: '经办人',
+              reviewDetails: '审核详情'
+            }
+          }
+        };
+
+        // Translation function
+        function t(key) {
+          const keys = key.split('.');
+          let value = i18n[currentLang.value];
+          for (const k of keys) {
+            value = value?.[k];
+          }
+          return value || key;
+        }
+
+        // Set language and persist
+        function setLang(lang) {
+          currentLang.value = lang;
+          localStorage.setItem('jira-terminal-lang', lang);
+          document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+        }
+
+        // ==========================================
+        // CONFIGURATION CONSTANTS
+        // ==========================================
+        
+        // N8N WEBHOOK CONFIGURATION
+        const WEBHOOK_CONFIG = {
+          testUrl: 'http://10.246.107.247:5678/webhook-test/ca967bdd-a769-4073-9ad1-5044963571c4',
+          prodUrl: 'http://10.246.107.247:5678/webhook/ca967bdd-a769-4073-9ad1-5044963571c4',
+          timeout: 60000
+        };
+
+        // Reactive URL mode state (persisted to localStorage)
+        const useProductionMode = ref(localStorage.getItem('jira-terminal-prod-mode') === 'true');
+
+        // Set URL mode and persist
+        function setUrlMode(isProd) {
+          useProductionMode.value = isProd;
+          localStorage.setItem('jira-terminal-prod-mode', isProd ? 'true' : 'false');
+        }
+
+        const getWebhookUrl = () => useProductionMode.value 
+          ? WEBHOOK_CONFIG.prodUrl 
+          : WEBHOOK_CONFIG.testUrl;
+
+        // ==========================================
+        // PROJECT & TEAM MEMBER CONFIGURATION
+        // ==========================================
+        
+        // Project configuration with team info
+        const PROJECT_CONFIG = [
+          { name: 'IDC_PDHW', key: 'HW', teamName: 'Hardware Team' },
+          { name: 'IDC_PDSW', key: 'DKKF', teamName: 'Software Dev Team' },
+          { name: 'IDC_PDSY', key: 'DKKG', teamName: 'System Team' },
+          { name: 'IDC_PDVV', key: 'DKKFT', teamName: 'V&V Team' }
+        ];
+
+        // Team members mapped by project key
+        const TEAM_MEMBERS = {
+          // Hardware Team (HW)
+          'HW': [
+            { id: 'CW032281', name: '吴亮 (Wu Liang)', role: 'Sr. Engineer' },
+            { id: 'CW00155853', name: '孙凯博 (Sun Kaibo)', role: 'Engineer' },
+            { id: 'CW003651449', name: '杜林俊 (Du Linjun)', role: 'Sr. Engineer' },
+            { id: 'CW00361691', name: '张松松 (Zhang Songsong)', role: 'Sr. Engineer' },
+            { id: 'CW003205716', name: '周仁建 (Zhou Renjian)', role: 'Engineer' },
+            { id: 'CW00367629', name: '任林 (Ren Lin)', role: 'Sr. Engineer' },
+            { id: 'CW00373750', name: '张鹏鹏 (Zhang Pengpeng)', role: 'Engineer' },
+            { id: 'CW0037590', name: '赵俊豪 (Zhao Junhao)', role: 'Engineer' },
+            { id: 'CW003859422', name: '石志国 (Shi Zhiguo)', role: 'Engineer' },
+            { id: 'CW00362081', name: '伏倩倩 (Fu Qianqian)', role: 'Jr. Engineer' },
+          ],
+          // Software Development Team (DKKF)
+          'DKKF': [
+            { id: 'GW00199494', name: '牛作硕 (Niu Zuoxiang)', role: 'SW Manager' },
+            { id: 'GW00349068', name: '宋硕硕 (Song Shuoshuo)', role: 'Sr. SW Engineer' },
+            { id: 'GW0354001', name: '李兵建 (Li Bingjian)', role: 'Sr. SW Engineer' },
+            { id: 'GW0033555', name: '黄家印 (Huang Jiayin)', role: 'SW Engineer' },
+            { id: 'GW0014337', name: '程祖 (Cheng Zu)', role: 'SW Engineer' },
+            { id: 'GW0012418', name: '陈永久 (Chen Yongjiu)', role: 'Sr. SW Engineer' },
+            { id: 'GW00251962', name: '刘泽凌 (Liu Zeling)', role: 'Jr. SW Engineer' },
+            { id: 'GW00339528', name: '付健 (Fu Jian)', role: 'Jr. SW Engineer' },
+            { id: 'GW0070600', name: '汪江 (Wang Jiang)', role: 'SW Engineer' },
+            { id: 'GW00332060', name: '赵永民 (Zhao Yongmin)', role: 'Sr. SW Engineer' },
+            { id: 'GW00371095', name: 'Lavanesh', role: 'SW Engineer' },
+            { id: 'GW00287516', name: '张思博 (Zhang Sibo)', role: 'Jr. SW Engineer' },
+            { id: 'GW00339076', name: '谭亚 (Tan Ya)', role: 'SW Engineer' },
+            { id: 'GW00371092', name: 'Gowtham', role: 'SW Engineer' },
+            { id: 'GW0298295', name: '李大伟 (Li Dawei)', role: 'SW Engineer' },
+            { id: 'GW0024364', name: '杨兰 (Yang Lan)', role: 'Sr. SW Engineer' },
+            { id: 'GW00307545', name: '寇文涛 (Kou Wentao)', role: 'Jr. SW Engineer' },
+            { id: 'GW0060216', name: '张一品 (Zhang Yipin)', role: 'Jr. SW Engineer' },
+            { id: 'GW0166968', name: '谢丽曼 (Xie Liman)', role: 'Jr. SW Engineer' },
+            { id: 'GW00358426', name: '徐振亮 (Xu Zhenliang)', role: 'Jr. SW Engineer' },
+            { id: 'GW00034357', name: '朱紫菱 (Zhu Ziling)', role: 'Jr. SW Engineer' },
+            { id: 'GW0354387', name: 'Sathya', role: 'SW Engineer' },
+            { id: 'GW00357627', name: '王嘉伟 (Wang Jiawei)', role: 'SW Engineer' },
+            { id: 'GW0045363', name: '林文衡 (Lin Wenheng)', role: 'SW Engineer' },
+            { id: 'GW00330163', name: '苏明 (Su Ming)', role: 'Sr. SW Engineer' },
+            { id: 'GW0395714', name: '邓云瀚 (Deng Yunhan)', role: 'Jr. SW Engineer' },
+          ],
+          // System Team (DKKG)
+          'DKKG': [
+            { id: 'GW00365684', name: '袁东阳 (Yuan Dongyang)', role: 'SYS Manager' },
+            { id: 'GW00261258', name: '牛昱朗 (Niu Yulang)', role: 'Jr. Engineer' },
+            { id: 'GW00317549', name: '闵德昌 (Min Dechang)', role: 'Jr. Engineer' },
+            { id: 'GW00374619', name: '吴志飞 (Wu Zhifei)', role: 'Sr. Engineer' },
+            { id: 'GW00373616', name: '董亚洲 (Dong Yazhou)', role: 'Sr. Engineer' },
+          ],
+          // V&V Team (DKKFT)
+         'DKKFT': [
+           { id: 'GW00367407', name: '张明 (Zhang Ming)', role: 'Sr. Engineer' },
+           { id: 'GW00376500', name: '王威 (Wang Wei)', role: 'Sr. Engineer' },
+           { id: 'GW00371274', name: '唐紫姗 (Tang Zishan)', role: 'Jr. Engineer' },
+           { id: 'GW00368026', name: '阮云冲 (Ruan Yunchong)', role: 'Jr. Engineer' },
+           { id: 'GW00285392', name: '万飞 (Wan Fei)', role: 'Engineer' },
+           { id: 'GW00086162', name: '李云龙 (Li Yunlong)', role: 'Engineer' },
+           { id: 'GW00285392', name: '李子越 (Li Ziyue)', role: 'Jr. Engineer' },
+           { id: 'GW00333343', name: '耿国涛 (Geng Guotao)', role: 'Engineer' },
+           { id: 'GW00395792', name: '焦心雨 (Jiao Xinyu)', role: 'Jr. Engineer' },
+           { id: 'GW00324035', name: '刘建设 (Liu Jianshe)', role: 'Sr. Engineer' },
+         ]
+        };
+
+        // Task types
+        const TASK_TYPES = [
+          { value: 'Story', label: 'Story', color: '#3fb950', bgActive: 'rgba(63, 185, 80, 0.15)' },
+          { value: 'Task', label: 'Task', color: '#58a6ff', bgActive: 'rgba(88, 166, 255, 0.15)' },
+          { value: 'Bug', label: 'Bug', color: '#f85149', bgActive: 'rgba(248, 81, 73, 0.15)' }
+        ];
+
+        const FIBONACCI_POINTS = [1, 2, 3, 5, 8];
+
+        const VEHICLE_OPTIONS = ['GWM','GWM_DE09', 'GWM_EC15S', 'GWM_EC15G', 'GWM_EC15SG', 'GWM_B26-A','GWM_B26-G'];
+        const PRODUCT_OPTIONS = ['ICC', 'EPS', 'ESP', 'IBC','IBC1.1','IBC1.2','IBC2.0', 'ABS', 'TCS', 'AEB'];
+        const LAYER_OPTIONS = ['SYS', 'SW', 'HW', 'ME'];
+
+        const componentHistory = ref([
+          'CAN_Driver', 'LIN_Stack', 'Diag_Module', 'PWM_Controller',
+          'Flash_Manager', 'OS_Task', 'Calibration', 'PID_Control'
+        ]);
+
+        // ==========================================
+        // FORM STATE
+        // ==========================================
+        
+        const form = reactive({
+          projectKey: 'HW',
+          issueType: 'Story',
+          assignee: '',
+          estimatedPoints: 3,
+          description: ''
+        });
+
+        const summary = reactive({
+          vehicle: '',
+          product: '',
+          layer: '',
+          component: '',
+          detail: ''
+        });
+
+        // ==========================================
+        // COMBOBOX STATE (Assignee Search)
+        // ==========================================
+        
+        const comboboxInput = ref(null);
+        const assigneeSearch = ref('');
+        const isDropdownOpen = ref(false);
+        const highlightedIndex = ref(0);
+
+        // Get current team members based on selected project
+        const currentTeamMembers = computed(() => {
+          return TEAM_MEMBERS[form.projectKey] || [];
+        });
+
+        // Current team member count
+        const currentTeamMemberCount = computed(() => {
+          return currentTeamMembers.value.length;
+        });
+
+        // Current project team name
+        const currentProjectTeamName = computed(() => {
+          const project = PROJECT_CONFIG.find(p => p.key === form.projectKey);
+          return project?.teamName || '';
+        });
+
+        // Filter assignees based on search input (fuzzy search)
+        const filteredAssignees = computed(() => {
+          const searchTerm = assigneeSearch.value.toLowerCase().trim();
+          if (!searchTerm) {
+            return currentTeamMembers.value;
+          }
+          
+          return currentTeamMembers.value.filter(user => {
+            const nameMatch = user.name.toLowerCase().includes(searchTerm);
+            const idMatch = user.id.toLowerCase().includes(searchTerm);
+            const roleMatch = user.role?.toLowerCase().includes(searchTerm);
+            return nameMatch || idMatch || roleMatch;
+          });
+        });
+
+        // Get selected assignee name for display
+        const selectedAssigneeName = computed(() => {
+          if (!form.assignee) return '';
+          const user = currentTeamMembers.value.find(u => u.id === form.assignee);
+          return user?.name || '';
+        });
+
+        // Highlight matching text
+        function highlightMatch(text, search) {
+          if (!search || !search.trim()) return text;
+          const regex = new RegExp(`(${search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+          return text.replace(regex, '<span class="highlight-match">$1</span>');
+        }
+
+        // Open dropdown
+        function openDropdown() {
+          isDropdownOpen.value = true;
+          assigneeSearch.value = '';
+          highlightedIndex.value = 0;
+        }
+
+        // Close dropdown
+        function closeDropdown() {
+          isDropdownOpen.value = false;
+          assigneeSearch.value = '';
+        }
+
+        // Select assignee
+        function selectAssignee(user) {
+          form.assignee = user.id;
+          closeDropdown();
+        }
+
+        // Handle input in combobox
+        function onAssigneeInput() {
+          if (!isDropdownOpen.value) {
+            isDropdownOpen.value = true;
+          }
+          highlightedIndex.value = 0;
+        }
+
+        // Handle keyboard navigation
+        function onComboboxKeydown(event) {
+          if (!isDropdownOpen.value) {
+            if (event.key === 'ArrowDown' || event.key === 'Enter') {
+              openDropdown();
+              event.preventDefault();
+            }
+            return;
+          }
+
+          switch (event.key) {
+            case 'ArrowDown':
+              event.preventDefault();
+              if (highlightedIndex.value < filteredAssignees.value.length - 1) {
+                highlightedIndex.value++;
+              }
+              break;
+            case 'ArrowUp':
+              event.preventDefault();
+              if (highlightedIndex.value > 0) {
+                highlightedIndex.value--;
+              }
+              break;
+            case 'Enter':
+              event.preventDefault();
+              if (filteredAssignees.value[highlightedIndex.value]) {
+                selectAssignee(filteredAssignees.value[highlightedIndex.value]);
+              }
+              break;
+            case 'Escape':
+              closeDropdown();
+              break;
+          }
+        }
+
+        // Handle project change - reset assignee
+        function onProjectChange() {
+          form.assignee = '';
+          assigneeSearch.value = '';
+        }
+
+        // ==========================================
+        // UI STATE
+        // ==========================================
+        
+        const isSubmitting = ref(false);
+        const errorMessage = ref('');
+        const currentAction = ref(''); // Track current action: 'analyze' or 'create'
+        
+        // Response data
+        const aiAgentResponse = ref(null);
+        const jiraResponse = ref(null);
+        
+        // Coach state
+        const coachResponse = ref(null);
+        const isCoachLoading = ref(false);
+
+        // ==========================================
+        // STATUS INDICATORS
+        // ==========================================
+        
+        const aiAgentStatus = computed(() => {
+          if (isSubmitting.value && currentAction.value === 'analyze') {
+            return { class: 'status-loading', key: 'loading', color: 'var(--accent-orange)' };
+          }
+          if (aiAgentResponse.value) {
+            return { class: 'status-success', key: 'success', color: 'var(--accent-green)' };
+          }
+          if (errorMessage.value && currentAction.value === 'analyze') {
+            return { class: 'status-error', key: 'error', color: 'var(--accent-red)' };
+          }
+          return { class: 'status-idle', key: 'idle', color: 'var(--text-muted)' };
+        });
+
+        const jiraStatus = computed(() => {
+          if (isSubmitting.value && currentAction.value === 'create') {
+            return { class: 'status-loading', key: 'pending', color: 'var(--accent-orange)' };
+          }
+          if (jiraResponse.value) {
+            const parsed = parsedJiraResponse.value;
+            if (parsed?.key && parsed.key !== 'PENDING') {
+              return { class: 'status-success', key: 'created', color: 'var(--accent-green)' };
+            }
+            return { class: 'status-loading', key: 'pending', color: 'var(--accent-orange)' };
+          }
+          return { class: 'status-idle', key: 'idle', color: 'var(--text-muted)' };
+        });
+
+        const coachStatus = computed(() => {
+          if (isCoachLoading.value) {
+            return { class: 'status-loading', key: 'loading', color: 'var(--accent-orange)' };
+          }
+          if (coachResponse.value) {
+            return { class: 'status-success', key: 'success', color: 'var(--accent-green)' };
+          }
+          return { class: 'status-idle', key: 'idle', color: 'var(--text-muted)' };
+        });
+
+        // Can request coach only when all required fields are filled (same as canSubmit)
+        const canRequestCoach = computed(() => {
+          return (
+            form.projectKey &&
+            form.issueType &&
+            form.assignee &&
+            form.estimatedPoints &&
+            form.description.trim() &&
+            summary.vehicle &&
+            summary.product &&
+            summary.layer &&
+            summary.component &&
+            summary.detail
+          );
+        });
+
+        // ==========================================
+        // COMPUTED PROPERTIES
+        // ==========================================
+        
+        const computedSummary = computed(() => {
+          const parts = [
+            summary.vehicle,
+            summary.product,
+            summary.layer,
+            summary.component,
+            summary.detail
+          ];
+          
+          const filledParts = parts.filter(p => p);
+          if (filledParts.length === 0) return '';
+          
+          return parts.map(p => `[${p || '...'}]`).join('');
+        });
+
+        const canSubmit = computed(() => {
+          return (
+            form.projectKey &&
+            form.issueType &&
+            form.assignee &&
+            form.estimatedPoints &&
+            form.description.trim() &&
+            summary.vehicle &&
+            summary.product &&
+            summary.layer &&
+            summary.component &&
+            summary.detail
+          );
+        });
+
+        // ==========================================
+        // QUALITY SCORE (Live Progress Bar)
+        // ==========================================
+        const qualityScore = computed(() => {
+          let score = 0;
+          const weights = {
+            projectKey: 8,
+            issueType: 8,
+            assignee: 8,
+            estimatedPoints: 6,
+            vehicle: 8,
+            product: 8,
+            layer: 8,
+            component: 8,
+            detail: 10,
+            descriptionPresent: 10,
+            descriptionLength: 18  // bonus for rich description
+          };
+          if (form.projectKey) score += weights.projectKey;
+          if (form.issueType) score += weights.issueType;
+          if (form.assignee) score += weights.assignee;
+          if (form.estimatedPoints) score += weights.estimatedPoints;
+          if (summary.vehicle) score += weights.vehicle;
+          if (summary.product) score += weights.product;
+          if (summary.layer) score += weights.layer;
+          if (summary.component) score += weights.component;
+          if (summary.detail) score += weights.detail;
+          const desc = form.description.trim();
+          if (desc) {
+            score += weights.descriptionPresent;
+            // Bonus: 0-18 based on description richness (up to 200 chars)
+            score += Math.min(Math.floor(desc.length / 200 * weights.descriptionLength), weights.descriptionLength);
+          }
+          return Math.min(score, 100);
+        });
+
+        const qualityScoreColor = computed(() => {
+          const s = qualityScore.value;
+          if (s >= 80) return 'var(--accent-green)';
+          if (s >= 50) return 'var(--accent-orange)';
+          if (s > 0) return 'var(--accent-red)';
+          return 'var(--text-muted)';
+        });
+
+        const qualityScoreLabel = computed(() => {
+          const s = qualityScore.value;
+          if (s >= 80) return currentLang.value === 'zh' ? '优秀' : 'Excellent';
+          if (s >= 50) return currentLang.value === 'zh' ? '良好' : 'Good';
+          if (s > 0) return currentLang.value === 'zh' ? '待完善' : 'Incomplete';
+          return currentLang.value === 'zh' ? '未填写' : 'Empty';
+        });
+
+        // ==========================================
+        // COACH QUICK-ACTION CHIPS
+        // ==========================================
+        const coachChips = computed(() => {
+          const isZh = currentLang.value === 'zh';
+          return [
+            { key: 'template', icon: '📋', label: isZh ? 'AC 模板' : 'AC Template' },
+            { key: 'optimize', icon: '✨', label: isZh ? '优化描述' : 'Optimize' },
+            { key: 'bugReport', icon: '🐛', label: isZh ? 'Bug 模板' : 'Bug Template' },
+            { key: 'changeReq', icon: '🔄', label: isZh ? '变更请求' : 'Change Req' }
+          ];
+        });
+
+        function applyCoachChip(chipKey) {
+          const templates = {
+            template: {
+              zh: '**背景信息**\n\n\n**前置需求**\n\n\n**设计思路**\n\n\n**验收标准 (AC)**\n- [ ] AC1: \n- [ ] AC2: \n- [ ] AC3: \n\n**备注**\n',
+              en: '**Background**\n\n\n**Prerequisites**\n\n\n**Design Approach**\n\n\n**Acceptance Criteria (AC)**\n- [ ] AC1: \n- [ ] AC2: \n- [ ] AC3: \n\n**Notes**\n'
+            },
+            optimize: {
+              zh: '请基于以下信息帮我优化任务描述：\n\n**当前问题/目标**\n\n\n**期望结果**\n\n\n**实现方案**\n\n\n**影响范围**\n',
+              en: 'Please help optimize the task description based on:\n\n**Current Problem/Goal**\n\n\n**Expected Outcome**\n\n\n**Implementation Plan**\n\n\n**Impact Scope**\n'
+            },
+            bugReport: {
+              zh: '**缺陷描述**\n\n\n**复现步骤**\n1. \n2. \n3. \n\n**期望行为**\n\n\n**实际行为**\n\n\n**环境信息**\n- 车型/平台: \n- 软件版本: \n- 硬件版本: \n',
+              en: '**Bug Description**\n\n\n**Steps to Reproduce**\n1. \n2. \n3. \n\n**Expected Behavior**\n\n\n**Actual Behavior**\n\n\n**Environment**\n- Vehicle/Platform: \n- SW Version: \n- HW Version: \n'
+            },
+            changeReq: {
+              zh: '**变更请求**\n\n**变更原因**\n\n\n**变更内容**\n\n\n**影响分析**\n- 功能影响: \n- 接口影响: \n- 测试影响: \n\n**验收标准**\n- [ ] \n',
+              en: '**Change Request**\n\n**Reason for Change**\n\n\n**Change Content**\n\n\n**Impact Analysis**\n- Functional: \n- Interface: \n- Testing: \n\n**Acceptance Criteria**\n- [ ] \n'
+            }
+          };
+          const lang = currentLang.value === 'zh' ? 'zh' : 'en';
+          const template = templates[chipKey]?.[lang];
+          if (template) {
+            form.description = template;
+          }
+        }
+
+        const jsonPayload = computed(() => {
+          const projectName = PROJECT_CONFIG.find(p => p.key === form.projectKey)?.name || '';
+          
+          return JSON.stringify({
+            meta: {
+              source: 'jira_agent_ui_v7.0',
+              timestamp: Date.now(),
+              action: currentAction.value || 'preview' // Display current action or default
+            },
+            data: {
+              project_key: form.projectKey,
+              project_name: projectName,
+              issue_type: form.issueType,
+              summary: computedSummary.value,
+              description: form.description,
+              assignee: form.assignee,
+              estimated_points: form.estimatedPoints
+            }
+          }, null, 2);
+        });
+
+        // Parse response objects for quick summary
+        const parsedAiResponse = computed(() => {
+          if (!aiAgentResponse.value) return null;
+          try {
+            return typeof aiAgentResponse.value === 'string' 
+              ? JSON.parse(aiAgentResponse.value) 
+              : aiAgentResponse.value;
+          } catch { return null; }
+        });
+
+        const parsedJiraResponse = computed(() => {
+          if (!jiraResponse.value) return null;
+          try {
+            return typeof jiraResponse.value === 'string' 
+              ? JSON.parse(jiraResponse.value) 
+              : jiraResponse.value;
+          } catch { return null; }
+        });
+
+        // ==========================================
+        // METHODS
+        // ==========================================
+        
+        // Format JSON with syntax highlighting
+        function formatJson(data) {
+          if (!data) return '';
+          
+          const jsonString = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+          
+          // Escape HTML
+          let escaped = jsonString
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+          
+          // Add syntax highlighting
+          escaped = escaped
+            .replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match, content) => {
+              return `<span class="json-string">"${content}"</span>`;
+            })
+            .replace(/\b(\d+\.?\d*)\b/g, '<span class="json-number">$1</span>')
+            .replace(/\b(true|false)\b/g, '<span class="json-boolean">$1</span>')
+            .replace(/\bnull\b/g, '<span class="json-null">null</span>');
+          
+          return escaped;
+        }
+
+        // Format Coach response for display
+        function formatCoachResponse(data) {
+          if (!data) return '';
+          
+          // Handle array response (from n8n)
+          let item = data;
+          if (Array.isArray(data)) {
+            item = data[0];
+          }
+          
+          if (!item || typeof item !== 'object') {
+            return escapeHtml(String(data));
+          }
+          
+          // Check if it's a structured coach response
+          const hasStructuredFields = item.status || item.comment || item.markdown_msg || item.team;
+          
+          if (hasStructuredFields) {
+            return formatStructuredCoachResponse(item);
+          }
+          
+          // Fallback: Try to extract text content
+          let text = item.raw_content || item.message || item.output || item.content || item.text || '';
+          
+          if (!text) {
+            // If no text field found, format the object nicely
+            return formatStructuredCoachResponse(item);
+          }
+          
+          return formatMarkdownText(text);
+        }
+        
+        // Escape HTML characters
+        function escapeHtml(text) {
+          return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        }
+        
+        // Format structured coach response object
+        function formatStructuredCoachResponse(item) {
+          let html = '';
+          
+          // Status badge at the top
+          if (item.status) {
+            const statusClass = item.status === 'PASS' ? 'coach-status-pass' : 
+                               item.status === 'FAIL' ? 'coach-status-fail' : 'coach-status-warn';
+            const statusIcon = item.status === 'PASS' ? '✅' : 
+                              item.status === 'FAIL' ? '❌' : '⚠️';
+            html += `<div class="coach-status-badge ${statusClass}">${statusIcon} ${escapeHtml(item.status)}</div>`;
+          }
+          
+          // Team info
+          if (item.team) {
+            html += `<div class="coach-info-row">
+              <span class="coach-info-label">📂 ${t('coach.team')}:</span>
+              <span class="coach-info-value">${escapeHtml(item.team)}</span>
+            </div>`;
+          }
+          
+          // Assignee
+          if (item.assignee) {
+            html += `<div class="coach-info-row">
+              <span class="coach-info-label">👤 ${t('coach.assignee')}:</span>
+              <span class="coach-info-value">${escapeHtml(item.assignee)}</span>
+            </div>`;
+          }
+          
+          // JIRA ID
+          if (item.jira_id) {
+            html += `<div class="coach-info-row">
+              <span class="coach-info-label">🎫 JIRA ID:</span>
+              <span class="coach-info-value">${escapeHtml(item.jira_id)}</span>
+            </div>`;
+          }
+          
+          // Main message (markdown_msg has priority)
+          if (item.markdown_msg) {
+            html += `<div class="coach-main-message">${formatMarkdownText(item.markdown_msg)}</div>`;
+          }
+          
+          // Detailed comments
+          if (item.comment) {
+            html += `<div class="coach-comment-section">
+              <div class="coach-comment-title">📋 ${t('coach.reviewDetails')}</div>
+              <div class="coach-comment-content">${formatCommentList(item.comment)}</div>
+            </div>`;
+          }
+          
+          // Raw content fallback
+          if (item.raw_content && !item.markdown_msg && !item.comment) {
+            html += `<div class="coach-main-message">${formatMarkdownText(item.raw_content)}</div>`;
+          }
+          
+          return html || '<div class="coach-empty">No content available</div>';
+        }
+        
+        // Format comment string into list items
+        function formatCommentList(comment) {
+          if (!comment) return '';
+          
+          let text = escapeHtml(comment);
+          
+          // Split by numbered items (1. xxx; 2. xxx; or 1. xxx 2. xxx)
+          const items = text.split(/(?=\d+\.\s)/);
+          
+          if (items.length > 1) {
+            let html = '<div class="coach-issues-list">';
+            items.forEach(item => {
+              item = item.trim();
+              if (item) {
+                // Extract the number and content
+                const match = item.match(/^(\d+)\.\s*(.+?)(?:；|;|$)/s);
+                if (match) {
+                  const num = match[1];
+                  let content = match[2] || item.replace(/^\d+\.\s*/, '');
+                  // Clean up trailing semicolons
+                  content = content.replace(/[；;]\s*$/, '');
+                  
+                  // Highlight key terms
+                  content = content.replace(/(缺少|缺失|未提供|未明确|未关联|未提及|未说明|未定义|不明确)/g, 
+                    '<span class="coach-highlight-error">$1</span>');
+                  
+                  html += `<div class="coach-issue-item">
+                    <span class="coach-issue-num">${num}</span>
+                    <span class="coach-issue-text">${content}</span>
+                  </div>`;
+                }
+              }
+            });
+            html += '</div>';
+            return html;
+          }
+          
+          return `<p>${text}</p>`;
+        }
+        
+        // Format markdown text to HTML
+        function formatMarkdownText(text) {
+          if (!text) return '';
+          
+          text = escapeHtml(text);
+          
+          // Headers
+          text = text.replace(/^### (.+)$/gm, '<h4 class="coach-h4">$1</h4>');
+          text = text.replace(/^## (.+)$/gm, '<h3 class="coach-h3">$1</h3>');
+          
+          // Horizontal rule
+          text = text.replace(/^---+$/gm, '<hr class="coach-hr">');
+          
+          // Bold
+          text = text.replace(/\*\*(.+?)\*\*/g, '<strong class="coach-bold">$1</strong>');
+          text = text.replace(/__(.+?)__/g, '<strong class="coach-bold">$1</strong>');
+          
+          // Inline code
+          text = text.replace(/`([^`]+)`/g, '<code class="coach-code">$1</code>');
+          
+          // Status icons
+          text = text.replace(/🔴/g, '<span class="coach-icon-error">🔴</span>');
+          text = text.replace(/🟢/g, '<span class="coach-icon-success">🟢</span>');
+          text = text.replace(/🟡/g, '<span class="coach-icon-warning">🟡</span>');
+          text = text.replace(/❌/g, '<span class="coach-icon-error">❌</span>');
+          text = text.replace(/✅/g, '<span class="coach-icon-success">✅</span>');
+          text = text.replace(/⚠️/g, '<span class="coach-icon-warning">⚠️</span>');
+          
+          // List items: - item
+          text = text.replace(/^[-*]\s+(.+)$/gm, '<div class="coach-list-item"><span class="coach-list-bullet">•</span> $1</div>');
+          
+          // Numbered items: 1. item
+          text = text.replace(/^(\d+)\.\s+(.+)$/gm, '<div class="coach-list-item"><span class="coach-list-num">$1.</span> $2</div>');
+          
+          // Paragraphs
+          text = text.replace(/\n\n+/g, '</p><p class="coach-para">');
+          text = text.replace(/\n/g, '<br>');
+          
+          text = '<p class="coach-para">' + text + '</p>';
+          text = text.replace(/<p class="coach-para"><\/p>/g, '');
+          
+          return text;
+        }
+
+        // Request Coach guidance
+        async function requestCoach() {
+          if (!canRequestCoach.value || isCoachLoading.value) return;
+          
+          isCoachLoading.value = true;
+          coachResponse.value = null;
+          
+          const projectName = PROJECT_CONFIG.find(p => p.key === form.projectKey)?.name || '';
+          const payload = {
+            meta: {
+              source: 'jira_agent_ui_v7.0',
+              timestamp: Date.now(),
+              action: 'coach' // Special action for coach request
+            },
+            data: {
+              project_key: form.projectKey,
+              project_name: projectName,
+              issue_type: form.issueType,
+              summary: computedSummary.value,
+              description: form.description,
+              assignee: form.assignee,
+              estimated_points: form.estimatedPoints
+            }
+          };
+          
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_CONFIG.timeout);
+            
+            const response = await fetch(getWebhookUrl(), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            // Get response text first to handle empty responses
+            const responseText = await response.text();
+            
+            if (!responseText || responseText.trim() === '') {
+              throw new Error(t('error.emptyResponse'));
+            }
+            
+            // Try to parse as JSON
+            let result;
+            try {
+              result = JSON.parse(responseText);
+            } catch (parseError) {
+              // If not JSON, treat the text as the coach message
+              result = { message: responseText };
+            }
+            
+            coachResponse.value = result;
+            
+          } catch (error) {
+            if (error.name === 'AbortError') {
+              errorMessage.value = t('error.timeout');
+            } else if (error.message.includes('Failed to fetch')) {
+              errorMessage.value = t('error.connectionFailed');
+            } else if (error.message.includes('Unexpected end of JSON')) {
+              errorMessage.value = t('error.emptyResponse');
+            } else {
+              errorMessage.value = error.message || t('error.requestFailed');
+            }
+            console.error('Coach Request Error:', error);
+          } finally {
+            isCoachLoading.value = false;
+          }
+        }
+
+        // Handle form submission (Step-by-Step Logic)
+        async function handleSubmit(actionType = 'analyze') {
+          if (!canSubmit.value || isSubmitting.value) return;
+
+          isSubmitting.value = true;
+          currentAction.value = actionType;
+          errorMessage.value = '';
+          
+          // Clear responses based on action
+          if (actionType === 'analyze') {
+            aiAgentResponse.value = null;
+            jiraResponse.value = null; // Clear JIRA result on new analysis
+          } else {
+            // 'create' action: Keep AI response, clear old JIRA response
+            jiraResponse.value = null;
+          }
+
+          const projectName = PROJECT_CONFIG.find(p => p.key === form.projectKey)?.name || '';
+          const payload = {
+            meta: {
+              source: 'jira_agent_ui_v7.0',
+              timestamp: Date.now(),
+              action: actionType // 'analyze' or 'create'
+            },
+            data: {
+              project_key: form.projectKey,
+              project_name: projectName,
+              issue_type: form.issueType,
+              summary: computedSummary.value,
+              description: form.description,
+              assignee: form.assignee,
+              estimated_points: form.estimatedPoints
+            }
+          };
+
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_CONFIG.timeout);
+
+            const response = await fetch(getWebhookUrl(), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            // Get response text first to handle empty responses
+            const responseText = await response.text();
+            
+            if (!responseText || responseText.trim() === '') {
+              throw new Error(t('error.emptyResponse'));
+            }
+            
+            // Try to parse as JSON
+            let result;
+            try {
+              result = JSON.parse(responseText);
+            } catch (parseError) {
+              throw new Error(t('error.emptyResponse'));
+            }
+
+            // Handle Response based on Action Type
+            if (actionType === 'analyze') {
+              aiAgentResponse.value = result;
+            } else {
+              jiraResponse.value = result.jira_result || result;
+            }
+
+            // Save component to history (only on analysis success to encourage reuse)
+            if (actionType === 'analyze' && summary.component && !componentHistory.value.includes(summary.component)) {
+              componentHistory.value.unshift(summary.component);
+            }
+
+          } catch (error) {
+            if (error.name === 'AbortError') {
+              errorMessage.value = t('error.timeout');
+            } else if (error.message.includes('Failed to fetch')) {
+              errorMessage.value = t('error.connectionFailed');
+            } else {
+              errorMessage.value = error.message || t('error.requestFailed');
+            }
+            console.error('Webhook Error:', error);
+          } finally {
+            isSubmitting.value = false;
+            // Note: We don't reset currentAction immediately here if we want to show success state, 
+            // but for simple loading toggles, resetting is fine.
+            // currentAction.value = ''; 
+          }
+        }
+
+        // Reset form
+        function resetForm() {
+          form.issueType = 'Story';
+          form.estimatedPoints = 3;
+          form.description = '';
+          form.assignee = '';
+          
+          summary.vehicle = '';
+          summary.product = '';
+          summary.layer = '';
+          summary.component = '';
+          summary.detail = '';
+          
+          assigneeSearch.value = '';
+          errorMessage.value = '';
+          currentAction.value = '';
+          aiAgentResponse.value = null;
+          jiraResponse.value = null;
+          coachResponse.value = null;
+        }
+
+        // ==========================================
+        // RETURN PUBLIC API
+        // ==========================================
+        
+        return {
+          // i18n
+          currentLang,
+          t,
+          setLang,
+          
+          // Config
+          webhookConfig: WEBHOOK_CONFIG,
+          useProductionMode,
+          setUrlMode,
+          
+          // Constants
+          PROJECT_CONFIG,
+          TEAM_MEMBERS,
+          TASK_TYPES,
+          FIBONACCI_POINTS,
+          VEHICLE_OPTIONS,
+          PRODUCT_OPTIONS,
+          LAYER_OPTIONS,
+          componentHistory,
+          
+          // State
+          form,
+          summary,
+          isSubmitting,
+          currentAction, // Exported for template
+          errorMessage,
+          aiAgentResponse,
+          jiraResponse,
+          
+          // Coach State
+          coachResponse,
+          isCoachLoading,
+          coachStatus,
+          canRequestCoach,
+          
+          // Combobox
+          comboboxInput,
+          assigneeSearch,
+          isDropdownOpen,
+          highlightedIndex,
+          currentTeamMembers,
+          currentTeamMemberCount,
+          currentProjectTeamName,
+          filteredAssignees,
+          selectedAssigneeName,
+          highlightMatch,
+          openDropdown,
+          closeDropdown,
+          selectAssignee,
+          onAssigneeInput,
+          onComboboxKeydown,
+          onProjectChange,
+          
+          // Status
+          aiAgentStatus,
+          jiraStatus,
+          
+          // Computed
+          computedSummary,
+          canSubmit,
+          qualityScore,
+          qualityScoreColor,
+          qualityScoreLabel,
+          jsonPayload,
+          parsedAiResponse,
+          parsedJiraResponse,
+          
+          // Methods
+          formatJson,
+          formatCoachResponse,
+          requestCoach,
+          applyCoachChip,
+          coachChips,
+          handleSubmit,
+          resetForm
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
