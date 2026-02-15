@@ -1,0 +1,67 @@
+/* Vue transition: fade */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Vue transition: slide-fade */
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+.slide-fade-leave-active {
+  transition: all 0.2s ease-in;
+}
+.slide-fade-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+/* Vue transition: toast slide */
+.toast-enter-active {
+  animation: slideInRight 0.3s ease-out;
+}
+.toast-leave-active {
+  transition: all 0.2s ease-in;
+}
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+/* Vue transition: dropdown */
+.dropdown-enter-active {
+  animation: scaleIn 0.15s ease-out;
+  transform-origin: top;
+}
+.dropdown-leave-active {
+  transition: all 0.1s ease-in;
+  transform-origin: top;
+}
+.dropdown-leave-to {
+  opacity: 0;
+  transform: scaleY(0.95);
+}
+
+/* Vue transition: modal */
+.modal-enter-active {
+  transition: all 0.2s ease-out;
+}
+.modal-leave-active {
+  transition: all 0.15s ease-in;
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+.modal-enter-from .modal-content,
+.modal-leave-to .modal-content {
+  transform: scale(0.95);
+}

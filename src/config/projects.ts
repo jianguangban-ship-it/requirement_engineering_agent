@@ -1,0 +1,70 @@
+import type { ProjectConfig, TeamMembersMap } from '@/types/team'
+
+export const PROJECT_CONFIG: ProjectConfig[] = [
+  { name: 'IDC_PDHW', key: 'HW', teamName: 'Hardware Team' },
+  { name: 'IDC_PDSW', key: 'DKKF', teamName: 'Software Dev Team' },
+  { name: 'IDC_PDSY', key: 'DKKG', teamName: 'System Team' },
+  { name: 'IDC_PDVV', key: 'DKKFT', teamName: 'V&V Team' }
+]
+
+export const TEAM_MEMBERS: TeamMembersMap = {
+  HW: [
+    { id: 'CW032281', name: '吴亮 (Wu Liang)', role: 'Sr. Engineer' },
+    { id: 'CW00155853', name: '孙凯博 (Sun Kaibo)', role: 'Engineer' },
+    { id: 'CW003651449', name: '杜林俊 (Du Linjun)', role: 'Sr. Engineer' },
+    { id: 'CW00361691', name: '张松松 (Zhang Songsong)', role: 'Sr. Engineer' },
+    { id: 'CW003205716', name: '周仁建 (Zhou Renjian)', role: 'Engineer' },
+    { id: 'CW00367629', name: '任林 (Ren Lin)', role: 'Sr. Engineer' },
+    { id: 'CW00373750', name: '张鹏鹏 (Zhang Pengpeng)', role: 'Engineer' },
+    { id: 'CW0037590', name: '赵俊豪 (Zhao Junhao)', role: 'Engineer' },
+    { id: 'CW003859422', name: '石志国 (Shi Zhiguo)', role: 'Engineer' },
+    { id: 'CW00362081', name: '伏倩倩 (Fu Qianqian)', role: 'Jr. Engineer' },
+  ],
+  DKKF: [
+    { id: 'GW00199494', name: '牛作硕 (Niu Zuoxiang)', role: 'SW Manager' },
+    { id: 'GW00349068', name: '宋硕硕 (Song Shuoshuo)', role: 'Sr. SW Engineer' },
+    { id: 'GW0354001', name: '李兵建 (Li Bingjian)', role: 'Sr. SW Engineer' },
+    { id: 'GW0033555', name: '黄家印 (Huang Jiayin)', role: 'SW Engineer' },
+    { id: 'GW0014337', name: '程祖 (Cheng Zu)', role: 'SW Engineer' },
+    { id: 'GW0012418', name: '陈永久 (Chen Yongjiu)', role: 'Sr. SW Engineer' },
+    { id: 'GW00251962', name: '刘泽凌 (Liu Zeling)', role: 'Jr. SW Engineer' },
+    { id: 'GW00339528', name: '付健 (Fu Jian)', role: 'Jr. SW Engineer' },
+    { id: 'GW0070600', name: '汪江 (Wang Jiang)', role: 'SW Engineer' },
+    { id: 'GW00332060', name: '赵永民 (Zhao Yongmin)', role: 'Sr. SW Engineer' },
+    { id: 'GW00371095', name: 'Lavanesh', role: 'SW Engineer' },
+    { id: 'GW00287516', name: '张思博 (Zhang Sibo)', role: 'Jr. SW Engineer' },
+    { id: 'GW00339076', name: '谭亚 (Tan Ya)', role: 'SW Engineer' },
+    { id: 'GW00371092', name: 'Gowtham', role: 'SW Engineer' },
+    { id: 'GW0298295', name: '李大伟 (Li Dawei)', role: 'SW Engineer' },
+    { id: 'GW0024364', name: '杨兰 (Yang Lan)', role: 'Sr. SW Engineer' },
+    { id: 'GW00307545', name: '寇文涛 (Kou Wentao)', role: 'Jr. SW Engineer' },
+    { id: 'GW0060216', name: '张一品 (Zhang Yipin)', role: 'Jr. SW Engineer' },
+    { id: 'GW0166968', name: '谢丽曼 (Xie Liman)', role: 'Jr. SW Engineer' },
+    { id: 'GW00358426', name: '徐振亮 (Xu Zhenliang)', role: 'Jr. SW Engineer' },
+    { id: 'GW00034357', name: '朱紫菱 (Zhu Ziling)', role: 'Jr. SW Engineer' },
+    { id: 'GW0354387', name: 'Sathya', role: 'SW Engineer' },
+    { id: 'GW00357627', name: '王嘉伟 (Wang Jiawei)', role: 'SW Engineer' },
+    { id: 'GW0045363', name: '林文衡 (Lin Wenheng)', role: 'SW Engineer' },
+    { id: 'GW00330163', name: '苏明 (Su Ming)', role: 'Sr. SW Engineer' },
+    { id: 'GW0395714', name: '邓云瀚 (Deng Yunhan)', role: 'Jr. SW Engineer' },
+  ],
+  DKKG: [
+    { id: 'GW00365684', name: '袁东阳 (Yuan Dongyang)', role: 'SYS Manager' },
+    { id: 'GW00261258', name: '牛昱朗 (Niu Yulang)', role: 'Jr. Engineer' },
+    { id: 'GW00317549', name: '闵德昌 (Min Dechang)', role: 'Jr. Engineer' },
+    { id: 'GW00374619', name: '吴志飞 (Wu Zhifei)', role: 'Sr. Engineer' },
+    { id: 'GW00373616', name: '董亚洲 (Dong Yazhou)', role: 'Sr. Engineer' },
+  ],
+  DKKFT: [
+    { id: 'GW00367407', name: '张明 (Zhang Ming)', role: 'Sr. Engineer' },
+    { id: 'GW00376500', name: '王威 (Wang Wei)', role: 'Sr. Engineer' },
+    { id: 'GW00371274', name: '唐紫姗 (Tang Zishan)', role: 'Jr. Engineer' },
+    { id: 'GW00368026', name: '阮云冲 (Ruan Yunchong)', role: 'Jr. Engineer' },
+    { id: 'GW00285392', name: '万飞 (Wan Fei)', role: 'Engineer' },
+    { id: 'GW00086162', name: '李云龙 (Li Yunlong)', role: 'Engineer' },
+    { id: 'GW00285392', name: '李子越 (Li Ziyue)', role: 'Jr. Engineer' },
+    { id: 'GW00333343', name: '耿国涛 (Geng Guotao)', role: 'Engineer' },
+    { id: 'GW00395792', name: '焦心雨 (Jiao Xinyu)', role: 'Jr. Engineer' },
+    { id: 'GW00324035', name: '刘建设 (Liu Jianshe)', role: 'Sr. Engineer' },
+  ]
+}
