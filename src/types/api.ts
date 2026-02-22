@@ -51,6 +51,25 @@ export interface WebhookConfig {
 
 export type ActionType = 'analyze' | 'create' | 'coach'
 
+export interface LLMChatMessage {
+  role: 'system' | 'user' | 'assistant'
+  content: string
+}
+export interface LLMRequestBody {
+  model: string
+  messages: LLMChatMessage[]
+}
+export interface LLMResponseBody {
+  choices: Array<{ message: { content: string } }>
+}
+
+export interface LLMStreamChunk {
+  choices: Array<{ delta: { content?: string }; finish_reason: string | null }>
+}
+
+export type CoachMode = 'llm' | 'webhook'
+export type AnalyzeMode = 'llm' | 'webhook'
+
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 
 export interface Toast {

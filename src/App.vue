@@ -1,6 +1,9 @@
 <template>
   <div class="app">
-    <AppHeader />
+    <AppHeader @open-settings="showSettingsModal = true" />
+
+    <!-- Settings Modal -->
+    <LLMSettings v-model="showSettingsModal" @saved="onSettingsSaved" />
 
     <!-- Confirmation Modal -->
     <Transition name="modal">
@@ -31,7 +34,11 @@
             :response="coachResponse"
             :is-loading="isCoachLoading"
             :can-request="canSubmit"
+            :was-cancelled="coachWasCancelled"
+            :had-error="coachHadError"
             @request="handleCoachRequest"
+            @cancel="cancelCoach"
+            @retry="handleCoachRetry"
             @apply-chip="applyCoachChip"
           />
         </div>
@@ -47,9 +54,9 @@
             :quality-score-color="qualityScoreColor"
             :quality-score-label="qualityScoreLabel"
             :can-submit="canSubmit"
-            :is-submitting="isSubmitting"
-            :current-action="currentAction"
-            :has-ai-response="!!aiAgentResponse"
+            :is-submitting="formIsSubmitting"
+            :current-action="formCurrentAction"
+            :has-ai-response="!!analyzeResponse"
             :error-message="errorMessage"
             @analyze="handleAnalyze"
             @create="handleCreateClick"
@@ -62,9 +69,13 @@
         <!-- RIGHT: AI Review + JIRA -->
         <div class="col-right">
           <AIReviewPanel
-            :response="aiAgentResponse"
-            :is-analyzing="isSubmitting && currentAction === 'analyze'"
-            :has-error="!!errorMessage && currentAction === 'analyze'"
+            :response="analyzeResponse"
+            :is-analyzing="isAnalyzeLoading"
+            :has-error="!!errorMessage && formCurrentAction === 'analyze'"
+            :was-cancelled="analyzeWasCancelled"
+            :had-error="analyzeHadError"
+            @cancel="cancelAnalyze"
+            @retry="handleAnalyzeRetry"
           />
 
           <JiraResponsePanel
@@ -73,7 +84,7 @@
           />
 
           <ProcessingSummary
-            :ai-response="aiAgentResponse"
+            :ai-response="analyzeResponse"
             :jira-response="jiraResponse"
             :estimated-points="form.estimatedPoints"
           />
@@ -88,14 +99,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { WebhookPayload } from '@/types/api'
 import { useI18n } from '@/i18n'
 import { useForm } from '@/composables/useForm'
 import { useWebhook } from '@/composables/useWebhook'
+import { useLLM } from '@/composables/useLLM'
 import { useToast } from '@/composables/useToast'
+import { getTemplateContent } from '@/config/templates/index'
 
 import AppHeader from '@/components/layout/AppHeader.vue'
+import LLMSettings from '@/components/settings/LLMSettings.vue'
 import TaskForm from '@/components/form/TaskForm.vue'
 import CoachPanel from '@/components/panels/CoachPanel.vue'
 import AIReviewPanel from '@/components/panels/AIReviewPanel.vue'
@@ -116,12 +130,22 @@ const {
 
 const {
   isSubmitting, currentAction,
-  aiAgentResponse, jiraResponse, coachResponse, isCoachLoading,
-  analyzeTask, createJiraTicket, requestCoach, clearResponses
+  jiraResponse,
+  createJiraTicket, clearResponses
 } = useWebhook()
+
+const {
+  isCoachLoading, coachResponse, coachWasCancelled, coachHadError, requestCoach, cancelCoach, retryCoach, clearCoachResponse,
+  isAnalyzeLoading, analyzeResponse, analyzeWasCancelled, analyzeHadError, requestAnalyze, cancelAnalyze, retryAnalyze, clearAnalyzeResponse
+} = useLLM()
 
 const errorMessage = ref('')
 const showConfirmModal = ref(false)
+const showSettingsModal = ref(false)
+
+// Shims so TaskForm buttons reflect both JIRA-submitting and LLM-analyzing states
+const formIsSubmitting = computed(() => isSubmitting.value || isAnalyzeLoading.value)
+const formCurrentAction = computed(() => isAnalyzeLoading.value ? 'analyze' : currentAction.value)
 
 // Build payload
 function buildPayload(action: 'analyze' | 'create' | 'coach' | 'preview'): WebhookPayload {
@@ -145,17 +169,73 @@ function buildPayload(action: 'analyze' | 'create' | 'coach' | 'preview'): Webho
 
 const jsonPayload = computed(() => JSON.stringify(buildPayload('preview'), null, 2))
 
+// ─── Response persistence ──────────────────────────────────────────────────
+
+const LS_COACH_RESPONSE   = 'coach-last-response'
+const LS_ANALYZE_RESPONSE = 'analyze-last-response'
+const LS_RESPONSE_SNAPSHOT = 'response-form-snapshot'
+
+function buildFormSnapshot(): string {
+  return JSON.stringify({
+    project_key: form.projectKey,
+    issue_type: form.issueType,
+    summary: computedSummary.value,
+    description: form.description,
+    assignee: form.assignee,
+    estimated_points: form.estimatedPoints
+  })
+}
+
+function saveResponsesToStorage() {
+  localStorage.setItem(LS_RESPONSE_SNAPSHOT, buildFormSnapshot())
+  if (coachResponse.value !== null)
+    localStorage.setItem(LS_COACH_RESPONSE, JSON.stringify(coachResponse.value))
+  if (analyzeResponse.value !== null)
+    localStorage.setItem(LS_ANALYZE_RESPONSE, JSON.stringify(analyzeResponse.value))
+}
+
+function clearResponsesFromStorage() {
+  localStorage.removeItem(LS_COACH_RESPONSE)
+  localStorage.removeItem(LS_ANALYZE_RESPONSE)
+  localStorage.removeItem(LS_RESPONSE_SNAPSHOT)
+}
+
+// Invalidate stored responses whenever any snapshot field changes
+watch(
+  [
+    () => form.projectKey,
+    () => form.issueType,
+    computedSummary,
+    () => form.description,
+    () => form.assignee,
+    () => form.estimatedPoints
+  ],
+  clearResponsesFromStorage
+)
+
+function restoreResponsesFromStorage() {
+  const snapshot = localStorage.getItem(LS_RESPONSE_SNAPSHOT)
+  if (!snapshot || snapshot !== buildFormSnapshot()) return
+  try {
+    const savedCoach = localStorage.getItem(LS_COACH_RESPONSE)
+    const savedAnalyze = localStorage.getItem(LS_ANALYZE_RESPONSE)
+    if (savedCoach) coachResponse.value = JSON.parse(savedCoach)
+    if (savedAnalyze) analyzeResponse.value = JSON.parse(savedAnalyze)
+  } catch { /* ignore malformed entries */ }
+}
+
 // Handlers
 async function handleAnalyze() {
-  if (!canSubmit.value || isSubmitting.value) return
+  if (!canSubmit.value || formIsSubmitting.value) return
   errorMessage.value = ''
-  const err = await analyzeTask(buildPayload('analyze'))
-  if (err) {
-    errorMessage.value = err
-    addToast('error', err)
-  } else {
+  const err = await requestAnalyze(buildPayload('analyze'))
+  if (!err) {
     addToast('success', t('toast.analyzeSuccess'))
     addComponentToHistory(summary.component)
+    saveResponsesToStorage()
+  } else if (err !== 'cancelled') {
+    errorMessage.value = err
+    addToast('error', err)
   }
 }
 
@@ -179,17 +259,48 @@ async function handleCoachRequest() {
   if (!canSubmit.value || isCoachLoading.value) return
   errorMessage.value = ''
   const err = await requestCoach(buildPayload('coach'))
-  if (err) {
+  if (!err) {
+    addToast('success', t('toast.coachSuccess'))
+    saveResponsesToStorage()
+  } else if (err !== 'cancelled') {
     errorMessage.value = err
     addToast('error', err)
-  } else {
+  }
+}
+
+async function handleCoachRetry() {
+  errorMessage.value = ''
+  const err = await retryCoach()
+  if (!err) {
     addToast('success', t('toast.coachSuccess'))
+    saveResponsesToStorage()
+  } else if (err !== 'cancelled') {
+    errorMessage.value = err
+    addToast('error', err)
+  }
+}
+
+async function handleAnalyzeRetry() {
+  errorMessage.value = ''
+  const err = await retryAnalyze()
+  if (!err) {
+    addToast('success', t('toast.analyzeSuccess'))
+    addComponentToHistory(summary.component)
+    saveResponsesToStorage()
+  } else if (err !== 'cancelled') {
+    errorMessage.value = err
+    addToast('error', err)
   }
 }
 
 function handleReset() {
+  cancelCoach()
+  cancelAnalyze()
   resetForm()
   clearResponses()
+  clearCoachResponse()
+  clearAnalyzeResponse()
+  clearResponsesFromStorage()
   errorMessage.value = ''
   addToast('info', t('toast.draftCleared'))
 }
@@ -198,36 +309,31 @@ function onProjectChange() {
   form.assignee = ''
 }
 
-// Coach chip templates
+function onSettingsSaved() {
+  addToast('success', t('settings.saved'))
+}
+
+// Coach chip templates — driven by JSON files via getTemplateContent
 function applyCoachChip(chipKey: string) {
   const lang = isZh.value ? 'zh' : 'en'
-  const templates: Record<string, Record<string, string>> = {
-    template: {
-      zh: '**背景信息**\n\n\n**前置需求**\n\n\n**设计思路**\n\n\n**验收标准 (AC)**\n- [ ] AC1: \n- [ ] AC2: \n- [ ] AC3: \n\n**备注**\n',
-      en: '**Background**\n\n\n**Prerequisites**\n\n\n**Design Approach**\n\n\n**Acceptance Criteria (AC)**\n- [ ] AC1: \n- [ ] AC2: \n- [ ] AC3: \n\n**Notes**\n'
-    },
-    optimize: {
-      zh: '请基于以下信息帮我优化任务描述：\n\n**当前问题/目标**\n\n\n**期望结果**\n\n\n**实现方案**\n\n\n**影响范围**\n',
-      en: 'Please help optimize the task description based on:\n\n**Current Problem/Goal**\n\n\n**Expected Outcome**\n\n\n**Implementation Plan**\n\n\n**Impact Scope**\n'
-    },
-    bugReport: {
-      zh: '**缺陷描述**\n\n\n**复现步骤**\n1. \n2. \n3. \n\n**期望行为**\n\n\n**实际行为**\n\n\n**环境信息**\n- 车型/平台: \n- 软件版本: \n- 硬件版本: \n',
-      en: '**Bug Description**\n\n\n**Steps to Reproduce**\n1. \n2. \n3. \n\n**Expected Behavior**\n\n\n**Actual Behavior**\n\n\n**Environment**\n- Vehicle/Platform: \n- SW Version: \n- HW Version: \n'
-    },
-    changeReq: {
-      zh: '**变更请求**\n\n**变更原因**\n\n\n**变更内容**\n\n\n**影响分析**\n- 功能影响: \n- 接口影响: \n- 测试影响: \n\n**验收标准**\n- [ ] \n',
-      en: '**Change Request**\n\n**Reason for Change**\n\n\n**Change Content**\n\n\n**Impact Analysis**\n- Functional: \n- Interface: \n- Testing: \n\n**Acceptance Criteria**\n- [ ] \n'
-    }
-  }
-  const tpl = templates[chipKey]?.[lang]
-  if (tpl) form.description = tpl
+  const content = getTemplateContent(chipKey, lang)
+  if (content) form.description = content
 }
 
 // Keyboard shortcuts
 function handleKeyboard(e: KeyboardEvent) {
-  if (e.ctrlKey && e.shiftKey && e.key === 'Enter') {
+  if (e.key === 'Escape') {
+    if (showSettingsModal.value) {
+      showSettingsModal.value = false
+    } else if (showConfirmModal.value) {
+      showConfirmModal.value = false
+    }
+  } else if (e.ctrlKey && e.key === ',') {
     e.preventDefault()
-    if (aiAgentResponse.value) handleCreateClick()
+    if (!showConfirmModal.value) showSettingsModal.value = true
+  } else if (e.ctrlKey && e.shiftKey && e.key === 'Enter') {
+    e.preventDefault()
+    if (analyzeResponse.value) handleCreateClick()
   } else if (e.ctrlKey && e.key === 'Enter') {
     e.preventDefault()
     handleAnalyze()
@@ -240,6 +346,7 @@ onMounted(() => {
   const hadDraft = restoreDraft()
   if (hadDraft) {
     addToast('info', t('toast.draftRestored'))
+    restoreResponsesFromStorage()
   }
 })
 

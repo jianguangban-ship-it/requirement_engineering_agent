@@ -39,6 +39,7 @@ export default {
     jiraResponse: 'JIRA 创建结果',
     waitingAI: '等待 AI Agent 响应...',
     aiAnalyzing: 'AI 正在分析...',
+    retryBtn: '重试',
     waitingJira: '等待 JIRA 创建结果...',
     summary: '处理摘要',
     aiCorrectedPoints: 'AI 修正点数',
@@ -65,7 +66,10 @@ export default {
     timeout: '请求超时，请检查 n8n 服务是否运行',
     connectionFailed: '无法连接到 n8n 服务',
     requestFailed: '请求失败',
-    emptyResponse: '服务器返回空响应，请检查 n8n 工作流中 Respond_to_Webhook 节点配置'
+    emptyResponse: '服务器返回空响应，请检查 n8n 工作流中 Respond_to_Webhook 节点配置',
+    glm401: 'API Key 无效，请点击 ⚙ 设置进行更新。',
+    glm429: '请求频率超限，请稍候后重试。',
+    glm5xx: 'GLM 服务暂时不可用，请稍后重试。'
   },
   urlMode: {
     testTooltip: '测试模式：需要在 n8n 编辑器中点击 "Listen" 按钮',
@@ -78,6 +82,7 @@ export default {
     analyzing: 'AI Coach 正在分析...',
     requestBtn: '获取写作指导',
     requesting: '请求中...',
+    retryBtn: '重试',
     hint: 'Coach 将帮助提升您的描述质量',
     team: '所属团队',
     assignee: '经办人',
@@ -106,5 +111,26 @@ export default {
   shortcuts: {
     analyze: 'Ctrl+Enter',
     create: 'Ctrl+Shift+Enter'
+  },
+  settings: {
+    title: 'LLM 设置',
+    coachMode: 'Coach 模式',
+    modeLLM: 'GLM API（直连）',
+    modeWebhook: 'n8n Webhook',
+    apiKey: 'GLM API Key',
+    apiKeyPlaceholder: '输入您的 ZhipuAI API Key',
+    model: '模型名称',
+    modelPlaceholder: 'glm-4.7-flash',
+    analyzeMode: '分析模式',
+    coachSkill: 'Coach 提示词',
+    analyzeSkill: '分析提示词',
+    skillReset: '恢复默认',
+    skillHint: '编辑 AI 行为规则。{lang} 在运行时替换为当前语言（zh 或 en）。',
+    testKey: '验证',
+    testing: '验证中...',
+    keyValid: 'Key 有效',
+    save: '保存',
+    cancel: '取消',
+    saved: '设置已保存'
   }
 } as const

@@ -5,9 +5,12 @@
         <slot name="icon"></slot>
         <span class="title-text">{{ title }}</span>
       </div>
-      <div class="panel-status">
-        <StatusDot :status="status" />
-        <span class="status-label" :style="{ color: statusColor }">{{ statusLabel }}</span>
+      <div class="panel-right">
+        <slot name="header-actions"></slot>
+        <div class="panel-status">
+          <StatusDot :status="status" />
+          <span class="status-label" :style="{ color: statusColor }">{{ statusLabel }}</span>
+        </div>
       </div>
     </div>
     <div class="panel-body" :class="{ 'panel-body--resizable': resizable }" :style="bodyStyle">
@@ -90,6 +93,11 @@ const bodyStyle = computed(() => {
   font-size: 14px;
   font-weight: 500;
   color: var(--text-primary);
+}
+.panel-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .panel-status {
   display: flex;

@@ -39,6 +39,7 @@ export default {
     jiraResponse: 'JIRA Create Issue Response',
     waitingAI: 'Waiting for AI Agent response...',
     aiAnalyzing: 'AI is analyzing...',
+    retryBtn: 'Retry',
     waitingJira: 'Waiting for JIRA creation result...',
     summary: 'Processing Summary',
     aiCorrectedPoints: 'AI Corrected Points',
@@ -65,7 +66,10 @@ export default {
     timeout: 'Request timeout, please check if n8n service is running',
     connectionFailed: 'Cannot connect to n8n service',
     requestFailed: 'Request failed',
-    emptyResponse: 'Server returned empty response, please check n8n workflow configuration'
+    emptyResponse: 'Server returned empty response, please check n8n workflow configuration',
+    glm401: 'Invalid API key. Click ⚙ Settings to update it.',
+    glm429: 'Rate limit exceeded. Please wait a moment and retry.',
+    glm5xx: 'GLM service is temporarily unavailable. Please retry shortly.'
   },
   urlMode: {
     testTooltip: 'Test Mode: Requires clicking "Listen" in n8n editor',
@@ -78,6 +82,7 @@ export default {
     analyzing: 'AI Coach is analyzing...',
     requestBtn: 'Get Writing Guidance',
     requesting: 'Requesting...',
+    retryBtn: 'Retry',
     hint: 'Coach will help improve your description quality',
     team: 'Team',
     assignee: 'Assignee',
@@ -106,5 +111,26 @@ export default {
   shortcuts: {
     analyze: 'Ctrl+Enter',
     create: 'Ctrl+Shift+Enter'
+  },
+  settings: {
+    title: 'LLM Settings',
+    coachMode: 'Coach Mode',
+    modeLLM: 'GLM API (Direct)',
+    modeWebhook: 'n8n Webhook',
+    apiKey: 'GLM API Key',
+    apiKeyPlaceholder: 'Enter your ZhipuAI API Key',
+    model: 'Model Name',
+    modelPlaceholder: 'glm-4.7-flash',
+    analyzeMode: 'Analyze Mode',
+    coachSkill: 'Coach Skill',
+    analyzeSkill: 'Analyze Skill',
+    skillReset: 'Reset to Default',
+    skillHint: 'Edit AI behavior rules. {lang} is replaced with the current language (zh or en) at runtime.',
+    testKey: 'Test',
+    testing: 'Testing...',
+    keyValid: 'Key valid',
+    save: 'Save',
+    cancel: 'Cancel',
+    saved: 'Settings saved'
   }
 } as const

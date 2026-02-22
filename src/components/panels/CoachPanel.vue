@@ -7,6 +7,18 @@
     height="400px"
     max-height="650px"
   >
+    <template #header-actions>
+      <span class="mode-badge" :class="coachMode === 'llm' ? 'badge-llm' : 'badge-n8n'">
+        {{ coachMode === 'llm' ? 'GLM' : 'n8n' }}
+      </span>
+      <button v-if="rawText && !isLoading" class="copy-btn" @click="copyResponse" :title="t('toast.copied')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="2" width="13" height="13" rx="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </template>
+
     <template #icon>
       <svg class="panel-icon green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
@@ -31,8 +43,8 @@
       </div>
     </div>
 
-    <!-- Loading state -->
-    <div v-else-if="isLoading" class="loading-state">
+    <!-- Loading state (waiting for first token) -->
+    <div v-else-if="isLoading && !response" class="loading-state">
       <svg class="spinner green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4">
         <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-linecap="round" opacity="0.25"/>
         <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
@@ -40,34 +52,50 @@
       <p class="loading-text green">{{ t('coach.analyzing') }}</p>
     </div>
 
-    <!-- Coach response -->
-    <div v-else class="coach-response" v-html="formattedResponse"></div>
+    <!-- Coach response (streaming or complete) -->
+    <div v-else>
+      <div class="coach-response" v-html="formattedResponse" />
+      <span v-if="isLoading" class="streaming-cursor green" />
+    </div>
 
     <template #footer>
-      <button
-        @click="$emit('request')"
-        :disabled="!canRequest || isLoading"
-        class="coach-btn"
-        :class="{ active: canRequest && !isLoading }"
-      >
-        <svg v-if="isLoading" class="btn-icon animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4">
-          <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-linecap="round" opacity="0.25"/>
-          <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+      <button v-if="isLoading" class="cancel-btn" @click="$emit('cancel')">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="6" y="6" width="12" height="12" rx="2" />
         </svg>
-        <svg v-else class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-        </svg>
-        <span>{{ isLoading ? t('coach.requesting') : t('coach.requestBtn') }}</span>
+        <span>{{ t('settings.cancel') }}</span>
       </button>
-      <p class="coach-hint">{{ t('coach.hint') }}</p>
+      <template v-else>
+        <button v-if="wasCancelled || hadError" class="retry-btn" :disabled="retryCountdown > 0" @click="handleRetry">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          <span>{{ retryCountdown > 0 ? `${retryCountdown}s` : t('coach.retryBtn') }}</span>
+        </button>
+        <button
+          @click="$emit('request')"
+          :disabled="!canRequest"
+          class="coach-btn"
+          :class="{ active: canRequest }"
+        >
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          <span>{{ t('coach.requestBtn') }}</span>
+        </button>
+        <p class="coach-hint">{{ t('coach.hint') }}</p>
+      </template>
     </template>
   </PanelShell>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onUnmounted } from 'vue'
 import { useI18n } from '@/i18n'
 import { formatCoachResponse } from '@/utils/formatCoach'
+import { TEMPLATES } from '@/config/templates/index'
+import { useToast } from '@/composables/useToast'
+import { coachMode } from '@/config/llm'
 import PanelShell from '@/components/layout/PanelShell.vue'
 import QuickChip from '@/components/shared/QuickChip.vue'
 
@@ -75,14 +103,36 @@ const props = defineProps<{
   response: unknown
   isLoading: boolean
   canRequest: boolean
+  wasCancelled: boolean
+  hadError: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   request: []
+  cancel: []
+  retry: []
   applyChip: [key: string]
 }>()
 
 const { t, isZh } = useI18n()
+const { addToast } = useToast()
+
+const retryCountdown = ref(0)
+let _cooldownTimer: number | null = null
+
+function handleRetry() {
+  emit('retry')
+  retryCountdown.value = 2
+  _cooldownTimer = window.setInterval(() => {
+    retryCountdown.value--
+    if (retryCountdown.value <= 0) {
+      clearInterval(_cooldownTimer!)
+      _cooldownTimer = null
+    }
+  }, 1000)
+}
+
+onUnmounted(() => { if (_cooldownTimer !== null) clearInterval(_cooldownTimer) })
 
 const statusInfo = computed(() => {
   if (props.isLoading) return { status: 'loading' as const, key: 'loading' }
@@ -92,12 +142,24 @@ const statusInfo = computed(() => {
 
 const formattedResponse = computed(() => formatCoachResponse(props.response))
 
-const chips = computed(() => [
-  { key: 'template', icon: '📋', label: isZh.value ? 'AC 模板' : 'AC Template' },
-  { key: 'optimize', icon: '✨', label: isZh.value ? '优化描述' : 'Optimize' },
-  { key: 'bugReport', icon: '🐛', label: isZh.value ? 'Bug 模板' : 'Bug Template' },
-  { key: 'changeReq', icon: '🔄', label: isZh.value ? '变更请求' : 'Change Req' }
-])
+const rawText = computed(() => {
+  const r = props.response as Record<string, unknown>
+  return typeof r?.message === 'string' ? r.message : ''
+})
+
+async function copyResponse() {
+  if (!rawText.value) return
+  await navigator.clipboard.writeText(rawText.value)
+  addToast('success', t('toast.copied'), 2000)
+}
+
+const chips = computed(() =>
+  TEMPLATES.map(t => ({
+    key: t.key,
+    icon: t.icon,
+    label: isZh.value ? t.label.zh : t.label.en
+  }))
+)
 </script>
 
 <style scoped>
@@ -243,7 +305,95 @@ const chips = computed(() => [
 .coach-response :deep(.coach-icon-success) { color: var(--accent-green); }
 .coach-response :deep(.coach-icon-warning) { color: var(--accent-orange); }
 
+/* Mode badge */
+.mode-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.3px;
+  line-height: 1;
+}
+.badge-llm {
+  background-color: rgba(88, 166, 255, 0.15);
+  color: var(--accent-blue);
+  border: 1px solid rgba(88, 166, 255, 0.3);
+}
+.badge-n8n {
+  background-color: rgba(210, 153, 34, 0.15);
+  color: var(--accent-orange);
+  border: 1px solid rgba(210, 153, 34, 0.3);
+}
+
+/* Copy button */
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.copy-btn:hover {
+  color: var(--accent-green);
+  border-color: var(--border-color);
+  background-color: var(--bg-secondary);
+}
+.copy-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
 /* Footer */
+.cancel-btn {
+  width: 100%;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+  background-color: rgba(248, 81, 73, 0.1);
+  color: var(--accent-red);
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  cursor: pointer;
+}
+.cancel-btn:hover {
+  background-color: rgba(248, 81, 73, 0.2);
+}
+.retry-btn {
+  width: 100%;
+  padding: 7px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+}
+.retry-btn:hover:not(:disabled) {
+  color: var(--accent-green);
+  border-color: var(--accent-green);
+}
+.retry-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .coach-btn {
   width: 100%;
   padding: 8px 16px;
@@ -276,4 +426,16 @@ const chips = computed(() => [
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+.streaming-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  animation: blink 0.9s step-end infinite;
+}
+.streaming-cursor.green { background-color: var(--accent-green); }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 </style>

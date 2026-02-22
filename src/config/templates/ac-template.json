@@ -1,0 +1,9 @@
+{
+  "key": "template",
+  "icon": "📋",
+  "label": { "zh": "AC 模板", "en": "AC Template" },
+  "content": {
+    "zh": "**背景信息**\n\n\n**前置需求**\n\n\n**设计思路**\n\n\n**验收标准 (AC)**\n- [ ] AC1: \n- [ ] AC2: \n- [ ] AC3: \n\n**备注**\n",
+    "en": "**Background**\n\n\n**Prerequisites**\n\n\n**Design Approach**\n\n\n**Acceptance Criteria (AC)**\n- [ ] AC1: \n- [ ] AC2: \n- [ ] AC3: \n\n**Notes**\n"
+  }
+}

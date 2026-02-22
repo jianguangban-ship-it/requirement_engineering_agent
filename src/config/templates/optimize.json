@@ -1,0 +1,9 @@
+{
+  "key": "optimize",
+  "icon": "✨",
+  "label": { "zh": "优化描述", "en": "Optimize" },
+  "content": {
+    "zh": "请基于以下信息帮我优化任务描述：\n\n**当前问题/目标**\n\n\n**期望结果**\n\n\n**实现方案**\n\n\n**影响范围**\n",
+    "en": "Please help optimize the task description based on:\n\n**Current Problem/Goal**\n\n\n**Expected Outcome**\n\n\n**Implementation Plan**\n\n\n**Impact Scope**\n"
+  }
+}

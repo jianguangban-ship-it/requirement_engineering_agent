@@ -257,3 +257,466 @@ npm run build
 | State persistence | None | localStorage draft |
 | Accessibility | Minimal | Keyboard shortcuts, focus rings |
 | Build | None | Vite (instant HMR) |
+
+---
+
+## Completed Improvements — v8.1 (2026-02-22)
+
+### Feature 1: GLM Direct API for AI Coach
+
+Replaced the n8n webhook-only coach path with a unified composable that supports two modes.
+
+**New files:**
+| File | Purpose |
+|------|---------|
+| `src/config/llm.ts` | GLM base URL (`https://open.bigmodel.cn/api/paas/v4/chat/completions`), default model (`glm-4-flash`), localStorage helpers for `glm-api-key` / `glm-model` / `coach-mode`, reactive `coachMode` ref |
+| `src/composables/useLLM.ts` | Unified coach composable — reads `coachMode` and routes to GLM API or n8n webhook; owns `isCoachLoading` + `coachResponse` state |
+| `src/components/settings/LLMSettings.vue` | Settings modal: GLM/Webhook toggle, API key (password field), model name; saves to localStorage on confirm |
+| `src/types/template.ts` | `TemplateDefinition`, `TemplateLabel`, `TemplateContent` interfaces |
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/types/api.ts` | Added `LLMChatMessage`, `LLMRequestBody`, `LLMResponseBody`, `CoachMode` types |
+| `src/composables/useWebhook.ts` | Removed `requestCoach`, `coachResponse`, `isCoachLoading` (migrated to `useLLM`) |
+| `src/components/layout/AppHeader.vue` | Added ⚙ gear button + `openSettings` emit; clicking opens LLMSettings modal |
+| `src/App.vue` | Imports `useLLM`; wires `LLMSettings` modal; `handleCoachRequest` calls `useLLM.requestCoach`; `handleReset` also calls `clearCoachResponse` |
+| `tsconfig.json` | Added `"resolveJsonModule": true` |
+| `src/i18n/zh.ts` / `en.ts` | Added `settings.*` translation keys (title, coachMode, modeLLM, modeWebhook, apiKey, model, save, cancel, saved) |
+
+**localStorage keys used:**
+| Key | Values | Default |
+|-----|--------|---------|
+| `glm-api-key` | any string | `''` |
+| `glm-model` | model name | `glm-4-flash` |
+| `coach-mode` | `'llm'` \| `'webhook'` | `'llm'` |
+
+### Feature 2: Template JSON File System
+
+Moved all quick-chip template content out of `App.vue` into independent JSON files.
+
+**New files:**
+```
+src/config/templates/
+├── ac-template.json       key: "template"
+├── optimize.json          key: "optimize"
+├── bug-report.json        key: "bugReport"
+├── change-request.json    key: "changeReq"
+└── index.ts               TEMPLATES array + getTemplateContent(key, lang)
+```
+
+**JSON file shape:**
+```json
+{
+  "key": "template",
+  "icon": "📋",
+  "label": { "zh": "AC 模板", "en": "AC Template" },
+  "content": { "zh": "...", "en": "..." }
+}
+```
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/panels/CoachPanel.vue` | `chips` computed now maps `TEMPLATES` instead of hardcoded array |
+| `src/App.vue` | `applyCoachChip` uses `getTemplateContent(key, lang)` from `index.ts` |
+
+**To add a new template chip:** create a new `.json` in `src/config/templates/` with the correct shape and add one import line + array entry in `index.ts`. No Vue code changes needed.
+
+---
+
+---
+
+## Completed Improvements — v8.2 (2026-02-23)
+
+### Feature: Analyze Mode Switch for AI Review Panel
+
+Mirrors the Coach mode switch pattern. "AI Agent 审核消息" (AIReviewPanel) now supports GLM API or n8n Webhook for the analyze action.
+
+**Architecture change:** `useWebhook.ts` is now JIRA-create-only. Both Coach and Analyze live in `useLLM.ts`, each supporting two modes. `_callGLM` and `_callWebhook` are shared private helpers to avoid duplication.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/types/api.ts` | Added `AnalyzeMode = 'llm' \| 'webhook'` |
+| `src/i18n/zh.ts` / `en.ts` | Added `settings.analyzeMode` key |
+| `src/config/llm.ts` | Added `getAnalyzeMode`, `setAnalyzeMode`, `analyzeMode` ref; `LS_KEY_ANALYZE_MODE = 'analyze-mode'` |
+| `src/composables/useLLM.ts` | Refactored to shared `_callGLM` + `_callWebhook` helpers; added `isAnalyzeLoading`, `analyzeResponse`, `requestAnalyze`, `clearAnalyzeResponse`; `buildAnalyzeSystemPrompt` added |
+| `src/composables/useWebhook.ts` | Removed `analyzeTask`, `aiAgentResponse`; now exports only JIRA create logic |
+| `src/components/settings/LLMSettings.vue` | Added Analyze Mode toggle; API key/model fields dim only when BOTH modes are webhook; `bothWebhook` computed |
+| `src/components/panels/AIReviewPanel.vue` | Detects `markdown_msg`/`message` key → renders with `formatCoachResponse`; falls back to `JsonViewer` for webhook JSON; added full `:deep()` markdown styles in purple accent |
+| `src/App.vue` | `formIsSubmitting` + `formCurrentAction` computed shims; `handleAnalyze` calls `requestAnalyze`; `handleReset` calls `clearAnalyzeResponse`; all bindings updated |
+
+**New localStorage key:**
+| Key | Values | Default |
+|-----|--------|---------|
+| `analyze-mode` | `'llm'` \| `'webhook'` | `'webhook'` |
+
+Default `'webhook'` preserves existing behavior for users who haven't changed the setting.
+
+---
+
+---
+
+## Completed Improvements — v8.3 (2026-02-23)
+
+### Feature: Skill Files for Coach & Analyze System Prompts
+
+Extracted the GLM system prompts from `useLLM.ts` into editable `.md` files. Users can customize AI behavior from the Settings UI without touching code.
+
+**New files:**
+| File | Purpose |
+|------|---------|
+| `src/config/skills/coach-skill.md` | Default coach system prompt (editable) |
+| `src/config/skills/analyze-skill.md` | Default analyze system prompt (editable) |
+| `src/config/skills/index.ts` | `getCoachSkill(lang)`, `getAnalyzeSkill(lang)`, set/reset helpers; loads via `?raw` import |
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/composables/useLLM.ts` | Removed `buildCoachSystemPrompt` + `buildAnalyzeSystemPrompt`; calls `getCoachSkill(lang)` / `getAnalyzeSkill(lang)` from skills index |
+| `src/components/settings/LLMSettings.vue` | Added Coach Skill + Analyze Skill textarea editors with Reset to Default buttons |
+| `src/i18n/zh.ts` / `en.ts` | Added `coachSkill`, `analyzeSkill`, `skillReset`, `skillHint` keys |
+
+**Key behavior:**
+- Skill files bundled at build time via Vite `?raw` import → no server needed
+- localStorage overrides take precedence over bundled defaults
+- `{lang}` placeholder in `.md` files → replaced at runtime with `'zh'` or `'en'`
+- Skill textareas are dimmed/disabled when the corresponding mode is set to `'webhook'`
+- Reset button clears localStorage override and restores the `.md` file default immediately
+
+**New localStorage keys:**
+| Key | Purpose |
+|-----|---------|
+| `coach-skill` | Overrides `coach-skill.md` default |
+| `analyze-skill` | Overrides `analyze-skill.md` default |
+
+---
+
+---
+
+## Completed Improvements — v8.4 (2026-02-23)
+
+### Feature: Streaming GLM Responses
+
+GLM API calls now use `stream: true` (SSE) for both Coach and Analyze modes. Tokens render progressively into the panels as they arrive instead of waiting for the full response.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/types/api.ts` | Added `LLMStreamChunk` interface for SSE delta parsing |
+| `src/composables/useLLM.ts` | Replaced `_callGLM` (blocking) with `_callGLMStream(systemPrompt, payload, onChunk)` using `ReadableStream` + `TextDecoder`; both `requestCoach` and `requestAnalyze` accumulate chunks into their response refs progressively |
+| `src/components/panels/CoachPanel.vue` | Template: spinner shows only when `isLoading && !response`; content renders as soon as first token arrives; green blinking cursor shown while streaming |
+| `src/components/panels/AIReviewPanel.vue` | Same pattern with purple blinking cursor |
+
+**Streaming architecture:**
+- Request sent with `{ stream: true }` → response body is a `ReadableStream` of SSE lines
+- Reader loop: `reader.read()` → `TextDecoder.decode(..., { stream: true })` → split on `\n` → parse `data: {...}` lines → extract `choices[0].delta.content`
+- Each non-empty content token calls `onChunk(text)` which appends to `accumulated` string and replaces `coachResponse.value` with `{ markdown_msg: accumulated, message: accumulated }`
+- `[DONE]` sentinel ends the loop; `isLoading` set to `false` in `finally`
+
+**UX behavior:**
+- Initial wait (no tokens yet): full-panel spinner as before
+- Once first token arrives: content pane appears, renders partial markdown, blinking cursor at bottom
+- On completion: cursor disappears, full response displayed
+
+---
+
+---
+
+## Completed Improvements — v8.5 (2026-02-23)
+
+### Feature: Stream Abort / Cancel
+
+Users can now cancel an in-progress GLM stream at any point. The Cancel button appears in the CoachPanel footer and in the AIReviewPanel body (both during the initial spinner wait and while streaming content).
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/composables/useLLM.ts` | `_callGLMStream` accepts `signal: AbortSignal`; passes to `fetch()` and checks `signal.aborted` before each `reader.read()` in a try/finally that calls `reader.releaseLock()`; `requestCoach`/`requestAnalyze` create a new `AbortController`, store it in `_coachAC`/`_analyzeAC`, and catch `AbortError` → return `'cancelled'`; added `cancelCoach()` and `cancelAnalyze()` functions |
+| `src/components/panels/CoachPanel.vue` | Footer replaced with Cancel button (red, stop-square icon) while `isLoading`; normal request button shown otherwise; added `cancel: []` emit |
+| `src/components/panels/AIReviewPanel.vue` | Cancel button added below spinner (initial wait phase) and in a top-right row above streaming content; added `cancel: []` emit |
+| `src/App.vue` | Destructures `cancelCoach`/`cancelAnalyze`; wires `@cancel` on both panels; `handleCoachRequest`/`handleAnalyze` check `err !== 'cancelled'` before showing error toast — cancelled requests are silent |
+
+**Key design decisions:**
+- `AbortController.signal` passed to `fetch()` — browser cancels the network request body, causing `reader.read()` to throw `AbortError`
+- `signal.aborted` pre-check at top of read loop as a safety net for any browser variance
+- `reader.releaseLock()` in `finally` to cleanly release the stream reader on both normal and aborted exit
+- Return sentinel `'cancelled'` (not `null`, not an error string) so callers can distinguish cancellation from success and errors
+- On cancellation: any partial content streamed so far remains visible in the panel; streaming cursor disappears immediately; no toast fires
+
+---
+
+---
+
+## Completed Improvements — v8.5b (2026-02-23)
+
+### Feature: Cancel on Reset
+
+Cancels any active GLM stream when the user clicks Reset, preventing ghost callbacks after the form is cleared.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/App.vue` | `handleReset` calls `cancelCoach()` + `cancelAnalyze()` before `resetForm()` / `clearResponses()` / `clearCoachResponse()` / `clearAnalyzeResponse()` |
+
+---
+
+---
+
+## Completed Improvements — v8.6 (2026-02-23)
+
+### Feature: Retry after Cancel
+
+After cancelling a stream, a Retry button appears in both panels that re-sends the last payload without the user having to re-submit the form.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/composables/useLLM.ts` | Added `coachWasCancelled` / `analyzeWasCancelled` reactive refs; `_lastCoachPayload` / `_lastAnalyzePayload` plain vars store the last sent payload; `retryCoach()` / `retryAnalyze()` call `requestCoach/Analyze(_lastPayload)`; `clear*Response()` also resets `*WasCancelled` |
+| `src/components/panels/CoachPanel.vue` | Added `wasCancelled` prop + `retry` emit; Retry button (neutral border, turns green on hover) shown above "Get Writing Guidance" when `wasCancelled && !isLoading` |
+| `src/components/panels/AIReviewPanel.vue` | Added `wasCancelled` prop + `retry` emit; Retry button right-aligned below content area when `!isAnalyzing && wasCancelled` |
+| `src/App.vue` | Added `handleCoachRetry()` / `handleAnalyzeRetry()` handlers; wired `:was-cancelled` + `@retry` on both panels |
+| `src/i18n/zh.ts` / `en.ts` | Added `coach.retryBtn` and `panel.retryBtn` keys |
+
+---
+
+---
+
+## Completed Improvements — v8.7 (2026-02-23)
+
+### Feature: Retry on Error
+
+Extends the Retry button to also appear after a network or API error (not just after cancellation).
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/composables/useLLM.ts` | Added `coachHadError` / `analyzeHadError` reactive refs; set to `true` in the catch block for non-AbortError failures; reset in `clear*Response()` and at the start of each new request; exported via return object |
+| `src/components/panels/CoachPanel.vue` | Added `hadError` prop; Retry button condition changed to `(wasCancelled \|\| hadError) && !isLoading` |
+| `src/components/panels/AIReviewPanel.vue` | Added `hadError` prop; Retry shown in empty state when `hadError`; streaming-content Retry condition changed to `!isAnalyzing && (wasCancelled \|\| hadError)` |
+| `src/App.vue` | Destructures `coachHadError` / `analyzeHadError`; passes as `:had-error` to both panels |
+
+---
+
+---
+
+## Completed Improvements — v8.8 (2026-02-23)
+
+### Feature: Error Boundary for GLM Auth Failures
+
+`_callGLMStream` now distinguishes HTTP 401 / 429 / 5xx with specific i18n messages instead of a raw status string.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/composables/useLLM.ts` | `if (!response.ok)` block checks `status === 401` → `t('error.glm401')`, `status === 429` → `t('error.glm429')`, `status >= 500` → `t('error.glm5xx')`, fallback generic with raw status |
+| `src/i18n/en.ts` | Added `error.glm401`, `error.glm429`, `error.glm5xx` |
+| `src/i18n/zh.ts` | Added same keys in Chinese |
+
+**Error messages:**
+| Key | EN | ZH |
+|-----|----|----|
+| `glm401` | Invalid API key. Click ⚙ Settings to update it. | API Key 无效，请点击 ⚙ 设置进行更新。 |
+| `glm429` | Rate limit exceeded. Please wait a moment and retry. | 请求频率超限，请稍候后重试。 |
+| `glm5xx` | GLM service is temporarily unavailable. Please retry shortly. | GLM 服务暂时不可用，请稍后重试。 |
+
+These errors set `coachHadError` / `analyzeHadError = true`, which surfaces the Retry button automatically.
+
+---
+
+---
+
+## Completed Improvements — v8.9 (2026-02-23)
+
+### Feature: API Key Validation
+
+Inline "Test" button next to the GLM API Key field in Settings. Sends a minimal request and shows a green/red badge without blocking the Save flow.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/settings/LLMSettings.vue` | API key field wrapped in `.key-row` flex container; `btn-test` button added; `validationState` (`'idle' \| 'testing' \| 'valid' \| 'invalid'`) and `validationError` refs added; `handleTestKey()` async function sends `max_tokens: 1` POST; badge rendered below row; `watch(localApiKey)` clears badge on edit; modal-open watch also resets badge |
+| `src/i18n/en.ts` / `zh.ts` | Added `settings.testKey`, `settings.testing`, `settings.keyValid` |
+
+**Validation logic:**
+- HTTP 200–299 → `valid`
+- HTTP 429 → `valid` (rate-limited but key accepted)
+- HTTP 401 → `invalid` + `t('error.glm401')`
+- Network error → `invalid` + `t('error.connectionFailed')`
+- Other HTTP errors → `invalid` + raw `HTTP NNN: statusText`
+
+**UX notes:**
+- Test button disabled while: both modes are webhook, field is empty, or test in flight
+- Badge clears on any keystroke in the key field
+- Badge resets when modal reopens (no stale state from previous session)
+- Save is never blocked — validation is advisory
+
+---
+
+---
+
+## Completed Improvements — v8.10 (2026-02-23)
+
+### Feature: Keyboard Shortcut for Settings
+
+`Ctrl+,` opens the LLMSettings modal. `Escape` closes whichever modal is open.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/App.vue` | `handleKeyboard` extended with two new branches: `Escape` closes Settings modal first, then confirm modal; `Ctrl+,` opens Settings modal (guarded — no-op if confirm modal is already open to prevent stacking) |
+
+**Full shortcut map (all handled by `handleKeyboard` in `App.vue`):**
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+,` | Open Settings modal |
+| `Escape` | Close Settings or Confirm modal |
+| `Ctrl+Enter` | Run AI Analyze |
+| `Ctrl+Shift+Enter` | Open Confirm Create modal (requires existing analyze response) |
+
+---
+
+---
+
+## Completed Improvements — v8.11 (2026-02-23)
+
+### Feature: Settings Modal Scroll
+
+Settings modal now caps at 80% viewport height and scrolls internally instead of overflowing on shorter screens.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/settings/LLMSettings.vue` | Added `max-height: 80vh` + `overflow-y: auto` to `.modal-content` |
+
+---
+
+---
+
+## Completed Improvements — v8.12 (2026-02-23)
+
+### Feature: Copy Response Button
+
+Clipboard icon button in the header of CoachPanel and AIReviewPanel. Copies raw markdown text and fires a brief toast.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/layout/PanelShell.vue` | Added `#header-actions` named slot; wrapped right side of header in `.panel-right` flex container |
+| `src/components/panels/CoachPanel.vue` | Copy button in `#header-actions` (visible when `rawText && !isLoading`); `rawText` computed reads `response.message`; `copyResponse()` writes to clipboard + fires 2 s toast; green hover accent |
+| `src/components/panels/AIReviewPanel.vue` | Same pattern (visible when `isMarkdownResponse && !isAnalyzing`); purple hover accent |
+
+**UX notes:**
+- Button hidden during streaming; appears only after the stream completes
+- Copies `response.message` (raw markdown), not rendered HTML
+- Reuses existing `toast.copied` i18n key with a 2 s duration override
+
+---
+
+---
+
+## Completed Improvements — v8.13 (2026-02-23)
+
+### Feature: Mode Badges in Panel Headers
+
+Small "GLM" or "n8n" chip in the header of CoachPanel and AIReviewPanel. Driven by the shared reactive refs from `llm.ts` — updates instantly when Settings are saved.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/panels/CoachPanel.vue` | Imports `coachMode` ref; badge added to `#header-actions` before copy button; always visible; `.badge-llm` (blue) / `.badge-n8n` (orange) classes |
+| `src/components/panels/AIReviewPanel.vue` | Same with `analyzeMode` ref |
+
+**Badge colours:**
+| Value | Label | Background | Border/Text |
+|-------|-------|------------|-------------|
+| `'llm'` | GLM | `rgba(88,166,255,0.15)` | `--accent-blue` |
+| `'webhook'` | n8n | `rgba(210,153,34,0.15)` | `--accent-orange` |
+
+**Note:** `v-if` was moved from the `<template #header-actions>` tag down to just the copy button, so the slot now always renders (required for the always-visible badge).
+
+---
+
+---
+
+## Completed Improvements — v8.14 (2026-02-23)
+
+### Feature: Retry Cooldown
+
+After clicking Retry, the button disables for 2 seconds and shows a live countdown (`2s` → `1s`) before re-enabling. Prevents accidental double-submission on flaky connections.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/panels/CoachPanel.vue` | `retryCountdown` ref + `_cooldownTimer` var; `handleRetry()` emits `retry` then starts 1 s interval; `onUnmounted` clears timer; button `:disabled="retryCountdown > 0"`, label shows countdown; `:hover` guard changed to `:hover:not(:disabled)`; `.retry-btn:disabled` style added |
+| `src/components/panels/AIReviewPanel.vue` | Same; both retry buttons (empty-state `hadError` + post-stream) share the single `retryCountdown` ref so clicking either locks both |
+
+---
+
+---
+
+## Completed Improvements — v8.15 (2026-02-23)
+
+### Feature: Persist Last Responses
+
+On every successful Coach or Analyze completion, the response and a form snapshot are serialised to `localStorage`. On page reload, if a draft is restored and the snapshot matches the current form exactly, the responses are rehydrated into their refs automatically.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/App.vue` | Three localStorage key constants (`coach-last-response`, `analyze-last-response`, `response-form-snapshot`); four helpers: `buildFormSnapshot()` (stringifies 6 form fields), `saveResponsesToStorage()`, `clearResponsesFromStorage()`, `restoreResponsesFromStorage()`; save called in all four success paths (`handleAnalyze`, `handleCoachRequest`, `handleAnalyzeRetry`, `handleCoachRetry`); clear called in `handleReset`; restore called in `onMounted` after `restoreDraft()` returns true |
+
+**Restore conditions:**
+- Skipped entirely if no draft was present (`restoreDraft()` returns false)
+- Skipped if stored snapshot doesn't match the current (restored) form — exact JSON string comparison
+- Malformed localStorage entries caught and silently ignored
+
+---
+
+---
+
+## Completed Improvements — v8.16 (2026-02-23)
+
+### Feature: Invalidate Stored Responses on Form Edit
+
+Any change to the six form fields that make up the response snapshot immediately removes the three response localStorage keys. Prevents stale responses from being restored after a form edit + page reload.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/App.vue` | Added `watch` to Vue imports; added a lazy `watch` over `[form.projectKey, form.issueType, computedSummary, form.description, form.assignee, form.estimatedPoints]` → calls `clearResponsesFromStorage()`; does not fire during draft restoration (lazy, not immediate) |
+
+---
+
+---
+
+## Completed Improvements — v8.17 (2026-02-23)
+
+### Feature: Skill Character Counter
+
+Live `{n} chars · ~{n÷4} tokens` counter in the bottom-right of each skill section in Settings. Updates on every keystroke. Dims automatically with the textarea when mode is set to webhook.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/settings/LLMSettings.vue` | `<p class="skill-hint">` replaced with `.skill-footer` flex row; `.skill-counter` span shows `localCoachSkill.length` / `localAnalyzeSkill.length` and estimated token count inline; `.skill-footer`, `.skill-counter` CSS added |
+
+---
+
+## Potential Next Improvements
+
+### High Priority
+- [ ] **Word / sentence count in description** — live word count below the task description textarea (e.g. "42 words"); helps writers gauge verbosity before submitting; analogous to the skill character counter
+
+### Medium Priority
+- [ ] **Stream token speed indicator** — track tokens-per-second during streaming and show a subtle throughput label (e.g. "42 tok/s") near the blinking cursor; useful for diagnosing slow GLM responses
+- [ ] **Multiple LLM providers** — extend `llm.ts` and `LLMSettings.vue` to support any OpenAI-compatible endpoint (ZhipuAI, local Ollama, etc.); provider base URL stored in localStorage; `_callGLMStream` uses the active URL
+- [ ] **Skill diff indicator** — show a small "modified" dot or border on the skill label when a localStorage override is active; clicking "Reset to Default" removes the indicator
+
+### Low Priority / Polish
+- [ ] **Export/Import all settings** — one-click JSON export covering API key, model, coach/analyze mode, and both skill overrides; paste on another machine to restore full config
+- [ ] **Graceful 429 backoff** — when `glm429` is caught, auto-schedule a retry after a configurable delay (default 10 s) with a visible countdown in the panel rather than requiring the user to click Retry manually
+- [ ] **Skill file per language** — support `coach-skill-zh.md` / `coach-skill-en.md` as distinct source files so Chinese and English prompts can be authored fully independently rather than relying on `{lang}` substitution
+- [ ] **Template chip editor** — add/edit/reorder chips directly in Settings without touching JSON files in `src/config/templates/`; store overrides in localStorage the same way skill files do
+- [ ] **Dev Tools integration** — surface coach mode, analyze mode, active model, skill customisation status, `hadError` / `wasCancelled` state, and stream-active flag in the DevTools panel

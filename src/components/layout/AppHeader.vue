@@ -51,6 +51,11 @@
         <span class="status-pulse" :class="isProd ? 'green' : 'orange'"></span>
         {{ isProd ? 'Production' : 'Test Mode' }}
       </span>
+
+      <!-- Settings Gear -->
+      <button class="settings-btn" @click="$emit('openSettings')" title="LLM Settings">
+        ⚙
+      </button>
     </div>
   </header>
 </template>
@@ -61,6 +66,8 @@ import { useProductionMode, setUrlMode } from '@/config/webhook'
 
 const { t, setLang, currentLang } = useI18n()
 const isProd = useProductionMode
+
+defineEmits<{ openSettings: [] }>()
 </script>
 
 <style scoped>
@@ -170,6 +177,25 @@ const isProd = useProductionMode
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+.settings-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 15px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.settings-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-tertiary);
 }
 
 @media (max-width: 768px) {

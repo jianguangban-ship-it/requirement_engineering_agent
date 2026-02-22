@@ -8,10 +8,7 @@ export function useWebhook() {
 
   const isSubmitting = ref(false)
   const currentAction = ref<ActionType | ''>('')
-  const aiAgentResponse = ref<unknown>(null)
   const jiraResponse = ref<unknown>(null)
-  const coachResponse = ref<unknown>(null)
-  const isCoachLoading = ref(false)
 
   async function sendRequest(payload: WebhookPayload): Promise<unknown> {
     const controller = new AbortController()
@@ -55,24 +52,6 @@ export function useWebhook() {
     }
   }
 
-  async function analyzeTask(payload: WebhookPayload): Promise<string | null> {
-    isSubmitting.value = true
-    currentAction.value = 'analyze'
-    aiAgentResponse.value = null
-    jiraResponse.value = null
-
-    try {
-      const result = await sendRequest(payload)
-      aiAgentResponse.value = result
-      return null // no error
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : t('error.requestFailed')
-      return msg
-    } finally {
-      isSubmitting.value = false
-    }
-  }
-
   async function createJiraTicket(payload: WebhookPayload): Promise<string | null> {
     isSubmitting.value = true
     currentAction.value = 'create'
@@ -90,39 +69,16 @@ export function useWebhook() {
     }
   }
 
-  async function requestCoach(payload: WebhookPayload): Promise<string | null> {
-    isCoachLoading.value = true
-    coachResponse.value = null
-
-    try {
-      const result = await sendRequest(payload)
-      coachResponse.value = result
-      return null
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : t('error.requestFailed')
-      return msg
-    } finally {
-      isCoachLoading.value = false
-    }
-  }
-
   function clearResponses() {
-    aiAgentResponse.value = null
     jiraResponse.value = null
-    coachResponse.value = null
     currentAction.value = ''
   }
 
   return {
     isSubmitting,
     currentAction,
-    aiAgentResponse,
     jiraResponse,
-    coachResponse,
-    isCoachLoading,
-    analyzeTask,
     createJiraTicket,
-    requestCoach,
     clearResponses
   }
 }
