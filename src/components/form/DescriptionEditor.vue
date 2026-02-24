@@ -9,14 +9,26 @@
       class="input-base desc-textarea"
       :placeholder="t('form.descriptionPlaceholder')"
     ></textarea>
+    <div class="desc-footer">
+      <span class="desc-counter">{{ wordCount }} {{ t('form.descWords') }} · {{ sentenceCount }} {{ t('form.descSentences') }}</span>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from '@/i18n'
 
 const model = defineModel<string>({ required: true })
 const { t } = useI18n()
+
+const wordCount = computed(() =>
+  model.value.trim() ? model.value.trim().split(/\s+/).filter(Boolean).length : 0
+)
+
+const sentenceCount = computed(() =>
+  model.value.trim() ? model.value.split(/[.!?。！？]+/).filter(s => s.trim()).length : 0
+)
 </script>
 
 <style scoped>
@@ -41,5 +53,15 @@ const { t } = useI18n()
   min-height: 160px;
   resize: vertical;
   font-size: 14px;
+}
+.desc-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.desc-counter {
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0.7;
 }
 </style>

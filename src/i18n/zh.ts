@@ -27,6 +27,8 @@ export default {
     taskDescription: '任务描述',
     required: '必填',
     descriptionPlaceholder: '请输入背景信息、前置需求、变更请求、缺陷描述、设计思路、验收标准 (AC) 或复现步骤...',
+    descWords: '词',
+    descSentences: '句',
     reset: '重置',
     aiAnalyze: 'AI 智能分析',
     confirmCreate: '确认创建 (JIRA)',
@@ -44,7 +46,8 @@ export default {
     summary: '处理摘要',
     aiCorrectedPoints: 'AI 修正点数',
     subtasks: '拆解子任务',
-    items: '个'
+    items: '个',
+    backoffLabel: '请求频率超限，自动重试剩余'
   },
   status: {
     idle: '空闲',
@@ -60,7 +63,19 @@ export default {
     currentMode: '当前模式',
     production: '生产环境',
     testing: '测试环境',
-    configHint: '修改常量以更新配置：'
+    configHint: '修改常量以更新配置：',
+    agentState: 'Agent 状态',
+    coachMode: 'Coach 模式',
+    analyzeMode: '分析模式',
+    model: '模型',
+    coachSkill: 'Coach 提示词',
+    analyzeSkill: '分析提示词',
+    customTemplates: '自定义模板',
+    streaming: '流式输出',
+    streamSpeed: 'tok/s',
+    yes: '是',
+    no: '否',
+    backoff: '退避'
   },
   error: {
     timeout: '请求超时，请检查 n8n 服务是否运行',
@@ -86,7 +101,9 @@ export default {
     hint: 'Coach 将帮助提升您的描述质量',
     team: '所属团队',
     assignee: '经办人',
-    reviewDetails: '审核详情'
+    reviewDetails: '审核详情',
+    backoffLabel: '请求频率超限，自动重试剩余',
+    backoffCancel: '取消自动重试'
   },
   quality: {
     excellent: '优秀',
@@ -117,6 +134,8 @@ export default {
     coachMode: 'Coach 模式',
     modeLLM: 'GLM API（直连）',
     modeWebhook: 'n8n Webhook',
+    providerUrl: '服务商 Base URL',
+    providerUrlPlaceholder: '留空使用默认（GLM API）',
     apiKey: 'GLM API Key',
     apiKeyPlaceholder: '输入您的 ZhipuAI API Key',
     model: '模型名称',
@@ -125,10 +144,17 @@ export default {
     coachSkill: 'Coach 提示词',
     analyzeSkill: '分析提示词',
     skillReset: '恢复默认',
-    skillHint: '编辑 AI 行为规则。{lang} 在运行时替换为当前语言（zh 或 en）。',
+    skillModified: '已修改',
+    skillHint: '编辑 AI 行为规则。语言专属默认提示词从 .md 文件加载。',
     testKey: '验证',
     testing: '验证中...',
     keyValid: 'Key 有效',
+    exportImport: '导出 / 导入设置',
+    exportSettings: '导出',
+    importSettings: '导入',
+    templateEditor: '快捷模板管理',
+    templateReset: '恢复默认',
+    addChip: '添加模板',
     save: '保存',
     cancel: '取消',
     saved: '设置已保存'

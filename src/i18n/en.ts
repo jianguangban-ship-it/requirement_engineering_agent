@@ -27,6 +27,8 @@ export default {
     taskDescription: 'Task Description',
     required: 'Required',
     descriptionPlaceholder: 'Enter background info, prerequisites, change requests, defect description, design thoughts, acceptance criteria (AC), or reproduction steps...',
+    descWords: 'words',
+    descSentences: 'sentences',
     reset: 'Reset',
     aiAnalyze: 'AI Smart Analysis',
     confirmCreate: 'Confirm Create (JIRA)',
@@ -44,7 +46,8 @@ export default {
     summary: 'Processing Summary',
     aiCorrectedPoints: 'AI Corrected Points',
     subtasks: 'Subtasks',
-    items: 'items'
+    items: 'items',
+    backoffLabel: 'Rate limited — retrying in'
   },
   status: {
     idle: 'Idle',
@@ -60,7 +63,19 @@ export default {
     currentMode: 'Current Mode',
     production: 'Production',
     testing: 'Testing',
-    configHint: 'Modify constant to update config:'
+    configHint: 'Modify constant to update config:',
+    agentState: 'Agent State',
+    coachMode: 'Coach Mode',
+    analyzeMode: 'Analyze Mode',
+    model: 'Model',
+    coachSkill: 'Coach Skill',
+    analyzeSkill: 'Analyze Skill',
+    customTemplates: 'Custom Templates',
+    streaming: 'Streaming',
+    streamSpeed: 'tok/s',
+    yes: 'Yes',
+    no: 'No',
+    backoff: 'Backoff'
   },
   error: {
     timeout: 'Request timeout, please check if n8n service is running',
@@ -86,7 +101,9 @@ export default {
     hint: 'Coach will help improve your description quality',
     team: 'Team',
     assignee: 'Assignee',
-    reviewDetails: 'Review Details'
+    reviewDetails: 'Review Details',
+    backoffLabel: 'Rate limited — retrying in',
+    backoffCancel: 'Cancel auto-retry'
   },
   quality: {
     excellent: 'Excellent',
@@ -117,6 +134,8 @@ export default {
     coachMode: 'Coach Mode',
     modeLLM: 'GLM API (Direct)',
     modeWebhook: 'n8n Webhook',
+    providerUrl: 'Provider Base URL',
+    providerUrlPlaceholder: 'Leave blank for default (GLM API)',
     apiKey: 'GLM API Key',
     apiKeyPlaceholder: 'Enter your ZhipuAI API Key',
     model: 'Model Name',
@@ -125,10 +144,17 @@ export default {
     coachSkill: 'Coach Skill',
     analyzeSkill: 'Analyze Skill',
     skillReset: 'Reset to Default',
-    skillHint: 'Edit AI behavior rules. {lang} is replaced with the current language (zh or en) at runtime.',
+    skillModified: 'modified',
+    skillHint: 'Edit AI behavior rules. Language-specific defaults loaded from .md files.',
     testKey: 'Test',
     testing: 'Testing...',
     keyValid: 'Key valid',
+    exportImport: 'Export / Import Settings',
+    exportSettings: 'Export',
+    importSettings: 'Import',
+    templateEditor: 'Template Chips',
+    templateReset: 'Reset to Defaults',
+    addChip: 'Add Chip',
     save: 'Save',
     cancel: 'Cancel',
     saved: 'Settings saved'

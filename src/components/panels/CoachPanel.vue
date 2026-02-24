@@ -25,22 +25,33 @@
       </svg>
     </template>
 
-    <!-- Empty state -->
+    <!-- Empty state / backoff state -->
     <div v-if="!response && !isLoading" class="empty-state">
-      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-      </svg>
-      <p class="empty-hint">{{ t('coach.emptyHint') }}</p>
-      <p class="empty-sub">{{ t('coach.emptySubHint') }}</p>
-      <div class="chips">
-        <QuickChip
-          v-for="chip in chips"
-          :key="chip.key"
-          :icon="chip.icon"
-          :label="chip.label"
-          @click="$emit('applyChip', chip.key)"
-        />
-      </div>
+      <!-- 429 backoff countdown -->
+      <template v-if="backoffSecs > 0">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent-orange)">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="backoff-text">{{ t('coach.backoffLabel') }} <strong>{{ backoffSecs }}s</strong></p>
+        <button class="cancel-btn small-cancel" @click="$emit('cancel')">{{ t('coach.backoffCancel') }}</button>
+      </template>
+      <!-- Normal empty state -->
+      <template v-else>
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+        <p class="empty-hint">{{ t('coach.emptyHint') }}</p>
+        <p class="empty-sub">{{ t('coach.emptySubHint') }}</p>
+        <div class="chips">
+          <QuickChip
+            v-for="chip in chips"
+            :key="chip.key"
+            :icon="chip.icon"
+            :label="chip.label"
+            @click="$emit('applyChip', chip.key)"
+          />
+        </div>
+      </template>
     </div>
 
     <!-- Loading state (waiting for first token) -->
@@ -55,7 +66,10 @@
     <!-- Coach response (streaming or complete) -->
     <div v-else>
       <div class="coach-response" v-html="formattedResponse" />
-      <span v-if="isLoading" class="streaming-cursor green" />
+      <div v-if="isLoading" class="stream-footer">
+        <span class="streaming-cursor green" />
+        <span v-if="streamSpeed > 0" class="stream-speed">{{ streamSpeed }} {{ t('dev.streamSpeed') }}</span>
+      </div>
     </div>
 
     <template #footer>
@@ -93,7 +107,7 @@
 import { computed, ref, onUnmounted } from 'vue'
 import { useI18n } from '@/i18n'
 import { formatCoachResponse } from '@/utils/formatCoach'
-import { TEMPLATES } from '@/config/templates/index'
+import { effectiveTemplates } from '@/config/templates/index'
 import { useToast } from '@/composables/useToast'
 import { coachMode } from '@/config/llm'
 import PanelShell from '@/components/layout/PanelShell.vue'
@@ -105,6 +119,8 @@ const props = defineProps<{
   canRequest: boolean
   wasCancelled: boolean
   hadError: boolean
+  streamSpeed: number
+  backoffSecs: number
 }>()
 
 const emit = defineEmits<{
@@ -154,7 +170,7 @@ async function copyResponse() {
 }
 
 const chips = computed(() =>
-  TEMPLATES.map(t => ({
+  effectiveTemplates.value.map(t => ({
     key: t.key,
     icon: t.icon,
     label: isZh.value ? t.label.zh : t.label.en
@@ -427,6 +443,18 @@ const chips = computed(() =>
   to { transform: rotate(360deg); }
 }
 
+.stream-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.stream-speed {
+  font-size: 11px;
+  color: var(--accent-green);
+  opacity: 0.8;
+  font-family: var(--font-mono);
+}
 .streaming-cursor {
   display: inline-block;
   width: 2px;
@@ -438,4 +466,14 @@ const chips = computed(() =>
 }
 .streaming-cursor.green { background-color: var(--accent-green); }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.backoff-text {
+  font-size: 13px;
+  color: var(--accent-orange);
+  margin-bottom: 12px;
+}
+.small-cancel {
+  padding: 5px 14px;
+  font-size: 12px;
+  margin-top: 0;
+}
 </style>

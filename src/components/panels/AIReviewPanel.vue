@@ -23,20 +23,31 @@
       </svg>
     </template>
 
-    <!-- Empty state -->
+    <!-- Empty state / backoff state -->
     <div v-if="!response && !isAnalyzing" class="empty-state">
-      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-      </svg>
-      <p class="empty-text">{{ t('panel.waitingAI') }}</p>
-      <div v-if="hadError" class="retry-row">
-        <button class="retry-btn" :disabled="retryCountdown > 0" @click="handleRetry">
-          <svg class="retry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-          </svg>
-          {{ retryCountdown > 0 ? `${retryCountdown}s` : t('panel.retryBtn') }}
-        </button>
-      </div>
+      <!-- 429 backoff countdown -->
+      <template v-if="backoffSecs > 0">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent-orange)">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="backoff-text">{{ t('panel.backoffLabel') }} <strong>{{ backoffSecs }}s</strong></p>
+        <button class="cancel-btn" @click="$emit('cancel')">{{ t('coach.backoffCancel') }}</button>
+      </template>
+      <!-- Normal empty state -->
+      <template v-else>
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+        </svg>
+        <p class="empty-text">{{ t('panel.waitingAI') }}</p>
+        <div v-if="hadError" class="retry-row">
+          <button class="retry-btn" :disabled="retryCountdown > 0" @click="handleRetry">
+            <svg class="retry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            {{ retryCountdown > 0 ? `${retryCountdown}s` : t('panel.retryBtn') }}
+          </button>
+        </div>
+      </template>
     </div>
 
     <!-- Loading state (waiting for first token) -->
@@ -65,7 +76,10 @@
         </button>
       </div>
       <div class="coach-response" v-html="formattedAnalysis" />
-      <span v-if="isAnalyzing" class="streaming-cursor" />
+      <div v-if="isAnalyzing" class="stream-footer">
+        <span class="streaming-cursor" />
+        <span v-if="streamSpeed > 0" class="stream-speed">{{ streamSpeed }} {{ t('dev.streamSpeed') }}</span>
+      </div>
       <div v-if="!isAnalyzing && (wasCancelled || hadError)" class="retry-row">
         <button class="retry-btn" :disabled="retryCountdown > 0" @click="handleRetry">
           <svg class="retry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -96,6 +110,8 @@ const props = defineProps<{
   hasError: boolean
   wasCancelled: boolean
   hadError: boolean
+  streamSpeed: number
+  backoffSecs: number
 }>()
 
 const emit = defineEmits<{ cancel: []; retry: [] }>()
@@ -242,6 +258,18 @@ async function copyResponse() {
   height: 13px;
 }
 
+.stream-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.stream-speed {
+  font-size: 11px;
+  color: var(--accent-purple);
+  opacity: 0.8;
+  font-family: var(--font-mono);
+}
 .streaming-cursor {
   display: inline-block;
   width: 2px;
@@ -253,6 +281,11 @@ async function copyResponse() {
   animation: blink 0.9s step-end infinite;
 }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.backoff-text {
+  font-size: 13px;
+  color: var(--accent-orange);
+  margin-bottom: 12px;
+}
 
 .cancel-row {
   display: flex;

@@ -704,19 +704,166 @@ Live `{n} chars · ~{n÷4} tokens` counter in the bottom-right of each skill sec
 
 ---
 
+---
+
+## Completed Improvements — v8.18 (2026-02-24)
+
+### Feature: Word / Sentence Count in Description
+
+Live word and sentence counter below the task description textarea. Updates on every keystroke. Shows `0 words · 0 sentences` when empty.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/form/DescriptionEditor.vue` | Added `wordCount` and `sentenceCount` computed refs; `.desc-footer` + `.desc-counter` rendered below textarea |
+| `src/i18n/en.ts` | Added `form.descWords`, `form.descSentences` |
+| `src/i18n/zh.ts` | Added same keys in Chinese (`词`, `句`) |
+
+---
+
+---
+
+## Completed Improvements — v8.19 (2026-02-24)
+
+### Feature: Stream Token Speed Indicator
+
+Live `{n} tok/s` throughput label shown next to the blinking cursor in CoachPanel and AIReviewPanel during GLM streaming. Resets to 0 on cancel, error, or clear.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/composables/useLLM.ts` | Added `coachStreamSpeed` / `analyzeStreamSpeed` refs; token count and elapsed time tracked in `requestCoach` / `requestAnalyze` `onChunk` callbacks |
+| `src/components/panels/CoachPanel.vue` | Added `streamSpeed` prop; `.stream-footer` flex row replaces inline cursor; speed label shown when `streamSpeed > 0` |
+| `src/components/panels/AIReviewPanel.vue` | Same pattern with purple accent |
+| `src/App.vue` | Destructures and passes `coachStreamSpeed` / `analyzeStreamSpeed` as `:stream-speed` |
+
+---
+
+### Feature: Multiple LLM Providers
+
+Settings modal now has a "Provider Base URL" field. Any OpenAI-compatible endpoint (Ollama, local proxies, etc.) can be used by entering its base URL. Stored in `localStorage` under `provider-url`.
+
+**New localStorage key:**
+| Key | Default |
+|-----|---------|
+| `provider-url` | `''` (falls back to GLM_BASE_URL) |
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/config/llm.ts` | Added `getProviderUrl()`, `setProviderUrl()`; falls back to `GLM_BASE_URL` when empty |
+| `src/composables/useLLM.ts` | `_callGLMStream` uses `getProviderUrl()` instead of `GLM_BASE_URL` |
+| `src/components/settings/LLMSettings.vue` | Added Provider Base URL field above API Key; `handleTestKey` uses local provider URL; `handleSave` calls `setProviderUrl` |
+
+---
+
+### Feature: Skill Diff Indicator
+
+Orange `● modified` badge appears next to the Coach Skill and Analyze Skill labels in Settings when a localStorage override is active. Disappears immediately when "Reset to Default" is clicked.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/config/skills/index.ts` | Added `coachSkillModified` / `analyzeSkillModified` reactive refs; `setCoachSkill`/`setAnalyzeSkill` set them to `true`; `resetCoachSkill`/`resetAnalyzeSkill` set them to `false` |
+| `src/components/settings/LLMSettings.vue` | `.skill-label-row` flex wrapper; `v-if="coachSkillModified"` badge with `.skill-modified-badge` style |
+
+---
+
+### Feature: Export / Import All Settings
+
+Two buttons in Settings (Export ⬇ / Import ⬆) at the bottom of the modal. Export downloads a dated JSON file covering all settings. Import reads a JSON file and populates all local state fields without saving until the user clicks Save.
+
+**Exported keys:** `provider-url`, `glm-api-key`, `glm-model`, `coach-mode`, `analyze-mode`, `coach-skill`, `analyze-skill`, `custom-templates`
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/settings/LLMSettings.vue` | Added `handleExport()` (Blob download) and `handleImport()` (FileReader); `.export-row` flex row + `.btn-export` / `.btn-import` styles |
+| `src/i18n/en.ts` / `zh.ts` | Added `settings.exportImport`, `settings.exportSettings`, `settings.importSettings` |
+
+---
+
+### Feature: Graceful 429 Backoff
+
+When the GLM API returns HTTP 429, instead of showing an error, a 10-second countdown starts in the panel. The panel body shows an orange timer with a cancel button. On reaching 0, the request is automatically retried. Works for both Coach and Analyze modes.
+
+**Architecture:** `GLM429Error` custom class thrown in `_callGLMStream` → caught in `requestCoach`/`requestAnalyze` → starts `setInterval` countdown → auto-calls `requestCoach`/`requestAnalyze` recursively at 0.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/composables/useLLM.ts` | Added `GLM429Error` class; `coachBackoffSecs` / `analyzeBackoffSecs` refs; `_coachBackoffTimer` / `_analyzeBackoffTimer`; backoff cleared in `cancelCoach`/`cancelAnalyze` and `clearCoachResponse`/`clearAnalyzeResponse` |
+| `src/components/panels/CoachPanel.vue` | Added `backoffSecs` prop; `v-if="backoffSecs > 0"` template branch in empty state with clock icon, countdown, and cancel button |
+| `src/components/panels/AIReviewPanel.vue` | Same pattern |
+| `src/App.vue` | Passes `coachBackoffSecs` / `analyzeBackoffSecs` as `:backoff-secs` |
+| `src/i18n/en.ts` / `zh.ts` | Added `coach.backoffLabel`, `coach.backoffCancel`, `panel.backoffLabel` |
+
+---
+
+### Feature: Skill File Per Language
+
+Coach and Analyze system prompts are now authored as separate language-specific `.md` files instead of a single file with `{lang}` substitution. localStorage overrides still take priority.
+
+**New files:**
+| File | Purpose |
+|------|---------|
+| `src/config/skills/coach-skill-zh.md` | Chinese coach prompt |
+| `src/config/skills/coach-skill-en.md` | English coach prompt |
+| `src/config/skills/analyze-skill-zh.md` | Chinese analyze prompt |
+| `src/config/skills/analyze-skill-en.md` | English analyze prompt |
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/config/skills/index.ts` | Imports all 4 lang-specific files; `getCoachSkill(lang)` / `getAnalyzeSkill(lang)` use lang-specific defaults instead of `applyLang({lang})`; added `getCoachSkillDefault(lang)` / `getAnalyzeSkillDefault(lang)` exports |
+| `src/components/settings/LLMSettings.vue` | `handleResetCoach`/`handleResetAnalyze` use `getCoachSkillDefault(currentLang())` instead of `coachSkillDefault`; modal-open watch initialises textareas from lang-specific defaults |
+
+---
+
+### Feature: Template Chip Editor
+
+Collapsible "Template Chips" section added to Settings modal. Lists all chips (built-in + custom) with expand-to-edit per chip (icon, zh/en labels, zh/en content). Supports move up/down, delete, add new chip. Changes saved to `custom-templates` localStorage on Settings Save. Reset restores built-in defaults.
+
+**New localStorage key:** `custom-templates` — full JSON array of `TemplateDefinition[]`
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/config/templates/index.ts` | Added `effectiveTemplates` reactive ref; `setCustomTemplates()`, `resetCustomTemplates()`, `customTemplatesModified` ref; `getTemplateContent` uses `effectiveTemplates.value` |
+| `src/components/settings/LLMSettings.vue` | `localTemplates` ref (deep clone); `toggleChipEdit`, `moveChip`, `deleteChip`, `addChip`, `handleResetTemplates`; collapsible `<details>` section with chip list; `handleSave` calls `setCustomTemplates` or `resetCustomTemplates` |
+| `src/components/panels/CoachPanel.vue` | Imports `effectiveTemplates` instead of `TEMPLATES`; `chips` computed uses `effectiveTemplates.value` |
+| `src/i18n/en.ts` / `zh.ts` | Added `settings.templateEditor`, `settings.templateReset`, `settings.addChip` |
+
+---
+
+### Feature: Dev Tools Integration
+
+New "Agent State" collapsible section in DevTools panel surfaces all AI state at a glance without opening Settings.
+
+**Surfaced information:** Coach mode badge, Analyze mode badge, Active model, Coach/Analyze skill modified status, Custom templates modified status, Streaming active flag + speed, Backoff countdown, Error/cancelled state per panel.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/dev/DevTools.vue` | Extended `defineProps` with 16 new props; added "Agent State" `<details>` section; `.mode-badge`, `.speed-badge`, `.state-divider` styles |
+| `src/App.vue` | Imports `coachMode`, `analyzeMode`, `getModel`, `coachSkillModified`, `analyzeSkillModified`, `customTemplatesModified`; `activeModel` computed; passes all 16 new props to `<DevTools>` |
+| `src/i18n/en.ts` / `zh.ts` | Added all `dev.*` keys: `agentState`, `coachMode`, `analyzeMode`, `model`, `coachSkill`, `analyzeSkill`, `customTemplates`, `streaming`, `streamSpeed`, `yes`, `no`, `backoff` |
+
+---
+
 ## Potential Next Improvements
 
 ### High Priority
-- [ ] **Word / sentence count in description** — live word count below the task description textarea (e.g. "42 words"); helps writers gauge verbosity before submitting; analogous to the skill character counter
+- [x] **Word / sentence count in description** — live word count below the task description textarea (e.g. "42 words"); helps writers gauge verbosity before submitting; analogous to the skill character counter
 
 ### Medium Priority
-- [ ] **Stream token speed indicator** — track tokens-per-second during streaming and show a subtle throughput label (e.g. "42 tok/s") near the blinking cursor; useful for diagnosing slow GLM responses
-- [ ] **Multiple LLM providers** — extend `llm.ts` and `LLMSettings.vue` to support any OpenAI-compatible endpoint (ZhipuAI, local Ollama, etc.); provider base URL stored in localStorage; `_callGLMStream` uses the active URL
-- [ ] **Skill diff indicator** — show a small "modified" dot or border on the skill label when a localStorage override is active; clicking "Reset to Default" removes the indicator
+- [x] **Stream token speed indicator** — track tokens-per-second during streaming and show a subtle throughput label (e.g. "42 tok/s") near the blinking cursor; useful for diagnosing slow GLM responses
+- [x] **Multiple LLM providers** — extend `llm.ts` and `LLMSettings.vue` to support any OpenAI-compatible endpoint (ZhipuAI, local Ollama, etc.); provider base URL stored in localStorage; `_callGLMStream` uses the active URL
+- [x] **Skill diff indicator** — show a small "modified" dot or border on the skill label when a localStorage override is active; clicking "Reset to Default" removes the indicator
 
 ### Low Priority / Polish
-- [ ] **Export/Import all settings** — one-click JSON export covering API key, model, coach/analyze mode, and both skill overrides; paste on another machine to restore full config
-- [ ] **Graceful 429 backoff** — when `glm429` is caught, auto-schedule a retry after a configurable delay (default 10 s) with a visible countdown in the panel rather than requiring the user to click Retry manually
-- [ ] **Skill file per language** — support `coach-skill-zh.md` / `coach-skill-en.md` as distinct source files so Chinese and English prompts can be authored fully independently rather than relying on `{lang}` substitution
-- [ ] **Template chip editor** — add/edit/reorder chips directly in Settings without touching JSON files in `src/config/templates/`; store overrides in localStorage the same way skill files do
-- [ ] **Dev Tools integration** — surface coach mode, analyze mode, active model, skill customisation status, `hadError` / `wasCancelled` state, and stream-active flag in the DevTools panel
+- [x] **Export/Import all settings** — one-click JSON export covering API key, model, coach/analyze mode, and both skill overrides; paste on another machine to restore full config
+- [x] **Graceful 429 backoff** — when `glm429` is caught, auto-schedule a retry after a configurable delay (default 10 s) with a visible countdown in the panel rather than requiring the user to click Retry manually
+- [x] **Skill file per language** — support `coach-skill-zh.md` / `coach-skill-en.md` as distinct source files so Chinese and English prompts can be authored fully independently rather than relying on `{lang}` substitution
+- [x] **Template chip editor** — add/edit/reorder chips directly in Settings without touching JSON files in `src/config/templates/`; store overrides in localStorage the same way skill files do
+- [x] **Dev Tools integration** — surface coach mode, analyze mode, active model, skill customisation status, `hadError` / `wasCancelled` state, and stream-active flag in the DevTools panel

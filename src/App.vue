@@ -36,6 +36,8 @@
             :can-request="canSubmit"
             :was-cancelled="coachWasCancelled"
             :had-error="coachHadError"
+            :stream-speed="coachStreamSpeed"
+            :backoff-secs="coachBackoffSecs"
             @request="handleCoachRequest"
             @cancel="cancelCoach"
             @retry="handleCoachRetry"
@@ -74,6 +76,8 @@
             :has-error="!!errorMessage && formCurrentAction === 'analyze'"
             :was-cancelled="analyzeWasCancelled"
             :had-error="analyzeHadError"
+            :stream-speed="analyzeStreamSpeed"
+            :backoff-secs="analyzeBackoffSecs"
             @cancel="cancelAnalyze"
             @retry="handleAnalyzeRetry"
           />
@@ -89,7 +93,25 @@
             :estimated-points="form.estimatedPoints"
           />
 
-          <DevTools :payload="jsonPayload" />
+          <DevTools
+            :payload="jsonPayload"
+            :coach-mode="coachMode"
+            :analyze-mode="analyzeMode"
+            :active-model="activeModel"
+            :coach-skill-modified="coachSkillModified"
+            :analyze-skill-modified="analyzeSkillModified"
+            :custom-templates-modified="customTemplatesModified"
+            :is-coach-loading="isCoachLoading"
+            :is-analyze-loading="isAnalyzeLoading"
+            :coach-had-error="coachHadError"
+            :analyze-had-error="analyzeHadError"
+            :coach-was-cancelled="coachWasCancelled"
+            :analyze-was-cancelled="analyzeWasCancelled"
+            :coach-stream-speed="coachStreamSpeed"
+            :analyze-stream-speed="analyzeStreamSpeed"
+            :coach-backoff-secs="coachBackoffSecs"
+            :analyze-backoff-secs="analyzeBackoffSecs"
+          />
         </div>
       </div>
     </main>
@@ -106,7 +128,9 @@ import { useForm } from '@/composables/useForm'
 import { useWebhook } from '@/composables/useWebhook'
 import { useLLM } from '@/composables/useLLM'
 import { useToast } from '@/composables/useToast'
-import { getTemplateContent } from '@/config/templates/index'
+import { getTemplateContent, effectiveTemplates, customTemplatesModified } from '@/config/templates/index'
+import { coachSkillModified, analyzeSkillModified } from '@/config/skills/index'
+import { coachMode, analyzeMode, getModel } from '@/config/llm'
 
 import AppHeader from '@/components/layout/AppHeader.vue'
 import LLMSettings from '@/components/settings/LLMSettings.vue'
@@ -135,9 +159,15 @@ const {
 } = useWebhook()
 
 const {
-  isCoachLoading, coachResponse, coachWasCancelled, coachHadError, requestCoach, cancelCoach, retryCoach, clearCoachResponse,
-  isAnalyzeLoading, analyzeResponse, analyzeWasCancelled, analyzeHadError, requestAnalyze, cancelAnalyze, retryAnalyze, clearAnalyzeResponse
+  isCoachLoading, coachResponse, coachWasCancelled, coachHadError,
+  coachStreamSpeed, coachBackoffSecs,
+  requestCoach, cancelCoach, retryCoach, clearCoachResponse,
+  isAnalyzeLoading, analyzeResponse, analyzeWasCancelled, analyzeHadError,
+  analyzeStreamSpeed, analyzeBackoffSecs,
+  requestAnalyze, cancelAnalyze, retryAnalyze, clearAnalyzeResponse
 } = useLLM()
+
+const activeModel = computed(() => getModel())
 
 const errorMessage = ref('')
 const showConfirmModal = ref(false)
@@ -313,7 +343,7 @@ function onSettingsSaved() {
   addToast('success', t('settings.saved'))
 }
 
-// Coach chip templates — driven by JSON files via getTemplateContent
+// Coach chip templates — driven by effective templates (JSON files or localStorage overrides)
 function applyCoachChip(chipKey: string) {
   const lang = isZh.value ? 'zh' : 'en'
   const content = getTemplateContent(chipKey, lang)

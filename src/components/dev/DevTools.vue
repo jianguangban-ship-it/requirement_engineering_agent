@@ -25,6 +25,76 @@
         </div>
       </div>
     </details>
+
+    <details>
+      <summary class="dev-summary">🤖 {{ t('dev.agentState') }}</summary>
+      <div class="dev-config">
+        <div class="config-row">
+          <span class="config-label">{{ t('dev.coachMode') }}:</span>
+          <span class="mode-badge" :class="coachMode === 'llm' ? 'badge-llm' : 'badge-n8n'">{{ coachMode }}</span>
+        </div>
+        <div class="config-row">
+          <span class="config-label">{{ t('dev.analyzeMode') }}:</span>
+          <span class="mode-badge" :class="analyzeMode === 'llm' ? 'badge-llm' : 'badge-n8n'">{{ analyzeMode }}</span>
+        </div>
+        <div class="config-row">
+          <span class="config-label">{{ t('dev.model') }}:</span>
+          <code class="config-url">{{ activeModel }}</code>
+        </div>
+        <div class="config-row">
+          <span class="config-label">{{ t('dev.coachSkill') }}:</span>
+          <span :style="{ color: coachSkillModified ? 'var(--accent-orange)' : 'var(--text-muted)' }">
+            {{ coachSkillModified ? t('settings.skillModified') : t('dev.no') }}
+          </span>
+        </div>
+        <div class="config-row">
+          <span class="config-label">{{ t('dev.analyzeSkill') }}:</span>
+          <span :style="{ color: analyzeSkillModified ? 'var(--accent-orange)' : 'var(--text-muted)' }">
+            {{ analyzeSkillModified ? t('settings.skillModified') : t('dev.no') }}
+          </span>
+        </div>
+        <div class="config-row">
+          <span class="config-label">{{ t('dev.customTemplates') }}:</span>
+          <span :style="{ color: customTemplatesModified ? 'var(--accent-orange)' : 'var(--text-muted)' }">
+            {{ customTemplatesModified ? t('settings.skillModified') : t('dev.no') }}
+          </span>
+        </div>
+        <div class="state-divider" />
+        <div class="config-row">
+          <span class="config-label">Coach {{ t('dev.streaming') }}:</span>
+          <span :style="{ color: isCoachLoading ? 'var(--accent-green)' : 'var(--text-muted)' }">
+            {{ isCoachLoading ? t('dev.yes') : t('dev.no') }}
+            <span v-if="isCoachLoading && coachStreamSpeed > 0" class="speed-badge">{{ coachStreamSpeed }} {{ t('dev.streamSpeed') }}</span>
+          </span>
+        </div>
+        <div class="config-row">
+          <span class="config-label">Analyze {{ t('dev.streaming') }}:</span>
+          <span :style="{ color: isAnalyzeLoading ? 'var(--accent-purple)' : 'var(--text-muted)' }">
+            {{ isAnalyzeLoading ? t('dev.yes') : t('dev.no') }}
+            <span v-if="isAnalyzeLoading && analyzeStreamSpeed > 0" class="speed-badge">{{ analyzeStreamSpeed }} {{ t('dev.streamSpeed') }}</span>
+          </span>
+        </div>
+        <div v-if="coachBackoffSecs > 0 || analyzeBackoffSecs > 0" class="config-row">
+          <span class="config-label">{{ t('dev.backoff') }}:</span>
+          <span style="color: var(--accent-orange)">
+            <span v-if="coachBackoffSecs > 0">Coach {{ coachBackoffSecs }}s</span>
+            <span v-if="analyzeBackoffSecs > 0">Analyze {{ analyzeBackoffSecs }}s</span>
+          </span>
+        </div>
+        <div class="config-row">
+          <span class="config-label">Coach Error/Cancel:</span>
+          <span :style="{ color: coachHadError ? 'var(--accent-red)' : coachWasCancelled ? 'var(--accent-orange)' : 'var(--text-muted)' }">
+            {{ coachHadError ? 'error' : coachWasCancelled ? 'cancelled' : t('dev.no') }}
+          </span>
+        </div>
+        <div class="config-row">
+          <span class="config-label">Analyze Error/Cancel:</span>
+          <span :style="{ color: analyzeHadError ? 'var(--accent-red)' : analyzeWasCancelled ? 'var(--accent-orange)' : 'var(--text-muted)' }">
+            {{ analyzeHadError ? 'error' : analyzeWasCancelled ? 'cancelled' : t('dev.no') }}
+          </span>
+        </div>
+      </div>
+    </details>
   </div>
 </template>
 
@@ -36,6 +106,22 @@ import JsonViewer from '@/components/shared/JsonViewer.vue'
 
 defineProps<{
   payload: string
+  coachMode: string
+  analyzeMode: string
+  activeModel: string
+  coachSkillModified: boolean
+  analyzeSkillModified: boolean
+  customTemplatesModified: boolean
+  isCoachLoading: boolean
+  isAnalyzeLoading: boolean
+  coachHadError: boolean
+  analyzeHadError: boolean
+  coachWasCancelled: boolean
+  analyzeWasCancelled: boolean
+  coachStreamSpeed: number
+  analyzeStreamSpeed: number
+  coachBackoffSecs: number
+  analyzeBackoffSecs: number
 }>()
 
 const { t } = useI18n()
@@ -74,7 +160,7 @@ const activeUrl = computed(() =>
   border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   font-size: 12px;
 }
 .config-row {
@@ -84,6 +170,8 @@ const activeUrl = computed(() =>
 }
 .config-label {
   color: var(--text-muted);
+  min-width: 120px;
+  flex-shrink: 0;
 }
 .config-url {
   padding: 4px 8px;
@@ -100,5 +188,31 @@ const activeUrl = computed(() =>
 }
 .config-code {
   color: var(--accent-green);
+}
+.state-divider {
+  border-top: 1px dashed var(--border-color);
+  margin: 2px 0;
+}
+.mode-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+}
+.badge-llm {
+  background-color: rgba(88, 166, 255, 0.15);
+  color: var(--accent-blue);
+  border: 1px solid rgba(88, 166, 255, 0.3);
+}
+.badge-n8n {
+  background-color: rgba(210, 153, 34, 0.15);
+  color: var(--accent-orange);
+  border: 1px solid rgba(210, 153, 34, 0.3);
+}
+.speed-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  margin-left: 6px;
+  opacity: 0.8;
 }
 </style>

@@ -1,31 +1,43 @@
 import { ref } from 'vue'
 import type { LLMRequestBody, LLMStreamChunk, WebhookPayload } from '@/types/api'
-import { GLM_BASE_URL, getApiKey, getModel, coachMode, analyzeMode } from '@/config/llm'
+import { getProviderUrl, getApiKey, getModel, coachMode, analyzeMode } from '@/config/llm'
 import { getCoachSkill, getAnalyzeSkill } from '@/config/skills/index'
 import { webhookUrl, WEBHOOK_CONFIG } from '@/config/webhook'
 import { useI18n } from '@/i18n'
 
+/** Tagged error class for HTTP 429 so callers can start backoff instead of showing an error */
+class GLM429Error extends Error {
+  constructor(msg: string) { super(msg); this.name = 'GLM429Error' }
+}
+
 export function useLLM() {
   const { isZh, t } = useI18n()
 
-  // ─── Shared state ─────────────────────────────────────────────────────────
-
+  // ─── Coach state ───────────────────────────────────────────────────────────
   const isCoachLoading = ref(false)
   const coachResponse = ref<unknown>(null)
   const coachWasCancelled = ref(false)
   const coachHadError = ref(false)
+  const coachStreamSpeed = ref(0)   // tokens/sec during streaming
+  const coachBackoffSecs = ref(0)   // countdown before auto-retry after 429
+
+  // ─── Analyze state ─────────────────────────────────────────────────────────
   const isAnalyzeLoading = ref(false)
   const analyzeResponse = ref<unknown>(null)
   const analyzeWasCancelled = ref(false)
   const analyzeHadError = ref(false)
+  const analyzeStreamSpeed = ref(0)
+  const analyzeBackoffSecs = ref(0)
 
-  // AbortControllers and last payloads — plain variables, no reactivity needed
+  // Plain vars — no reactivity needed
   let _coachAC: AbortController | null = null
   let _analyzeAC: AbortController | null = null
   let _lastCoachPayload: WebhookPayload | null = null
   let _lastAnalyzePayload: WebhookPayload | null = null
+  let _coachBackoffTimer: number | null = null
+  let _analyzeBackoffTimer: number | null = null
 
-  // ─── Shared GLM helpers ───────────────────────────────────────────────────
+  // ─── Shared helpers ────────────────────────────────────────────────────────
 
   function buildUserMessage(payload: WebhookPayload): string {
     const d = payload.data
@@ -75,7 +87,7 @@ ${d.description || '(empty)'}
       ]
     }
 
-    const response = await fetch(GLM_BASE_URL, {
+    const response = await fetch(getProviderUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -87,7 +99,7 @@ ${d.description || '(empty)'}
 
     if (!response.ok) {
       if (response.status === 401) throw new Error(t('error.glm401'))
-      if (response.status === 429) throw new Error(t('error.glm429'))
+      if (response.status === 429) throw new GLM429Error(t('error.glm429'))
       if (response.status >= 500) throw new Error(t('error.glm5xx'))
       const errText = await response.text().catch(() => '')
       throw new Error(`GLM API ${response.status}: ${errText || response.statusText}`)
@@ -172,6 +184,8 @@ ${d.description || '(empty)'}
     _lastCoachPayload = payload
     coachWasCancelled.value = false
     coachHadError.value = false
+    coachStreamSpeed.value = 0
+    coachBackoffSecs.value = 0
     isCoachLoading.value = true
     coachResponse.value = null
     _coachAC = new AbortController()
@@ -180,9 +194,16 @@ ${d.description || '(empty)'}
       if (coachMode.value === 'llm') {
         const lang = isZh.value ? 'zh' : 'en'
         let accumulated = ''
+        let tokenCount = 0
+        let streamStart = 0
+
         await _callGLMStream(getCoachSkill(lang), payload, (chunk) => {
+          if (tokenCount === 0) streamStart = Date.now()
+          tokenCount++
           accumulated += chunk
           coachResponse.value = { markdown_msg: accumulated, message: accumulated }
+          const elapsed = (Date.now() - streamStart) / 1000
+          if (elapsed > 0) coachStreamSpeed.value = Math.round(tokenCount / elapsed)
         }, _coachAC.signal)
       } else {
         coachResponse.value = await _callWebhook(payload)
@@ -191,8 +212,22 @@ ${d.description || '(empty)'}
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') {
         coachWasCancelled.value = true
+        coachStreamSpeed.value = 0
         return 'cancelled'
       }
+      if (error instanceof GLM429Error) {
+        coachBackoffSecs.value = 10
+        _coachBackoffTimer = window.setInterval(async () => {
+          coachBackoffSecs.value--
+          if (coachBackoffSecs.value <= 0) {
+            clearInterval(_coachBackoffTimer!)
+            _coachBackoffTimer = null
+            if (_lastCoachPayload) await requestCoach(_lastCoachPayload)
+          }
+        }, 1000)
+        return null
+      }
+      coachStreamSpeed.value = 0
       coachHadError.value = true
       return error instanceof Error ? error.message : t('error.requestFailed')
     } finally {
@@ -201,7 +236,14 @@ ${d.description || '(empty)'}
     }
   }
 
-  function cancelCoach() { _coachAC?.abort() }
+  function cancelCoach() {
+    _coachAC?.abort()
+    if (_coachBackoffTimer !== null) {
+      clearInterval(_coachBackoffTimer)
+      _coachBackoffTimer = null
+      coachBackoffSecs.value = 0
+    }
+  }
 
   async function retryCoach(): Promise<string | null> {
     if (!_lastCoachPayload) return null
@@ -212,6 +254,8 @@ ${d.description || '(empty)'}
     coachResponse.value = null
     coachWasCancelled.value = false
     coachHadError.value = false
+    coachStreamSpeed.value = 0
+    coachBackoffSecs.value = 0
   }
 
   // ─── Analyze ──────────────────────────────────────────────────────────────
@@ -220,6 +264,8 @@ ${d.description || '(empty)'}
     _lastAnalyzePayload = payload
     analyzeWasCancelled.value = false
     analyzeHadError.value = false
+    analyzeStreamSpeed.value = 0
+    analyzeBackoffSecs.value = 0
     isAnalyzeLoading.value = true
     analyzeResponse.value = null
     _analyzeAC = new AbortController()
@@ -228,9 +274,16 @@ ${d.description || '(empty)'}
       if (analyzeMode.value === 'llm') {
         const lang = isZh.value ? 'zh' : 'en'
         let accumulated = ''
+        let tokenCount = 0
+        let streamStart = 0
+
         await _callGLMStream(getAnalyzeSkill(lang), payload, (chunk) => {
+          if (tokenCount === 0) streamStart = Date.now()
+          tokenCount++
           accumulated += chunk
           analyzeResponse.value = { markdown_msg: accumulated, message: accumulated }
+          const elapsed = (Date.now() - streamStart) / 1000
+          if (elapsed > 0) analyzeStreamSpeed.value = Math.round(tokenCount / elapsed)
         }, _analyzeAC.signal)
       } else {
         analyzeResponse.value = await _callWebhook(payload)
@@ -239,8 +292,22 @@ ${d.description || '(empty)'}
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') {
         analyzeWasCancelled.value = true
+        analyzeStreamSpeed.value = 0
         return 'cancelled'
       }
+      if (error instanceof GLM429Error) {
+        analyzeBackoffSecs.value = 10
+        _analyzeBackoffTimer = window.setInterval(async () => {
+          analyzeBackoffSecs.value--
+          if (analyzeBackoffSecs.value <= 0) {
+            clearInterval(_analyzeBackoffTimer!)
+            _analyzeBackoffTimer = null
+            if (_lastAnalyzePayload) await requestAnalyze(_lastAnalyzePayload)
+          }
+        }, 1000)
+        return null
+      }
+      analyzeStreamSpeed.value = 0
       analyzeHadError.value = true
       return error instanceof Error ? error.message : t('error.requestFailed')
     } finally {
@@ -249,7 +316,14 @@ ${d.description || '(empty)'}
     }
   }
 
-  function cancelAnalyze() { _analyzeAC?.abort() }
+  function cancelAnalyze() {
+    _analyzeAC?.abort()
+    if (_analyzeBackoffTimer !== null) {
+      clearInterval(_analyzeBackoffTimer)
+      _analyzeBackoffTimer = null
+      analyzeBackoffSecs.value = 0
+    }
+  }
 
   async function retryAnalyze(): Promise<string | null> {
     if (!_lastAnalyzePayload) return null
@@ -260,24 +334,16 @@ ${d.description || '(empty)'}
     analyzeResponse.value = null
     analyzeWasCancelled.value = false
     analyzeHadError.value = false
+    analyzeStreamSpeed.value = 0
+    analyzeBackoffSecs.value = 0
   }
 
   return {
-    isCoachLoading,
-    coachResponse,
-    coachWasCancelled,
-    coachHadError,
-    requestCoach,
-    cancelCoach,
-    retryCoach,
-    clearCoachResponse,
-    isAnalyzeLoading,
-    analyzeResponse,
-    analyzeWasCancelled,
-    analyzeHadError,
-    requestAnalyze,
-    cancelAnalyze,
-    retryAnalyze,
-    clearAnalyzeResponse
+    isCoachLoading, coachResponse, coachWasCancelled, coachHadError,
+    coachStreamSpeed, coachBackoffSecs,
+    requestCoach, cancelCoach, retryCoach, clearCoachResponse,
+    isAnalyzeLoading, analyzeResponse, analyzeWasCancelled, analyzeHadError,
+    analyzeStreamSpeed, analyzeBackoffSecs,
+    requestAnalyze, cancelAnalyze, retryAnalyze, clearAnalyzeResponse
   }
 }
