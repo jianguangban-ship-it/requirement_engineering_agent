@@ -1007,6 +1007,38 @@ Drag-and-drop a `TemplateDefinition[]` JSON file onto the CoachPanel chip area t
 
 ---
 
+## Completed Improvements — v8.22 (2026-02-25)
+
+### Fix: Copy Button Available in n8n Webhook Mode
+
+The copy icon in AI Coach and AI Review panels was previously gated behind `isMarkdownResponse` / `rawText`, so it never appeared when the response was a plain JSON object from an n8n webhook. Now shows whenever any response is present.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/panels/AIReviewPanel.vue` | `v-if` changed from `isMarkdownResponse && !isAnalyzing` to `response && !isAnalyzing`; `copyResponse()` falls back to `JSON.stringify(props.response, null, 2)` when `rawText` is empty |
+| `src/components/panels/CoachPanel.vue` | `v-if` changed from `rawText && !isLoading` to `response && !isLoading`; same `JSON.stringify` fallback in `copyResponse()` |
+
+---
+
+### Feature: Free-Input Story Points
+
+A free-text input field appended after the "8" preset button, letting users enter any positive integer as story points. Preset buttons and custom input are mutually exclusive.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/form/StoryPointsPicker.vue` | Added `customRaw` string ref; `hasCustom` computed; `selectPreset()` clears input before emitting; `onCustomInput()` strips non-digits and emits parsed value; input styled identical to buttons (32px height, same border/radius/gap); button `active` class gated on `!hasCustom`; input `active` class applied when `hasCustom`; pre-populates on mount when stored `modelValue` is not a Fibonacci preset |
+
+**Behavior details:**
+- Selecting a preset button → `customRaw` cleared → button highlights blue, input blank
+- Typing in input → `hasCustom = true` → all preset buttons deactivate → input highlights blue
+- Non-digit characters stripped in-place via `replace(/[^\d]/g, '')`; max 3 characters
+- Clearing the input does not emit — previous value is preserved until a new selection is made
+- On page load: if `modelValue` is not in `[1, 2, 3, 5, 8]`, input pre-fills with the stored value
+
+---
+
 ## Potential Next Improvements
 
 ### High Priority
@@ -1020,6 +1052,9 @@ Drag-and-drop a `TemplateDefinition[]` JSON file onto the CoachPanel chip area t
 - [x] **Webhook response diff** — word-level LCS diff between previous and current analyze response; Diff/Normal toggle in AIReviewPanel header; green additions, red strikethrough removals
 - [x] **Hotkey cheat sheet modal** — `?` key opens a styled modal listing all keyboard shortcuts; Escape dismisses
 - [x] **Bulk template import** — drag-and-drop `TemplateDefinition[]` JSON onto chip area or use Import button in Settings; merges skipping duplicate keys; toast with count
+
+- [x] **Free-input story points** — custom number field after the "8" preset button; mutually exclusive with preset buttons (selecting a button clears input, typing deactivates buttons); digits-only, max 3 chars; pre-populates on load if stored value is non-preset
+- [x] **Copy button in n8n mode** — copy icon in AI Coach and AI Review panels now appears for webhook JSON responses too; falls back to `JSON.stringify(response, null, 2)` when no `message` string is present
 
 ### Low Priority / Polish
 - [x] **Export/Import all settings** — one-click JSON export covering API key, model, coach/analyze mode, and both skill overrides; paste on another machine to restore full config
