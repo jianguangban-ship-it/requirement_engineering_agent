@@ -916,6 +916,97 @@ Live character counter below the Component and Detail free-text inputs. Color ch
 
 ---
 
+## Completed Improvements — v8.21 (2026-02-25)
+
+### Feature 1: Task History Log
+
+Persists the last 20 successfully created JIRA tickets to localStorage and surfaces them in a collapsible panel in the right column.
+
+**New files:**
+| File | Purpose |
+|------|---------|
+| `src/composables/useTicketHistory.ts` | `TicketEntry` interface (`key`, `summary`, `project`, `issueType`, `date`); `ticketHistory` ref pre-loaded from `localStorage` key `ticket-history`; `addTicket(entry)` prepends + trims to 20 entries + persists; `clearHistory()` removes all |
+| `src/components/panels/TicketHistoryPanel.vue` | Collapsible `<details>` panel; lists entries newest-first; each row shows ticket key (mono, `--accent-blue`), truncated summary, project + type badge, relative timestamp (`Xm ago` / `Xh ago` / `Xd ago`); "Clear" button in header |
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/App.vue` | Imports `addTicket`; in `confirmCreate()` success path, extracts ticket key from `jiraResponse` (`response?.key \|\| response?.jira_result?.key`); calls `addTicket({key, summary, project, issueType, date})`; adds `<TicketHistoryPanel />` in `.col-right` below `<DevTools>` |
+| `src/i18n/en.ts` / `zh.ts` | Added `history.title`, `history.empty`, `history.clear`, `history.ticketKey` |
+
+**localStorage key:** `ticket-history` (JSON array of `TicketEntry[]`, max 20 items)
+
+---
+
+### Feature 2: Webhook Response Diff
+
+Word-level diff between the previous and current analyze response. No external library — pure LCS implementation.
+
+**New files:**
+| File | Purpose |
+|------|---------|
+| `src/utils/diffText.ts` | `diffWords(oldText, newText): string` — tokenises both strings into word+whitespace tokens, builds LCS table (`O(m·n)`), backtracks to produce `{ type: 'same'|'add'|'del', text }` parts, serialises to HTML with `<ins class="diff-add">` (green) and `<del class="diff-del">` (red strikethrough); unchanged tokens rendered as escaped plain text |
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/composables/useLLM.ts` | Added `previousAnalyzeResponse = ref<unknown>(null)`; at start of `requestAnalyze`, saves current `analyzeResponse.value` to `previousAnalyzeResponse` before clearing; resets to `null` in `clearAnalyzeResponse()`; exported in return object |
+| `src/components/panels/AIReviewPanel.vue` | New `previousResponse: unknown` prop; `showDiff` ref (default `false`); `canShowDiff` computed (true when `isMarkdownResponse && !!previousResponse && prevRawText`); "Diff" / "Normal" toggle button in `#header-actions` with active state styling; diff view renders `diffWords(prevText, newText)` via `v-html` with `.diff-view` monospace pre-wrap container; `:deep(.diff-add)` / `:deep(.diff-del)` CSS |
+| `src/App.vue` | Destructures `previousAnalyzeResponse` from `useLLM()`; passes as `:previous-response` to `<AIReviewPanel>` |
+| `src/i18n/en.ts` / `zh.ts` | Added `panel.showDiff`, `panel.hideDiff` |
+
+**Design notes:**
+- Diff button only appears after a second analyze run (when `previousAnalyzeResponse` is populated)
+- Diff is computed on the raw `message` string (pre-formatter), so token boundaries are consistent
+- `.diff-view` uses monospace pre-wrap so whitespace tokens preserve line breaks
+
+---
+
+### Feature 3: Hotkey Cheat Sheet Modal
+
+Pressing `?` anywhere (outside an input) opens a modal listing all keyboard shortcuts.
+
+**New files:**
+| File | Purpose |
+|------|---------|
+| `src/components/shared/HotkeyModal.vue` | `v-model` boolean; same `<Transition name="modal">` + `.modal-overlay` + `.modal-content` pattern as `LLMSettings.vue`; `<kbd>`-styled table with two columns (key | action) built from a computed `hotkeys` array; close button + overlay click + Escape all dismiss |
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/App.vue` | Added `showHotkeyModal = ref(false)`; in `handleKeyboard`: `Escape` now closes hotkey modal first (before settings / confirm); `?` branch — no modifier keys, guards `e.target.tagName` against `INPUT` / `TEXTAREA` — opens modal; `<HotkeyModal v-model="showHotkeyModal" />` added to template |
+| `src/i18n/en.ts` / `zh.ts` | Added `hotkeys.title`, `hotkeys.analyze`, `hotkeys.create`, `hotkeys.settings`, `hotkeys.escape`, `hotkeys.showCheatsheet` |
+
+**Shortcuts documented:**
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+Enter` | Run AI Analyze |
+| `Ctrl+Shift+Enter` | Open Create JIRA modal |
+| `Ctrl+,` | Open Settings |
+| `Escape` | Close modal |
+| `?` | Show this cheat sheet |
+
+---
+
+### Feature 4: Bulk Template Import
+
+Drag-and-drop a `TemplateDefinition[]` JSON file onto the CoachPanel chip area to import templates. Also exposed as a file-input button inside the Template Chip Editor in Settings.
+
+**Merge behavior:** append imported templates (skip duplicates by `key`); fire toast with count.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/panels/CoachPanel.vue` | Added `isDragging` ref; `@dragover.prevent`, `@dragleave`, `@drop.prevent` on `.chips` wrapper; drop handler reads `DataTransfer.files[0]` → `FileReader` → JSON parse → validates array → emits `importTemplates(templates[])`; `.chips` gets dashed border + blue tint when `isDragging`; "Drop JSON here" overlay hint shown during drag; `importTemplates` added to `defineEmits` |
+| `src/App.vue` | Handles `@import-templates` from `CoachPanel`; `handleTemplateImport(incoming)` computes existing key set, filters to `toAdd`, calls `setCustomTemplates([...effectiveTemplates, ...toAdd])`, fires toast `"N templates imported"` or `"No new templates"` info |
+| `src/components/settings/LLMSettings.vue` | Added "Import Templates" `<label>`+`<input type="file" accept=".json">` button beside "Add Chip" in `.chip-list-actions`; `handleImportTemplates(e)` reads file → validates array → filters duplicates by key → merges into `localTemplates`; `.btn-import-chip` style added |
+| `src/i18n/en.ts` / `zh.ts` | Added `settings.importTemplates`, `toast.templatesImported` |
+
+**Validation:** both import paths silently ignore non-array JSON and malformed files (no error overlay, matching existing pattern).
+
+---
+
 ## Potential Next Improvements
 
 ### High Priority
@@ -925,6 +1016,10 @@ Live character counter below the Component and Detail free-text inputs. Color ch
 - [x] **Stream token speed indicator** — track tokens-per-second during streaming and show a subtle throughput label (e.g. "42 tok/s") near the blinking cursor; useful for diagnosing slow GLM responses
 - [x] **Multiple LLM providers** — extend `llm.ts` and `LLMSettings.vue` to support any OpenAI-compatible endpoint (ZhipuAI, local Ollama, etc.); provider base URL stored in localStorage; `_callGLMStream` uses the active URL
 - [x] **Skill diff indicator** — show a small "modified" dot or border on the skill label when a localStorage override is active; clicking "Reset to Default" removes the indicator
+- [x] **Task history log** — collapsible panel showing last 20 created tickets with key, summary, project/type, and relative date; Clear button; persisted to localStorage
+- [x] **Webhook response diff** — word-level LCS diff between previous and current analyze response; Diff/Normal toggle in AIReviewPanel header; green additions, red strikethrough removals
+- [x] **Hotkey cheat sheet modal** — `?` key opens a styled modal listing all keyboard shortcuts; Escape dismisses
+- [x] **Bulk template import** — drag-and-drop `TemplateDefinition[]` JSON onto chip area or use Import button in Settings; merges skipping duplicate keys; toast with count
 
 ### Low Priority / Polish
 - [x] **Export/Import all settings** — one-click JSON export covering API key, model, coach/analyze mode, and both skill overrides; paste on another machine to restore full config
