@@ -851,6 +851,71 @@ New "Agent State" collapsible section in DevTools panel surfaces all AI state at
 
 ---
 
+## Completed Improvements — v8.20 (2026-02-25)
+
+### Feature: Dark / Light Theme Toggle
+
+Sun/Moon icon button in the header switches between dark and light themes. Preference survives page reload.
+
+**New files:**
+| File | Purpose |
+|------|---------|
+| `src/composables/useTheme.ts` | `isDark` ref, `toggleTheme()`, reads/writes `localStorage` key `theme`, applies `data-theme` attribute to `<html>` |
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/styles/variables.css` | Renamed `:root` to `:root, [data-theme="dark"]`; added `[data-theme="light"]` block with full light-mode color overrides |
+| `src/components/layout/AppHeader.vue` | Imports `useTheme`; Sun SVG shown in dark mode, Moon SVG in light mode; `.theme-btn` style added |
+| `src/i18n/en.ts` / `zh.ts` | Added `header.themeDark` / `header.themeLight` tooltip keys |
+
+**Light theme color values:**
+| Variable | Light value |
+|----------|------------|
+| `--bg-primary` | `#ffffff` |
+| `--bg-secondary` | `#f6f8fa` |
+| `--bg-tertiary` | `#eef0f3` |
+| `--border-color` | `#d0d7de` |
+| `--text-primary` | `#1f2328` |
+| `--text-muted` | `#656d76` |
+| `--accent-*` | Darkened for light-bg contrast |
+
+---
+
+### Feature: Summary Preview Copy Button
+
+Clipboard icon button in the QualityMeter header. Copies the assembled 5-part summary text and fires a 2s toast.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/form/QualityMeter.vue` | Added `<slot name="header-actions" />` inside `.meter-right` |
+| `src/components/form/SummaryBuilder.vue` | Fills `#header-actions` slot with copy button; `copySummary()` writes `computedSummary` to clipboard + toast; button hidden when summary is empty; reuses `.copy-btn` style pattern |
+
+---
+
+### Feature: Assignee Avatar / Initials
+
+Colored initials circle shown before each assignee name in the combobox dropdown. Color is deterministically derived from the user ID.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/form/AssigneeCombobox.vue` | Added `getInitials(name)` (handles CJK + Latin) and `getAvatarColor(id)` (hash → one of 5 accent colors) helpers; `.avatar` div added before `.option-info` in each option row; `.avatar` CSS (28px circle, flex center) |
+
+---
+
+### Feature: Form Field Character Limits
+
+Live character counter below the Component and Detail free-text inputs. Color changes warn as the limit approaches.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/form/SummaryBuilder.vue` | `COMPONENT_MAX = 50`, `DETAIL_MAX = 100` constants; `counterColor(len, max)` returns orange at ≥80%, red at 100%; `.field-input-wrap` + `.field-counter` added; `maxlength` attr on both inputs |
+
+---
+
 ## Potential Next Improvements
 
 ### High Priority
@@ -867,3 +932,7 @@ New "Agent State" collapsible section in DevTools panel surfaces all AI state at
 - [x] **Skill file per language** — support `coach-skill-zh.md` / `coach-skill-en.md` as distinct source files so Chinese and English prompts can be authored fully independently rather than relying on `{lang}` substitution
 - [x] **Template chip editor** — add/edit/reorder chips directly in Settings without touching JSON files in `src/config/templates/`; store overrides in localStorage the same way skill files do
 - [x] **Dev Tools integration** — surface coach mode, analyze mode, active model, skill customisation status, `hadError` / `wasCancelled` state, and stream-active flag in the DevTools panel
+- [x] **Dark/Light theme toggle** — Sun/Moon button in header; `[data-theme="light"]` CSS override block; `useTheme.ts` composable; preference persisted to localStorage
+- [x] **Summary preview copy button** — clipboard icon in QualityMeter header (via named slot); copies assembled 5-part summary; fires toast on success
+- [x] **Assignee avatar/initials** — colored initials circle before each name in the combobox dropdown; color deterministically hashed from user ID; handles CJK + Latin names
+- [x] **Form field character limits** — live `{n}/50` counter under Component, `{n}/100` under Detail; turns orange at 80%, red at 100%; `maxlength` enforced
