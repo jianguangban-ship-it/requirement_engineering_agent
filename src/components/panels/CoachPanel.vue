@@ -11,7 +11,7 @@
       <span class="mode-badge" :class="coachMode === 'llm' ? 'badge-llm' : 'badge-n8n'">
         {{ coachMode === 'llm' ? 'GLM' : 'n8n' }}
       </span>
-      <button v-if="rawText && !isLoading" class="copy-btn" @click="copyResponse" :title="t('toast.copied')">
+      <button v-if="response && !isLoading" class="copy-btn" @click="copyResponse" :title="t('toast.copied')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="9" y="2" width="13" height="13" rx="2"/>
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke-linecap="round"/>
@@ -193,8 +193,9 @@ const rawText = computed(() => {
 })
 
 async function copyResponse() {
-  if (!rawText.value) return
-  await navigator.clipboard.writeText(rawText.value)
+  const text = rawText.value || JSON.stringify(props.response, null, 2)
+  if (!text) return
+  await navigator.clipboard.writeText(text)
   addToast('success', t('toast.copied'), 2000)
 }
 
