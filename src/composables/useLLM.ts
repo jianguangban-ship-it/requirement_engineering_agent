@@ -24,6 +24,7 @@ export function useLLM() {
   // ─── Analyze state ─────────────────────────────────────────────────────────
   const isAnalyzeLoading = ref(false)
   const analyzeResponse = ref<unknown>(null)
+  const previousAnalyzeResponse = ref<unknown>(null)
   const analyzeWasCancelled = ref(false)
   const analyzeHadError = ref(false)
   const analyzeStreamSpeed = ref(0)
@@ -267,6 +268,7 @@ ${d.description || '(empty)'}
     analyzeStreamSpeed.value = 0
     analyzeBackoffSecs.value = 0
     isAnalyzeLoading.value = true
+    previousAnalyzeResponse.value = analyzeResponse.value
     analyzeResponse.value = null
     _analyzeAC = new AbortController()
 
@@ -332,6 +334,7 @@ ${d.description || '(empty)'}
 
   function clearAnalyzeResponse() {
     analyzeResponse.value = null
+    previousAnalyzeResponse.value = null
     analyzeWasCancelled.value = false
     analyzeHadError.value = false
     analyzeStreamSpeed.value = 0
@@ -342,7 +345,7 @@ ${d.description || '(empty)'}
     isCoachLoading, coachResponse, coachWasCancelled, coachHadError,
     coachStreamSpeed, coachBackoffSecs,
     requestCoach, cancelCoach, retryCoach, clearCoachResponse,
-    isAnalyzeLoading, analyzeResponse, analyzeWasCancelled, analyzeHadError,
+    isAnalyzeLoading, analyzeResponse, previousAnalyzeResponse, analyzeWasCancelled, analyzeHadError,
     analyzeStreamSpeed, analyzeBackoffSecs,
     requestAnalyze, cancelAnalyze, retryAnalyze, clearAnalyzeResponse
   }

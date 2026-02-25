@@ -42,7 +42,13 @@
         </svg>
         <p class="empty-hint">{{ t('coach.emptyHint') }}</p>
         <p class="empty-sub">{{ t('coach.emptySubHint') }}</p>
-        <div class="chips">
+        <div
+          class="chips"
+          :class="{ 'drag-over': isDragging }"
+          @dragover.prevent="isDragging = true"
+          @dragleave="isDragging = false"
+          @drop.prevent="handleDrop"
+        >
           <QuickChip
             v-for="chip in chips"
             :key="chip.key"
@@ -50,6 +56,7 @@
             :label="chip.label"
             @click="$emit('applyChip', chip.key)"
           />
+          <span v-if="isDragging" class="drag-hint">Drop JSON here</span>
         </div>
       </template>
     </div>
@@ -128,11 +135,13 @@ const emit = defineEmits<{
   cancel: []
   retry: []
   applyChip: [key: string]
+  importTemplates: [templates: import('@/types/template').TemplateDefinition[]]
 }>()
 
 const { t, isZh } = useI18n()
 const { addToast } = useToast()
 
+const isDragging = ref(false)
 const retryCountdown = ref(0)
 let _cooldownTimer: number | null = null
 
@@ -149,6 +158,26 @@ function handleRetry() {
 }
 
 onUnmounted(() => { if (_cooldownTimer !== null) clearInterval(_cooldownTimer) })
+
+function handleDrop(e: DragEvent) {
+  isDragging.value = false
+  const file = e.dataTransfer?.files?.[0]
+  if (!file || !file.name.endsWith('.json')) {
+    addToast('error', 'Please drop a valid .json file')
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target?.result as string)
+      if (!Array.isArray(data)) throw new Error('Not an array')
+      emit('importTemplates', data)
+    } catch {
+      addToast('error', 'Invalid template JSON file')
+    }
+  }
+  reader.readAsText(file)
+}
 
 const statusInfo = computed(() => {
   if (props.isLoading) return { status: 'loading' as const, key: 'loading' }
@@ -217,6 +246,26 @@ const chips = computed(() =>
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
+  border-radius: var(--radius-md);
+  border: 2px dashed transparent;
+  padding: 4px;
+  transition: border-color 0.2s, background-color 0.2s;
+  position: relative;
+}
+.chips.drag-over {
+  border-color: var(--accent-blue);
+  background-color: rgba(88, 166, 255, 0.06);
+}
+.drag-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--accent-blue);
+  font-weight: 500;
+  pointer-events: none;
 }
 .spinner {
   width: 32px;

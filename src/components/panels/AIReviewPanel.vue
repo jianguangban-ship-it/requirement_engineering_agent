@@ -9,6 +9,15 @@
       <span class="mode-badge" :class="analyzeMode === 'llm' ? 'badge-llm' : 'badge-n8n'">
         {{ analyzeMode === 'llm' ? 'GLM' : 'n8n' }}
       </span>
+      <button
+        v-if="canShowDiff && !isAnalyzing"
+        class="copy-btn"
+        :class="{ 'diff-active': showDiff }"
+        @click="showDiff = !showDiff"
+        :title="showDiff ? t('panel.hideDiff') : t('panel.showDiff')"
+      >
+        {{ showDiff ? t('panel.hideDiff') : t('panel.showDiff') }}
+      </button>
       <button v-if="isMarkdownResponse && !isAnalyzing" class="copy-btn" @click="copyResponse" :title="t('toast.copied')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="9" y="2" width="13" height="13" rx="2"/>
@@ -75,7 +84,8 @@
           {{ t('settings.cancel') }}
         </button>
       </div>
-      <div class="coach-response" v-html="formattedAnalysis" />
+      <div v-if="showDiff && canShowDiff" class="coach-response diff-view" v-html="diffHtml" />
+      <div v-else class="coach-response" v-html="formattedAnalysis" />
       <div v-if="isAnalyzing" class="stream-footer">
         <span class="streaming-cursor" />
         <span v-if="streamSpeed > 0" class="stream-speed">{{ streamSpeed }} {{ t('dev.streamSpeed') }}</span>
@@ -99,6 +109,7 @@
 import { computed, ref, onUnmounted } from 'vue'
 import { useI18n } from '@/i18n'
 import { formatCoachResponse } from '@/utils/formatCoach'
+import { diffWords } from '@/utils/diffText'
 import { useToast } from '@/composables/useToast'
 import { analyzeMode } from '@/config/llm'
 import PanelShell from '@/components/layout/PanelShell.vue'
@@ -106,6 +117,7 @@ import JsonViewer from '@/components/shared/JsonViewer.vue'
 
 const props = defineProps<{
   response: unknown
+  previousResponse: unknown
   isAnalyzing: boolean
   hasError: boolean
   wasCancelled: boolean
@@ -120,6 +132,7 @@ const { t } = useI18n()
 const { addToast } = useToast()
 
 const retryCountdown = ref(0)
+const showDiff = ref(false)
 let _cooldownTimer: number | null = null
 
 function handleRetry() {
@@ -153,6 +166,20 @@ const formattedAnalysis = computed(() => formatCoachResponse(props.response))
 const rawText = computed(() => {
   const r = props.response as Record<string, unknown>
   return typeof r?.message === 'string' ? r.message : ''
+})
+
+const prevRawText = computed(() => {
+  const r = props.previousResponse as Record<string, unknown>
+  return typeof r?.message === 'string' ? r.message : ''
+})
+
+const canShowDiff = computed(() =>
+  isMarkdownResponse.value && !!props.previousResponse && !!prevRawText.value
+)
+
+const diffHtml = computed(() => {
+  if (!canShowDiff.value) return ''
+  return diffWords(prevRawText.value, rawText.value)
 })
 
 async function copyResponse() {
@@ -239,23 +266,53 @@ async function copyResponse() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
+  min-width: 26px;
   height: 26px;
+  padding: 0 6px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.15s;
+  font-size: 11px;
+  font-weight: 500;
 }
 .copy-btn:hover {
   color: var(--accent-purple);
   border-color: var(--border-color);
   background-color: var(--bg-secondary);
 }
+.copy-btn.diff-active {
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+  background-color: rgba(88, 166, 255, 0.1);
+}
 .copy-btn svg {
   width: 13px;
   height: 13px;
+}
+
+/* Diff view */
+.diff-view {
+  white-space: pre-wrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.diff-view :deep(.diff-add) {
+  background-color: rgba(63, 185, 80, 0.2);
+  color: var(--accent-green);
+  text-decoration: none;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.diff-view :deep(.diff-del) {
+  background-color: rgba(248, 81, 73, 0.15);
+  color: var(--accent-red);
+  text-decoration: line-through;
+  border-radius: 2px;
+  padding: 0 1px;
 }
 
 .stream-footer {

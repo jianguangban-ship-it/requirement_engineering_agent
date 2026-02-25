@@ -114,6 +114,10 @@
             </div>
             <div class="chip-list-actions">
               <button class="btn-add-chip" @click="addChip">+ {{ t('settings.addChip') }}</button>
+              <label class="btn-add-chip btn-import-chip">
+                ⬆ {{ t('settings.importTemplates') }}
+                <input type="file" accept=".json" @change="handleImportTemplates" style="display:none" />
+              </label>
               <button class="btn-reset" @click="handleResetTemplates">{{ t('settings.templateReset') }}</button>
             </div>
           </div>
@@ -270,6 +274,24 @@ function handleResetTemplates() {
   localTemplates.value = cloneTemplates(TEMPLATES)
   editingChipIndex.value = -1
   resetCustomTemplates()
+}
+
+function handleImportTemplates(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target?.result as string)
+      if (!Array.isArray(data)) throw new Error('Not an array')
+      const existingKeys = new Set(localTemplates.value.map(t => t.key))
+      const incoming = data as TemplateDefinition[]
+      const toAdd = incoming.filter(t => t.key && !existingKeys.has(t.key))
+      localTemplates.value = [...localTemplates.value, ...cloneTemplates(toAdd)]
+    } catch { /* ignore invalid */ }
+    ;(e.target as HTMLInputElement).value = ''
+  }
+  reader.readAsText(file)
 }
 
 // Export / Import
@@ -449,8 +471,10 @@ function handleSave() {
 .btn-add-chip {
   flex: 1; padding: 7px 12px; border-radius: var(--radius-md); border: 1px dashed var(--border-color);
   background: transparent; color: var(--text-muted); font-size: 12px; cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
 }
 .btn-add-chip:hover { color: var(--accent-blue); border-color: var(--accent-blue); }
+.btn-import-chip { cursor: pointer; }
 
 /* Export / Import */
 .export-row { display: flex; gap: 8px; }

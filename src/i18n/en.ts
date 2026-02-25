@@ -49,7 +49,9 @@ export default {
     aiCorrectedPoints: 'AI Corrected Points',
     subtasks: 'Subtasks',
     items: 'items',
-    backoffLabel: 'Rate limited — retrying in'
+    backoffLabel: 'Rate limited — retrying in',
+    showDiff: 'Diff',
+    hideDiff: 'Normal'
   },
   status: {
     idle: 'Idle',
@@ -125,11 +127,26 @@ export default {
     coachSuccess: 'Coach guidance received',
     draftRestored: 'Draft restored from previous session',
     draftCleared: 'Form reset and draft cleared',
-    copied: 'Copied to clipboard'
+    copied: 'Copied to clipboard',
+    templatesImported: 'templates imported'
   },
   shortcuts: {
     analyze: 'Ctrl+Enter',
     create: 'Ctrl+Shift+Enter'
+  },
+  history: {
+    title: 'Ticket History',
+    empty: 'No tickets created yet',
+    clear: 'Clear',
+    ticketKey: 'Ticket'
+  },
+  hotkeys: {
+    title: 'Keyboard Shortcuts',
+    analyze: 'Run AI Analyze',
+    create: 'Open Create JIRA modal',
+    settings: 'Open Settings',
+    escape: 'Close modal',
+    showCheatsheet: 'Show this cheat sheet'
   },
   settings: {
     title: 'LLM Settings',
@@ -157,6 +174,7 @@ export default {
     templateEditor: 'Template Chips',
     templateReset: 'Reset to Defaults',
     addChip: 'Add Chip',
+    importTemplates: 'Import Templates',
     save: 'Save',
     cancel: 'Cancel',
     saved: 'Settings saved'

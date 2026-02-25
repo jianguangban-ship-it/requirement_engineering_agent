@@ -5,6 +5,9 @@
     <!-- Settings Modal -->
     <LLMSettings v-model="showSettingsModal" @saved="onSettingsSaved" />
 
+    <!-- Hotkey Cheat Sheet Modal -->
+    <HotkeyModal v-model="showHotkeyModal" />
+
     <!-- Confirmation Modal -->
     <Transition name="modal">
       <div v-if="showConfirmModal" class="modal-overlay" @click.self="showConfirmModal = false">
@@ -42,6 +45,7 @@
             @cancel="cancelCoach"
             @retry="handleCoachRetry"
             @apply-chip="applyCoachChip"
+            @import-templates="handleTemplateImport"
           />
         </div>
 
@@ -72,6 +76,7 @@
         <div class="col-right">
           <AIReviewPanel
             :response="analyzeResponse"
+            :previous-response="previousAnalyzeResponse"
             :is-analyzing="isAnalyzeLoading"
             :has-error="!!errorMessage && formCurrentAction === 'analyze'"
             :was-cancelled="analyzeWasCancelled"
@@ -112,6 +117,8 @@
             :coach-backoff-secs="coachBackoffSecs"
             :analyze-backoff-secs="analyzeBackoffSecs"
           />
+
+          <TicketHistoryPanel />
         </div>
       </div>
     </main>
@@ -128,17 +135,21 @@ import { useForm } from '@/composables/useForm'
 import { useWebhook } from '@/composables/useWebhook'
 import { useLLM } from '@/composables/useLLM'
 import { useToast } from '@/composables/useToast'
-import { getTemplateContent, effectiveTemplates, customTemplatesModified } from '@/config/templates/index'
+import { addTicket } from '@/composables/useTicketHistory'
+import { getTemplateContent, effectiveTemplates, setCustomTemplates, customTemplatesModified } from '@/config/templates/index'
+import type { TemplateDefinition } from '@/types/template'
 import { coachSkillModified, analyzeSkillModified } from '@/config/skills/index'
 import { coachMode, analyzeMode, getModel } from '@/config/llm'
 
 import AppHeader from '@/components/layout/AppHeader.vue'
 import LLMSettings from '@/components/settings/LLMSettings.vue'
+import HotkeyModal from '@/components/shared/HotkeyModal.vue'
 import TaskForm from '@/components/form/TaskForm.vue'
 import CoachPanel from '@/components/panels/CoachPanel.vue'
 import AIReviewPanel from '@/components/panels/AIReviewPanel.vue'
 import JiraResponsePanel from '@/components/panels/JiraResponsePanel.vue'
 import ProcessingSummary from '@/components/panels/ProcessingSummary.vue'
+import TicketHistoryPanel from '@/components/panels/TicketHistoryPanel.vue'
 import DevTools from '@/components/dev/DevTools.vue'
 import ToastContainer from '@/components/shared/ToastContainer.vue'
 import JsonViewer from '@/components/shared/JsonViewer.vue'
@@ -162,7 +173,7 @@ const {
   isCoachLoading, coachResponse, coachWasCancelled, coachHadError,
   coachStreamSpeed, coachBackoffSecs,
   requestCoach, cancelCoach, retryCoach, clearCoachResponse,
-  isAnalyzeLoading, analyzeResponse, analyzeWasCancelled, analyzeHadError,
+  isAnalyzeLoading, analyzeResponse, previousAnalyzeResponse, analyzeWasCancelled, analyzeHadError,
   analyzeStreamSpeed, analyzeBackoffSecs,
   requestAnalyze, cancelAnalyze, retryAnalyze, clearAnalyzeResponse
 } = useLLM()
@@ -172,6 +183,7 @@ const activeModel = computed(() => getModel())
 const errorMessage = ref('')
 const showConfirmModal = ref(false)
 const showSettingsModal = ref(false)
+const showHotkeyModal = ref(false)
 
 // Shims so TaskForm buttons reflect both JIRA-submitting and LLM-analyzing states
 const formIsSubmitting = computed(() => isSubmitting.value || isAnalyzeLoading.value)
@@ -282,6 +294,17 @@ async function confirmCreate() {
     addToast('error', err)
   } else {
     addToast('success', t('toast.createSuccess'))
+    const resp = jiraResponse.value as Record<string, unknown> | null
+    const key = (resp?.key || (resp?.jira_result as Record<string, unknown>)?.key) as string | undefined
+    if (key) {
+      addTicket({
+        key,
+        summary: computedSummary.value,
+        project: form.projectKey,
+        issueType: form.issueType,
+        date: new Date().toISOString()
+      })
+    }
   }
 }
 
@@ -350,13 +373,32 @@ function applyCoachChip(chipKey: string) {
   if (content) form.description = content
 }
 
+function handleTemplateImport(incoming: TemplateDefinition[]) {
+  const existingKeys = new Set(effectiveTemplates.value.map(t => t.key))
+  const toAdd = incoming.filter(t => t.key && !existingKeys.has(t.key))
+  if (toAdd.length === 0) {
+    addToast('info', 'No new templates to import (duplicates skipped)')
+    return
+  }
+  setCustomTemplates([...effectiveTemplates.value, ...toAdd])
+  addToast('success', `${toAdd.length} ${t('toast.templatesImported')}`)
+}
+
 // Keyboard shortcuts
 function handleKeyboard(e: KeyboardEvent) {
   if (e.key === 'Escape') {
-    if (showSettingsModal.value) {
+    if (showHotkeyModal.value) {
+      showHotkeyModal.value = false
+    } else if (showSettingsModal.value) {
       showSettingsModal.value = false
     } else if (showConfirmModal.value) {
       showConfirmModal.value = false
+    }
+  } else if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    const tag = (e.target as HTMLElement).tagName
+    if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+      e.preventDefault()
+      showHotkeyModal.value = true
     }
   } else if (e.ctrlKey && e.key === ',') {
     e.preventDefault()

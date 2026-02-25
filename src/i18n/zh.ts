@@ -49,7 +49,9 @@ export default {
     aiCorrectedPoints: 'AI 修正点数',
     subtasks: '拆解子任务',
     items: '个',
-    backoffLabel: '请求频率超限，自动重试剩余'
+    backoffLabel: '请求频率超限，自动重试剩余',
+    showDiff: '差异',
+    hideDiff: '正常'
   },
   status: {
     idle: '空闲',
@@ -125,11 +127,26 @@ export default {
     coachSuccess: '已获取 Coach 指导',
     draftRestored: '已恢复上次未完成的草稿',
     draftCleared: '表单已重置，草稿已清除',
-    copied: '已复制到剪贴板'
+    copied: '已复制到剪贴板',
+    templatesImported: '个模板已导入'
   },
   shortcuts: {
     analyze: 'Ctrl+Enter',
     create: 'Ctrl+Shift+Enter'
+  },
+  history: {
+    title: '工单历史',
+    empty: '暂无已创建的工单',
+    clear: '清空',
+    ticketKey: '工单'
+  },
+  hotkeys: {
+    title: '键盘快捷键',
+    analyze: '运行 AI 分析',
+    create: '打开创建 JIRA 对话框',
+    settings: '打开设置',
+    escape: '关闭弹窗',
+    showCheatsheet: '显示快捷键列表'
   },
   settings: {
     title: 'LLM 设置',
@@ -157,6 +174,7 @@ export default {
     templateEditor: '快捷模板管理',
     templateReset: '恢复默认',
     addChip: '添加模板',
+    importTemplates: '导入模板',
     save: '保存',
     cancel: '取消',
     saved: '设置已保存'
