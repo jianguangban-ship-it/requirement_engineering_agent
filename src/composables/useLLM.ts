@@ -5,6 +5,9 @@ import { getCoachSkill, getAnalyzeSkill } from '@/config/skills/index'
 import { webhookUrl, WEBHOOK_CONFIG } from '@/config/webhook'
 import { useI18n } from '@/i18n'
 
+/** Whether the coach system-prompt skill is active. Toggle from the UI for free-form chat. */
+export const coachSkillEnabled = ref(true)
+
 /** Tagged error class for HTTP 429 so callers can start backoff instead of showing an error */
 class GLM429Error extends Error {
   constructor(msg: string) { super(msg); this.name = 'GLM429Error' }
@@ -83,7 +86,7 @@ ${d.description || '(empty)'}
       model: getModel(),
       stream: true,
       messages: [
-        { role: 'system', content: systemPrompt },
+        ...(systemPrompt ? [{ role: 'system' as const, content: systemPrompt }] : []),
         { role: 'user', content: buildUserMessage(payload) }
       ]
     }
@@ -198,7 +201,7 @@ ${d.description || '(empty)'}
         let tokenCount = 0
         let streamStart = 0
 
-        await _callGLMStream(getCoachSkill(lang), payload, (chunk) => {
+        await _callGLMStream(coachSkillEnabled.value ? getCoachSkill(lang) : '', payload, (chunk) => {
           if (tokenCount === 0) streamStart = Date.now()
           tokenCount++
           accumulated += chunk

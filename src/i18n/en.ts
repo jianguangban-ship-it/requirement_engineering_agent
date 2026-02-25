@@ -107,7 +107,9 @@ export default {
     assignee: 'Assignee',
     reviewDetails: 'Review Details',
     backoffLabel: 'Rate limited — retrying in',
-    backoffCancel: 'Cancel auto-retry'
+    backoffCancel: 'Cancel auto-retry',
+    skillOn: 'Skill ON',
+    skillOff: 'Skill OFF'
   },
   quality: {
     excellent: 'Excellent',

@@ -107,7 +107,9 @@ export default {
     assignee: '经办人',
     reviewDetails: '审核详情',
     backoffLabel: '请求频率超限，自动重试剩余',
-    backoffCancel: '取消自动重试'
+    backoffCancel: '取消自动重试',
+    skillOn: '技能 开',
+    skillOff: '技能 关'
   },
   quality: {
     excellent: '优秀',

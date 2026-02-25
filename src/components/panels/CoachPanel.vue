@@ -11,6 +11,15 @@
       <span class="mode-badge" :class="coachMode === 'llm' ? 'badge-llm' : 'badge-n8n'">
         {{ coachMode === 'llm' ? 'GLM' : 'n8n' }}
       </span>
+      <button
+        v-if="coachMode === 'llm'"
+        class="skill-toggle"
+        :class="{ 'skill-on': coachSkillEnabled, 'skill-off': !coachSkillEnabled }"
+        @click="coachSkillEnabled = !coachSkillEnabled"
+        :title="coachSkillEnabled ? t('coach.skillOn') : t('coach.skillOff')"
+      >
+        {{ coachSkillEnabled ? t('coach.skillOn') : t('coach.skillOff') }}
+      </button>
       <button v-if="response && !isLoading" class="copy-btn" @click="copyResponse" :title="t('toast.copied')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="9" y="2" width="13" height="13" rx="2"/>
@@ -117,6 +126,7 @@ import { formatCoachResponse } from '@/utils/formatCoach'
 import { effectiveTemplates } from '@/config/templates/index'
 import { useToast } from '@/composables/useToast'
 import { coachMode } from '@/config/llm'
+import { coachSkillEnabled } from '@/composables/useLLM'
 import PanelShell from '@/components/layout/PanelShell.vue'
 import QuickChip from '@/components/shared/QuickChip.vue'
 
@@ -389,6 +399,36 @@ const chips = computed(() =>
   background-color: rgba(210, 153, 34, 0.15);
   color: var(--accent-orange);
   border: 1px solid rgba(210, 153, 34, 0.3);
+}
+
+/* Skill toggle */
+.skill-toggle {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.3px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid;
+}
+.skill-on {
+  background-color: rgba(63, 185, 80, 0.15);
+  color: var(--accent-green);
+  border-color: rgba(63, 185, 80, 0.3);
+}
+.skill-on:hover {
+  background-color: rgba(63, 185, 80, 0.25);
+}
+.skill-off {
+  background-color: var(--bg-tertiary);
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+.skill-off:hover {
+  color: var(--text-secondary);
+  border-color: var(--text-muted);
 }
 
 /* Copy button */
