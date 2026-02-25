@@ -28,26 +28,38 @@
       </div>
       <div class="field">
         <label class="field-label">{{ t('form.component') }}</label>
-        <input
-          type="text"
-          v-model="summary.component"
-          list="component-history"
-          class="input-base field-input"
-          :placeholder="t('form.componentPlaceholder')"
-        />
-        <datalist id="component-history">
-          <option v-for="c in componentHistory" :key="c" :value="c"></option>
-        </datalist>
+        <div class="field-input-wrap">
+          <input
+            type="text"
+            v-model="summary.component"
+            list="component-history"
+            class="input-base field-input"
+            :placeholder="t('form.componentPlaceholder')"
+            :maxlength="COMPONENT_MAX"
+          />
+          <datalist id="component-history">
+            <option v-for="c in componentHistory" :key="c" :value="c"></option>
+          </datalist>
+          <span class="field-counter" :style="{ color: counterColor(summary.component.length, COMPONENT_MAX) }">
+            {{ summary.component.length }} / {{ COMPONENT_MAX }}
+          </span>
+        </div>
       </div>
     </div>
     <div class="detail-field">
       <label class="field-label">{{ t('form.taskDetail') }}</label>
-      <input
-        type="text"
-        v-model="summary.detail"
-        class="input-base field-input"
-        :placeholder="t('form.taskDetailPlaceholder')"
-      />
+      <div class="field-input-wrap">
+        <input
+          type="text"
+          v-model="summary.detail"
+          class="input-base field-input"
+          :placeholder="t('form.taskDetailPlaceholder')"
+          :maxlength="DETAIL_MAX"
+        />
+        <span class="field-counter" :style="{ color: counterColor(summary.detail.length, DETAIL_MAX) }">
+          {{ summary.detail.length }} / {{ DETAIL_MAX }}
+        </span>
+      </div>
     </div>
     <QualityMeter
       :label="t('form.livePreview')"
@@ -56,7 +68,21 @@
       :quality-label="qualityScoreLabel"
       :preview="computedSummary"
       :placeholder="t('form.previewPlaceholder')"
-    />
+    >
+      <template #header-actions>
+        <button
+          v-if="computedSummary"
+          class="copy-btn"
+          @click="copySummary"
+          :title="t('toast.copied')"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="2" width="13" height="13" rx="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </template>
+    </QualityMeter>
   </div>
 </template>
 
@@ -64,9 +90,10 @@
 import type { SummaryState } from '@/types/form'
 import { VEHICLE_OPTIONS, PRODUCT_OPTIONS, LAYER_OPTIONS } from '@/config/constants'
 import { useI18n } from '@/i18n'
+import { useToast } from '@/composables/useToast'
 import QualityMeter from './QualityMeter.vue'
 
-defineProps<{
+const props = defineProps<{
   summary: SummaryState
   componentHistory: string[]
   computedSummary: string
@@ -75,7 +102,24 @@ defineProps<{
   qualityScoreLabel: string
 }>()
 
+const COMPONENT_MAX = 50
+const DETAIL_MAX = 100
+
 const { t } = useI18n()
+const { addToast } = useToast()
+
+function counterColor(len: number, max: number): string {
+  const ratio = len / max
+  if (ratio >= 1) return 'var(--accent-red)'
+  if (ratio >= 0.8) return 'var(--accent-orange)'
+  return ''
+}
+
+async function copySummary() {
+  if (!props.computedSummary) return
+  await navigator.clipboard.writeText(props.computedSummary)
+  addToast('success', t('toast.copied'), 2000)
+}
 </script>
 
 <style scoped>
@@ -114,6 +158,40 @@ const { t } = useI18n()
 }
 .detail-field {
   margin-bottom: 8px;
+}
+.field-input-wrap {
+  position: relative;
+}
+.field-counter {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.7;
+  text-align: right;
+  margin-top: 2px;
+  transition: color 0.2s;
+}
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.copy-btn:hover {
+  color: var(--accent-green);
+  border-color: var(--border-color);
+  background-color: var(--bg-secondary);
+}
+.copy-btn svg {
+  width: 13px;
+  height: 13px;
 }
 
 @media (max-width: 768px) {

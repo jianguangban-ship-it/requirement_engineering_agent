@@ -1,6 +1,8 @@
 export default {
   header: {
-    title: 'JIRA 智能任务工作站'
+    title: 'JIRA 智能任务工作站',
+    themeDark: '切换深色模式',
+    themeLight: '切换浅色模式'
   },
   form: {
     basicInfo: '基本信息',

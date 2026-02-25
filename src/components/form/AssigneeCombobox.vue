@@ -31,6 +31,9 @@
               selected: modelValue === user.id
             }"
           >
+            <div class="avatar" :style="{ backgroundColor: getAvatarColor(user.id) }">
+              {{ getInitials(user.name) }}
+            </div>
             <div class="option-info">
               <div class="option-name" v-html="highlightMatch(user.name, searchTerm)"></div>
               <div class="option-id" v-html="highlightMatch(user.id, searchTerm)"></div>
@@ -78,6 +81,30 @@ function selectUser(user: TeamMember) {
 
 function handleKeydown(e: KeyboardEvent) {
   onKeydown(e, selectUser)
+}
+
+const AVATAR_COLORS = [
+  'var(--accent-blue)',
+  'var(--accent-green)',
+  'var(--accent-purple)',
+  'var(--accent-orange)',
+  'var(--accent-red)',
+]
+
+function getAvatarColor(id: string): string {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length]
+}
+
+function getInitials(name: string): string {
+  // Handle "吴亮 (Wu Liang)" style — take first CJK char + first latin letter
+  const cjk = name.match(/[\u4e00-\u9fff]/)?.[0] ?? ''
+  const latin = name.match(/[A-Za-z]/)?.[0]?.toUpperCase() ?? ''
+  if (cjk) return cjk + (latin || '')
+  // Pure latin: first letters of first two words
+  const words = name.trim().split(/\s+/)
+  return words.slice(0, 2).map(w => w[0].toUpperCase()).join('')
 }
 
 function handleClickOutside(event: MouseEvent) {
@@ -170,6 +197,19 @@ onUnmounted(() => {
 }
 .combobox-option.selected {
   background-color: rgba(88, 166, 255, 0.15);
+}
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  flex-shrink: 0;
+  letter-spacing: 0;
 }
 .option-info {
   flex: 1;

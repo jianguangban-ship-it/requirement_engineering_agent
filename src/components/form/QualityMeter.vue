@@ -9,6 +9,7 @@
         <span class="meter-label">{{ label }}</span>
       </div>
       <div class="meter-right">
+        <slot name="header-actions" />
         <span class="meter-score" :style="{ color: scoreColor }">{{ score }}%</span>
         <span class="meter-quality" :style="{ color: scoreColor }">{{ qualityLabel }}</span>
       </div>

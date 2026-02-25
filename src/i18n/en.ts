@@ -1,6 +1,8 @@
 export default {
   header: {
-    title: 'JIRA AI-Powered Task Workstation'
+    title: 'JIRA AI-Powered Task Workstation',
+    themeDark: 'Switch to dark mode',
+    themeLight: 'Switch to light mode'
   },
   form: {
     basicInfo: 'Basic Information',
