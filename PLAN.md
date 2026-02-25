@@ -1058,6 +1058,20 @@ A toggle button in the CoachPanel header lets users disable the coach system pro
 
 ---
 
+### Feature: JIRA Panel Loading Spinner
+
+The JIRA Create Issue Response panel now shows a spinner while `isCreating` is true, consistent with the loading animations in CoachPanel and AIReviewPanel.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/panels/JiraResponsePanel.vue` | Added loading state block (`v-if="isCreating && !response"`) before the empty state; spinner SVG + loading text styled with JIRA brand blue `#2684FF`; `spin` keyframe added |
+| `src/i18n/en.ts` / `zh.ts` | Added `panel.jiraCreating` ("Creating JIRA ticket…" / "正在创建 JIRA 工单…") |
+
+**Design:** JIRA brand blue `#2684FF` chosen to match the JIRA logo colour, distinguishing it from Coach (green `--accent-green`) and Analyze (purple `--accent-purple`).
+
+---
+
 ### Fix: Ticket History Keys as JIRA Hyperlinks
 
 Ticket keys in the TicketHistoryPanel were plain `<span>` elements. Now rendered as `<a>` links pointing to `https://jira.gwm.cn/browse/{key}`, consistent with the same URL pattern used in ProcessingSummary.
@@ -1087,6 +1101,7 @@ Ticket keys in the TicketHistoryPanel were plain `<span>` elements. Now rendered
 - [x] **Copy button in n8n mode** — copy icon in AI Coach and AI Review panels now appears for webhook JSON responses too; falls back to `JSON.stringify(response, null, 2)` when no `message` string is present
 - [x] **Ticket history hyperlinks** — ticket keys in TicketHistoryPanel are now `<a>` links to `https://jira.gwm.cn/browse/{key}`, opening in a new tab; underline on hover; matches the same URL pattern used in ProcessingSummary
 - [x] **Coach skill on/off toggle** — button in CoachPanel header (LLM mode only) enables or disables the system prompt; OFF = no system message sent, model responds freely without JIRA-review constraints; resets to ON on page reload
+- [x] **JIRA panel loading spinner** — spinning loader in JIRA brand blue (`#2684FF`) with localised text shown while ticket creation is in progress; matches animation pattern of Coach (green) and Analyze (purple) panels
 
 ### Low Priority / Polish
 - [x] **Export/Import all settings** — one-click JSON export covering API key, model, coach/analyze mode, and both skill overrides; paste on another machine to restore full config
