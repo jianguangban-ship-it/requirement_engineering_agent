@@ -19,7 +19,12 @@
         </div>
         <div v-else class="entry-list">
           <div v-for="entry in ticketHistory" :key="entry.key + entry.date" class="entry-row">
-            <span class="entry-key">{{ entry.key }}</span>
+            <a
+              class="entry-key"
+              :href="'https://jira.gwm.cn/browse/' + entry.key"
+              target="_blank"
+              rel="noopener noreferrer"
+            >{{ entry.key }}</a>
             <span class="entry-summary">{{ truncate(entry.summary, 40) }}</span>
             <div class="entry-meta">
               <span class="entry-badge">{{ entry.project }}</span>
@@ -128,6 +133,10 @@ function relativeDate(iso: string): string {
   grid-row: 1;
   grid-column: 1;
   white-space: nowrap;
+  text-decoration: none;
+}
+.entry-key:hover {
+  text-decoration: underline;
 }
 
 .entry-summary {
