@@ -1,0 +1,9 @@
+{
+  "key": "changeReq",
+  "icon": "🔄",
+  "label": { "zh": "变更请求", "en": "Change Req" },
+  "content": {
+    "zh": "**变更请求**\n\n**变更原因**\n\n\n**变更内容**\n\n\n**影响分析**\n- 功能影响: \n- 接口影响: \n- 测试影响: \n\n**验收标准**\n- [ ] \n",
+    "en": "**Change Request**\n\n**Reason for Change**\n\n\n**Change Content**\n\n\n**Impact Analysis**\n- Functional: \n- Interface: \n- Testing: \n\n**Acceptance Criteria**\n- [ ] \n"
+  }
+}

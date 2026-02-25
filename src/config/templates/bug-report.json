@@ -1,0 +1,9 @@
+{
+  "key": "bugReport",
+  "icon": "🐛",
+  "label": { "zh": "Bug 模板", "en": "Bug Template" },
+  "content": {
+    "zh": "**缺陷描述**\n\n\n**复现步骤**\n1. \n2. \n3. \n\n**期望行为**\n\n\n**实际行为**\n\n\n**环境信息**\n- 车型/平台: \n- 软件版本: \n- 硬件版本: \n",
+    "en": "**Bug Description**\n\n\n**Steps to Reproduce**\n1. \n2. \n3. \n\n**Expected Behavior**\n\n\n**Actual Behavior**\n\n\n**Environment**\n- Vehicle/Platform: \n- SW Version: \n- HW Version: \n"
+  }
+}
