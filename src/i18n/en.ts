@@ -45,6 +45,7 @@ export default {
     aiAnalyzing: 'AI is analyzing...',
     retryBtn: 'Retry',
     waitingJira: 'Waiting for JIRA creation result...',
+    jiraCreating: 'Creating JIRA ticket...',
     summary: 'Processing Summary',
     aiCorrectedPoints: 'AI Corrected Points',
     subtasks: 'Subtasks',

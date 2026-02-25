@@ -45,6 +45,7 @@ export default {
     aiAnalyzing: 'AI 正在分析...',
     retryBtn: '重试',
     waitingJira: '等待 JIRA 创建结果...',
+    jiraCreating: '正在创建 JIRA 工单...',
     summary: '处理摘要',
     aiCorrectedPoints: 'AI 修正点数',
     subtasks: '拆解子任务',

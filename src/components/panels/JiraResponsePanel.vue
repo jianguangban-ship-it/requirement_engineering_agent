@@ -11,8 +11,17 @@
       </svg>
     </template>
 
+    <!-- Loading state -->
+    <div v-if="isCreating && !response" class="empty-state">
+      <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4">
+        <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-linecap="round" opacity="0.25"/>
+        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+      </svg>
+      <p class="loading-text">{{ t('panel.jiraCreating') }}</p>
+    </div>
+
     <!-- Empty state -->
-    <div v-if="!response" class="empty-state">
+    <div v-else-if="!response" class="empty-state">
       <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
       </svg>
@@ -56,7 +65,11 @@ const statusInfo = computed(() => {
 </script>
 
 <style scoped>
+/* JIRA brand blue */
+.jira-blue { color: #2684FF; }
+
 .panel-icon { width: 16px; height: 16px; }
+
 .empty-state {
   height: 100%;
   display: flex;
@@ -68,4 +81,18 @@ const statusInfo = computed(() => {
 }
 .empty-icon { width: 40px; height: 40px; color: var(--text-muted); margin-bottom: 8px; }
 .empty-text { font-size: 12px; color: var(--text-muted); }
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  color: #2684FF;
+  margin-bottom: 8px;
+  animation: spin 1s linear infinite;
+}
+.loading-text {
+  font-size: 12px;
+  color: #2684FF;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
