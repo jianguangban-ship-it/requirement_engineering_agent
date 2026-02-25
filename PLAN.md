@@ -1039,6 +1039,17 @@ A free-text input field appended after the "8" preset button, letting users ente
 
 ---
 
+### Fix: Ticket History Keys as JIRA Hyperlinks
+
+Ticket keys in the TicketHistoryPanel were plain `<span>` elements. Now rendered as `<a>` links pointing to `https://jira.gwm.cn/browse/{key}`, consistent with the same URL pattern used in ProcessingSummary.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/components/panels/TicketHistoryPanel.vue` | `.entry-key` `<span>` replaced with `<a :href="'https://jira.gwm.cn/browse/' + entry.key" target="_blank" rel="noopener noreferrer">`; `text-decoration: none` base style + `underline` on hover |
+
+---
+
 ## Potential Next Improvements
 
 ### High Priority
@@ -1055,6 +1066,7 @@ A free-text input field appended after the "8" preset button, letting users ente
 
 - [x] **Free-input story points** — custom number field after the "8" preset button; mutually exclusive with preset buttons (selecting a button clears input, typing deactivates buttons); digits-only, max 3 chars; pre-populates on load if stored value is non-preset
 - [x] **Copy button in n8n mode** — copy icon in AI Coach and AI Review panels now appears for webhook JSON responses too; falls back to `JSON.stringify(response, null, 2)` when no `message` string is present
+- [x] **Ticket history hyperlinks** — ticket keys in TicketHistoryPanel are now `<a>` links to `https://jira.gwm.cn/browse/{key}`, opening in a new tab; underline on hover; matches the same URL pattern used in ProcessingSummary
 
 ### Low Priority / Polish
 - [x] **Export/Import all settings** — one-click JSON export covering API key, model, coach/analyze mode, and both skill overrides; paste on another machine to restore full config
