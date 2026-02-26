@@ -1083,6 +1083,30 @@ Ticket keys in the TicketHistoryPanel were plain `<span>` elements. Now rendered
 
 ---
 
+## Completed Improvements — v8.23 (2026-02-26)
+
+### UI Design Polish
+
+Comprehensive visual quality pass fixing color hierarchy bugs, adding depth shadows, smoothing theme transitions, and correcting the version label.
+
+**Modified files:**
+| File | Change |
+|------|--------|
+| `src/styles/variables.css` | Fixed `--text-secondary` dark mode value (`#f6f7f8` → `#adbac7` — was brighter than `--text-primary`, causing inverted text hierarchy); fixed light mode `--text-secondary` (`#24292f` → `#57606a`); improved `--text-muted` dark (`#8b949e` → `#768390`); brightened `--accent-orange` dark (`#d29922` → `#e3b341`) and light (`#9a6700` → `#bf8700`) for better readability; added `--shadow-sm`, `--shadow-panel`, `--shadow-modal` tokens for both themes |
+| `src/styles/global.css` | Added `transition: background-color 0.3s ease, color 0.3s ease` to `body` so theme switching animates smoothly instead of snapping |
+| `src/components/layout/PanelShell.vue` | Added `box-shadow: var(--shadow-panel)` to `.panel` — panels now have subtle depth lift off the background |
+| `src/App.vue` | Added `box-shadow: var(--shadow-modal)` to `.modal-content` |
+| `src/components/settings/LLMSettings.vue` | Added `box-shadow: var(--shadow-modal)` to `.modal-content` |
+| `src/components/shared/HotkeyModal.vue` | Added `box-shadow: var(--shadow-modal)` to `.modal-content` |
+| `src/components/layout/AppHeader.vue` | Updated version label from `v8.0` to `v8.23` |
+
+**Design notes:**
+- The `--text-secondary` inversion bug meant secondary text was visually louder than primary text — now corrected across both themes
+- Shadow tokens are theme-aware: dark mode uses stronger shadows (0.4 opacity), light mode uses subtle shadows (0.06–0.18 opacity) matching GitHub's design system
+- Theme transition applies only to `background-color` and `color` on `body`; individual components inherit the change naturally
+
+---
+
 ## Potential Next Improvements
 
 ### High Priority
@@ -1110,6 +1134,7 @@ Ticket keys in the TicketHistoryPanel were plain `<span>` elements. Now rendered
 - [x] **Template chip editor** — add/edit/reorder chips directly in Settings without touching JSON files in `src/config/templates/`; store overrides in localStorage the same way skill files do
 - [x] **Dev Tools integration** — surface coach mode, analyze mode, active model, skill customisation status, `hadError` / `wasCancelled` state, and stream-active flag in the DevTools panel
 - [x] **Dark/Light theme toggle** — Sun/Moon button in header; `[data-theme="light"]` CSS override block; `useTheme.ts` composable; preference persisted to localStorage
+- [x] **UI design polish** — fixed `--text-secondary` color inversion bug; added `--shadow-panel/modal` tokens; applied box-shadow to panels and modals; smooth theme transition on body; version label updated
 - [x] **Summary preview copy button** — clipboard icon in QualityMeter header (via named slot); copies assembled 5-part summary; fires toast on success
 - [x] **Assignee avatar/initials** — colored initials circle before each name in the combobox dropdown; color deterministically hashed from user ID; handles CJK + Latin names
 - [x] **Form field character limits** — live `{n}/50` counter under Component, `{n}/100` under Detail; turns orange at 80%, red at 100%; `maxlength` enforced
