@@ -1107,6 +1107,36 @@ Comprehensive visual quality pass fixing color hierarchy bugs, adding depth shad
 
 ---
 
+## Completed Improvements — v8.24 (2026-02-26)
+
+### Documentation: Bilingual User Manual
+
+Added a comprehensive user manual (`USER_MANUAL.md`) at the project root, written in both English and Chinese. Covers all front-end features for end users who will access the cloud-deployed app.
+
+**New files:**
+| File | Purpose |
+|------|---------|
+| `USER_MANUAL.md` | 509-line bilingual (EN/ZH) user manual in Markdown format |
+
+**Sections covered:**
+| Section | Content |
+|---------|---------|
+| Overview | App purpose and key capabilities |
+| Interface Layout | ASCII diagram of the 3-column layout |
+| First-Time Setup | Settings, API key, mode selection, model configuration |
+| Step-by-Step Workflow | Full ① → ⑧ flow diagram |
+| Header Controls | Language toggle, Test/Prod mode, theme, settings |
+| AI Coach Panel | Writing guidance, Skill ON/OFF toggle, template chips, drag-drop import, copy, 429 backoff countdown |
+| Task Form | Basic info, story points (preset + custom), 5-part summary, quality meter, description word/sentence counter, action buttons |
+| AI Smart Analysis | What AI reviews, reading results, diff view toggle |
+| Creating a JIRA Ticket | Payload preview modal, confirm/cancel, JIRA response panel |
+| Ticket History | Reading entries, hyperlinks, clearing history |
+| Settings | All fields, skill editor, template chip management, export/import |
+| Keyboard Shortcuts | Full table + `?` modal reference |
+| Tips & Troubleshooting | 7 common issues with solutions |
+
+---
+
 ## Potential Next Improvements
 
 ### High Priority
