@@ -362,7 +362,8 @@ function handleSave() {
 }
 .modal-content {
   background-color: var(--bg-secondary); border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg); padding: 24px; max-width: 480px; width: 100%;
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-modal);
+  padding: 24px; max-width: 480px; width: 100%;
   max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
   animation: scaleIn 0.2s ease-out;
 }

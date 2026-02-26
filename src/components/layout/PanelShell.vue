@@ -70,6 +70,7 @@ const bodyStyle = computed(() => {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
   overflow: visible;
   display: flex;
   flex-direction: column;
