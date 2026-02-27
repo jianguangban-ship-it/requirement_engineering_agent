@@ -8,11 +8,8 @@
     max-height="650px"
   >
     <template #header-actions>
-      <span class="mode-badge" :class="coachMode === 'llm' ? 'badge-llm' : 'badge-n8n'">
-        {{ coachMode === 'llm' ? 'LLM' : 'n8n' }}
-      </span>
+      <span class="mode-badge badge-llm" :title="currentModel">{{ currentModel }}</span>
       <button
-        v-if="coachMode === 'llm'"
         class="skill-toggle"
         :class="{ 'skill-on': coachSkillEnabled, 'skill-off': !coachSkillEnabled }"
         @click="setCoachSkillEnabled(!coachSkillEnabled)"
@@ -125,8 +122,8 @@ import { useI18n } from '@/i18n'
 import { formatCoachResponse } from '@/utils/formatCoach'
 import { effectiveTemplates } from '@/config/templates/index'
 import { useToast } from '@/composables/useToast'
-import { coachMode } from '@/config/llm'
 import { coachSkillEnabled, setCoachSkillEnabled } from '@/composables/useLLM'
+import { currentModel } from '@/config/llm'
 import PanelShell from '@/components/layout/PanelShell.vue'
 import QuickChip from '@/components/shared/QuickChip.vue'
 
@@ -391,6 +388,10 @@ const chips = computed(() =>
   border-radius: var(--radius-sm);
   letter-spacing: 0.3px;
   line-height: 1;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .badge-llm {
   background-color: rgba(88, 166, 255, 0.15);

@@ -30,14 +30,6 @@
       <summary class="dev-summary">🤖 {{ t('dev.agentState') }}</summary>
       <div class="dev-config">
         <div class="config-row">
-          <span class="config-label">{{ t('dev.coachMode') }}:</span>
-          <span class="mode-badge" :class="coachMode === 'llm' ? 'badge-llm' : 'badge-n8n'">{{ coachMode }}</span>
-        </div>
-        <div class="config-row">
-          <span class="config-label">{{ t('dev.analyzeMode') }}:</span>
-          <span class="mode-badge" :class="analyzeMode === 'llm' ? 'badge-llm' : 'badge-n8n'">{{ analyzeMode }}</span>
-        </div>
-        <div class="config-row">
           <span class="config-label">{{ t('dev.model') }}:</span>
           <code class="config-url">{{ activeModel }}</code>
         </div>
@@ -106,8 +98,6 @@ import JsonViewer from '@/components/shared/JsonViewer.vue'
 
 defineProps<{
   payload: string
-  coachMode: string
-  analyzeMode: string
   activeModel: string
   coachSkillModified: boolean
   analyzeSkillModified: boolean

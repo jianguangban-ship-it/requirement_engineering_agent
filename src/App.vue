@@ -100,8 +100,6 @@
 
           <DevTools
             :payload="jsonPayload"
-            :coach-mode="coachMode"
-            :analyze-mode="analyzeMode"
             :active-model="activeModel"
             :coach-skill-modified="coachSkillModified"
             :analyze-skill-modified="analyzeSkillModified"
@@ -139,7 +137,7 @@ import { addTicket } from '@/composables/useTicketHistory'
 import { getTemplateContent, effectiveTemplates, setCustomTemplates, customTemplatesModified } from '@/config/templates/index'
 import type { TemplateDefinition } from '@/types/template'
 import { coachSkillModified, analyzeSkillModified } from '@/config/skills/index'
-import { coachMode, analyzeMode, getModel } from '@/config/llm'
+import { getModel } from '@/config/llm'
 
 import AppHeader from '@/components/layout/AppHeader.vue'
 import LLMSettings from '@/components/settings/LLMSettings.vue'

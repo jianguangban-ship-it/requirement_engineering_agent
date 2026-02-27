@@ -1,8 +1,7 @@
 import { ref } from 'vue'
 import type { LLMRequestBody, LLMStreamChunk, WebhookPayload } from '@/types/api'
-import { getProviderUrl, getApiKey, getModel, coachMode, analyzeMode } from '@/config/llm'
+import { getProviderUrl, getApiKey, getModel } from '@/config/llm'
 import { getCoachSkill, getAnalyzeSkill } from '@/config/skills/index'
-import { webhookUrl, WEBHOOK_CONFIG } from '@/config/webhook'
 import { useI18n } from '@/i18n'
 
 const LS_KEY_COACH_SKILL_ENABLED = 'coach-skill-enabled'
@@ -155,44 +154,6 @@ ${d.description || '(empty)'}
     }
   }
 
-  async function _callWebhook(payload: WebhookPayload): Promise<unknown> {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_CONFIG.timeout)
-
-    try {
-      const response = await fetch(webhookUrl.value, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      })
-
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const responseText = await response.text()
-      if (!responseText || responseText.trim() === '') {
-        throw new Error(t('error.emptyResponse'))
-      }
-
-      try {
-        return JSON.parse(responseText)
-      } catch {
-        return { message: responseText }
-      }
-    } catch (error: unknown) {
-      clearTimeout(timeoutId)
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') throw new Error(t('error.timeout'))
-        if (error.message.includes('Failed to fetch')) throw new Error(t('error.connectionFailed'))
-      }
-      throw error
-    }
-  }
-
   // ─── Coach ────────────────────────────────────────────────────────────────
 
   async function requestCoach(payload: WebhookPayload): Promise<string | null> {
@@ -206,31 +167,27 @@ ${d.description || '(empty)'}
     _coachAC = new AbortController()
 
     try {
-      if (coachMode.value === 'llm') {
-        const lang = isZh.value ? 'zh' : 'en'
-        let accumulated = ''
-        let tokenCount = 0
-        let streamStart = 0
+      const lang = isZh.value ? 'zh' : 'en'
+      let accumulated = ''
+      let tokenCount = 0
+      let streamStart = 0
 
-        // Skill ON  → structured JIRA review request with system prompt
-        // Skill OFF → free-form chat: send the description text as-is
-        const skillOn = coachSkillEnabled.value
-        const systemPrompt = skillOn ? getCoachSkill(lang) : ''
-        const userMessage = skillOn
-          ? buildUserMessage(payload)
-          : (payload.data.description || payload.data.summary || '')
+      // Skill ON  → structured JIRA review request with system prompt
+      // Skill OFF → free-form chat: send the description text as-is
+      const skillOn = coachSkillEnabled.value
+      const systemPrompt = skillOn ? getCoachSkill(lang) : ''
+      const userMessage = skillOn
+        ? buildUserMessage(payload)
+        : (payload.data.description || payload.data.summary || '')
 
-        await _callGLMStream(systemPrompt, userMessage, (chunk) => {
-          if (tokenCount === 0) streamStart = Date.now()
-          tokenCount++
-          accumulated += chunk
-          coachResponse.value = { markdown_msg: accumulated, message: accumulated }
-          const elapsed = (Date.now() - streamStart) / 1000
-          if (elapsed > 0) coachStreamSpeed.value = Math.round(tokenCount / elapsed)
-        }, _coachAC.signal)
-      } else {
-        coachResponse.value = await _callWebhook(payload)
-      }
+      await _callGLMStream(systemPrompt, userMessage, (chunk) => {
+        if (tokenCount === 0) streamStart = Date.now()
+        tokenCount++
+        accumulated += chunk
+        coachResponse.value = { markdown_msg: accumulated, message: accumulated }
+        const elapsed = (Date.now() - streamStart) / 1000
+        if (elapsed > 0) coachStreamSpeed.value = Math.round(tokenCount / elapsed)
+      }, _coachAC.signal)
       return null
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -295,23 +252,19 @@ ${d.description || '(empty)'}
     _analyzeAC = new AbortController()
 
     try {
-      if (analyzeMode.value === 'llm') {
-        const lang = isZh.value ? 'zh' : 'en'
-        let accumulated = ''
-        let tokenCount = 0
-        let streamStart = 0
+      const lang = isZh.value ? 'zh' : 'en'
+      let accumulated = ''
+      let tokenCount = 0
+      let streamStart = 0
 
-        await _callGLMStream(getAnalyzeSkill(lang), buildUserMessage(payload), (chunk) => {
-          if (tokenCount === 0) streamStart = Date.now()
-          tokenCount++
-          accumulated += chunk
-          analyzeResponse.value = { markdown_msg: accumulated, message: accumulated }
-          const elapsed = (Date.now() - streamStart) / 1000
-          if (elapsed > 0) analyzeStreamSpeed.value = Math.round(tokenCount / elapsed)
-        }, _analyzeAC.signal)
-      } else {
-        analyzeResponse.value = await _callWebhook(payload)
-      }
+      await _callGLMStream(getAnalyzeSkill(lang), buildUserMessage(payload), (chunk) => {
+        if (tokenCount === 0) streamStart = Date.now()
+        tokenCount++
+        accumulated += chunk
+        analyzeResponse.value = { markdown_msg: accumulated, message: accumulated }
+        const elapsed = (Date.now() - streamStart) / 1000
+        if (elapsed > 0) analyzeStreamSpeed.value = Math.round(tokenCount / elapsed)
+      }, _analyzeAC.signal)
       return null
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') {

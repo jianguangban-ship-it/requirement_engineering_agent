@@ -4,36 +4,18 @@
       <div class="modal-content">
         <h3 class="modal-title">{{ t('settings.title') }}</h3>
 
-        <!-- Coach Mode -->
-        <div class="field-group">
-          <label class="field-label">{{ t('settings.coachMode') }}</label>
-          <div class="toggle-group">
-            <button class="toggle-btn" :class="{ active: localMode === 'llm' }" @click="localMode = 'llm'">{{ t('settings.modeLLM') }}</button>
-            <button class="toggle-btn" :class="{ active: localMode === 'webhook' }" @click="localMode = 'webhook'">{{ t('settings.modeWebhook') }}</button>
-          </div>
-        </div>
-
-        <!-- Analyze Mode -->
-        <div class="field-group">
-          <label class="field-label">{{ t('settings.analyzeMode') }}</label>
-          <div class="toggle-group">
-            <button class="toggle-btn" :class="{ active: localAnalyzeMode === 'llm' }" @click="localAnalyzeMode = 'llm'">{{ t('settings.modeLLM') }}</button>
-            <button class="toggle-btn" :class="{ active: localAnalyzeMode === 'webhook' }" @click="localAnalyzeMode = 'webhook'">{{ t('settings.modeWebhook') }}</button>
-          </div>
-        </div>
-
         <!-- Provider Base URL -->
-        <div class="field-group" :class="{ dimmed: bothWebhook }">
+        <div class="field-group">
           <label class="field-label">{{ t('settings.providerUrl') }}</label>
           <input v-model="localProviderUrl" type="text" class="field-input" :placeholder="t('settings.providerUrlPlaceholder')" :disabled="bothWebhook" />
         </div>
 
         <!-- API Key -->
-        <div class="field-group" :class="{ dimmed: bothWebhook }">
+        <div class="field-group">
           <label class="field-label">{{ t('settings.apiKey') }}</label>
           <div class="key-row">
             <input v-model="localApiKey" type="password" class="field-input" :placeholder="t('settings.apiKeyPlaceholder')" :disabled="bothWebhook" />
-            <button class="btn-test" :disabled="bothWebhook || !localApiKey.trim() || validationState === 'testing'" @click="handleTestKey">
+            <button class="btn-test" :disabled="!localApiKey.trim() || validationState === 'testing'" @click="handleTestKey">
               {{ validationState === 'testing' ? t('settings.testing') : t('settings.testKey') }}
             </button>
           </div>
@@ -48,9 +30,9 @@
         </div>
 
         <!-- Model Name -->
-        <div class="field-group" :class="{ dimmed: bothWebhook }">
+        <div class="field-group">
           <label class="field-label">{{ t('settings.model') }}</label>
-          <input v-model="localModel" type="text" list="model-presets" class="field-input" :placeholder="t('settings.modelPlaceholder')" :disabled="bothWebhook" autocomplete="off" />
+          <input v-model="localModel" type="text" list="model-presets" class="field-input" :placeholder="t('settings.modelPlaceholder')" autocomplete="off" />
           <datalist id="model-presets">
             <option v-for="model in allModelPresets" :key="model" :value="model" />
           </datalist>
@@ -163,12 +145,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch } from 'vue' // computed kept for allModelPresets
 import { useI18n } from '@/i18n'
 import {
   getApiKey, setApiKey, getModel, setModel,
-  getCoachMode, setCoachMode, coachMode,
-  getAnalyzeMode, setAnalyzeMode, analyzeMode,
   getProviderUrl, setProviderUrl,
   GLM_BASE_URL, GLM_DEFAULT_MODEL, LLM_MODEL_PRESETS
 } from '@/config/llm'
@@ -181,7 +161,6 @@ import {
   TEMPLATES, setCustomTemplates, resetCustomTemplates, customTemplatesModified, effectiveTemplates
 } from '@/config/templates/index'
 import type { TemplateDefinition } from '@/types/template'
-import type { CoachMode, AnalyzeMode } from '@/types/api'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{
@@ -193,8 +172,6 @@ const { t, isZh } = useI18n()
 
 const localApiKey = ref(getApiKey())
 const localModel = ref(getModel())
-const localMode = ref<CoachMode>(getCoachMode())
-const localAnalyzeMode = ref<AnalyzeMode>(getAnalyzeMode())
 const localProviderUrl = ref(localStorage.getItem('provider-url') ?? '')
 
 function currentLang(): 'zh' | 'en' { return isZh.value ? 'zh' : 'en' }
@@ -215,16 +192,12 @@ type ValidationState = 'idle' | 'testing' | 'valid' | 'invalid'
 const validationState = ref<ValidationState>('idle')
 const validationError = ref('')
 
-const bothWebhook = computed(() => localMode.value === 'webhook' && localAnalyzeMode.value === 'webhook')
-
 watch(localApiKey, () => { validationState.value = 'idle'; validationError.value = '' })
 
 watch(() => props.modelValue, (open) => {
   if (open) {
     localApiKey.value = getApiKey()
     localModel.value = getModel()
-    localMode.value = getCoachMode()
-    localAnalyzeMode.value = getAnalyzeMode()
     localProviderUrl.value = localStorage.getItem('provider-url') ?? ''
     const lang = currentLang()
     localCoachSkill.value = getCoachSkill(lang)
@@ -243,6 +216,7 @@ async function handleTestKey() {
   validationError.value = ''
   try {
     const rawTestUrl = localProviderUrl.value.trim() || GLM_BASE_URL
+
     const testEndpointUrl = rawTestUrl.endsWith('/chat/completions') ? rawTestUrl : rawTestUrl.replace(/\/$/, '') + '/chat/completions'
     const res = await fetch(testEndpointUrl, {
       method: 'POST',
@@ -373,9 +347,7 @@ function handleExport() {
   const data = {
     'provider-url': localProviderUrl.value,
     'glm-api-key': localApiKey.value,
-    'glm-model': localModel.value,
-    'coach-mode': localMode.value,
-    'analyze-mode': localAnalyzeMode.value
+    'glm-model': localModel.value
   }
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -394,8 +366,6 @@ function handleImport(e: Event) {
       if (data['provider-url'] !== undefined) localProviderUrl.value = data['provider-url']
       if (data['glm-api-key'] !== undefined) localApiKey.value = data['glm-api-key']
       if (data['glm-model']) localModel.value = data['glm-model']
-      if (data['coach-mode']) localMode.value = data['coach-mode']
-      if (data['analyze-mode']) localAnalyzeMode.value = data['analyze-mode']
       // Skills and templates are imported independently via their own buttons
     } catch { /* ignore invalid JSON */ }
     ;(e.target as HTMLInputElement).value = ''
@@ -407,8 +377,6 @@ function handleSave() {
   setProviderUrl(localProviderUrl.value)
   setApiKey(localApiKey.value.trim())
   setModel(localModel.value.trim() || GLM_DEFAULT_MODEL)
-  setCoachMode(localMode.value); coachMode.value = localMode.value
-  setAnalyzeMode(localAnalyzeMode.value); analyzeMode.value = localAnalyzeMode.value
   setCoachSkill(localCoachSkill.value)
   setAnalyzeSkill(localAnalyzeSkill.value)
   const builtinJson = JSON.stringify(TEMPLATES)
