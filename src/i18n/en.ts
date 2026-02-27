@@ -89,7 +89,7 @@ export default {
     emptyResponse: 'Server returned empty response, please check n8n workflow configuration',
     glm401: 'Invalid API key. Click ⚙ Settings to update it.',
     glm429: 'Rate limit exceeded. Please wait a moment and retry.',
-    glm5xx: 'GLM service is temporarily unavailable. Please retry shortly.'
+    glm5xx: 'LLM service is temporarily unavailable. Please retry shortly.'
   },
   urlMode: {
     testTooltip: 'Test Mode: Requires clicking "Listen" in n8n editor',
@@ -154,14 +154,14 @@ export default {
   settings: {
     title: 'LLM Settings',
     coachMode: 'Coach Mode',
-    modeLLM: 'GLM API (Direct)',
+    modeLLM: 'Direct API',
     modeWebhook: 'n8n Webhook',
-    providerUrl: 'Provider Base URL',
-    providerUrlPlaceholder: 'Leave blank for default (GLM API)',
-    apiKey: 'GLM API Key',
-    apiKeyPlaceholder: 'Enter your ZhipuAI API Key',
+    providerUrl: 'Provider Base URL (or full chat/completions endpoint)',
+    providerUrlPlaceholder: 'e.g. https://your-proxy/v1  — leave blank for GLM default',
+    apiKey: 'API Key',
+    apiKeyPlaceholder: 'Enter API key for your provider',
     model: 'Model Name',
-    modelPlaceholder: 'glm-4.7-flash',
+    modelPlaceholder: 'e.g. glm-4.7-flash, gpt-4o ...',
     analyzeMode: 'Analyze Mode',
     coachSkill: 'Coach Skill',
     analyzeSkill: 'Analyze Skill',

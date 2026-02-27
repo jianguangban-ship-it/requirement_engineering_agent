@@ -4,6 +4,34 @@ import type { CoachMode, AnalyzeMode } from '@/types/api'
 export const GLM_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
 export const GLM_DEFAULT_MODEL = 'glm-4.7-flash'
 
+/** Preset model names grouped by provider, shown in the model name datalist */
+export const LLM_MODEL_PRESETS: { group: string; models: string[] }[] = [
+  {
+    group: 'GLM (ZhipuAI)',
+    models: ['glm-4.7-flash', 'glm-4-plus', 'glm-4-air', 'glm-z1-flash', 'glm-z1-airx']
+  },
+  {
+    group: 'OpenAI',
+    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo']
+  },
+  {
+    group: 'Anthropic',
+    models: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001']
+  },
+  {
+    group: 'DeepSeek',
+    models: ['deepseek-chat', 'deepseek-reasoner']
+  },
+  {
+    group: 'Qwen (Alibaba)',
+    models: ['qwen-turbo', 'qwen-plus', 'qwen-max']
+  },
+  {
+    group: 'Mistral',
+    models: ['mistral-large-latest', 'mistral-small-latest']
+  }
+]
+
 const LS_KEY_PROVIDER_URL = 'provider-url'
 
 export function getProviderUrl(): string {

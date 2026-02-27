@@ -91,7 +91,11 @@ ${d.description || '(empty)'}
       ]
     }
 
-    const response = await fetch(getProviderUrl(), {
+    // Normalize: if user entered a base URL (e.g. https://host/v1), append /chat/completions
+    const rawUrl = getProviderUrl()
+    const endpointUrl = rawUrl.endsWith('/chat/completions') ? rawUrl : rawUrl.replace(/\/$/, '') + '/chat/completions'
+
+    const response = await fetch(endpointUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

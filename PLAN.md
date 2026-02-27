@@ -1107,6 +1107,70 @@ Comprehensive visual quality pass fixing color hierarchy bugs, adding depth shad
 
 ---
 
+## Completed Improvements — v8.25 (2026-02-27)
+
+### LLM Config: Bug Fixes, Generic Labels & Model Dropdown
+
+Three improvements to the LLM settings system:
+
+#### Bug Fixes
+| Bug | Location | Fix |
+|-----|----------|-----|
+| Hardcoded model fallback `'glm-4.7-flash'` | `LLMSettings.vue:342` | Use `GLM_DEFAULT_MODEL` constant |
+| Skill init bypassed abstraction (raw `localStorage.getItem`) | `LLMSettings.vue:183-184, 208-209` | Use `getCoachSkill(lang)` / `getAnalyzeSkill(lang)` |
+
+#### Generic LLM Provider Labels
+Removed GLM/ZhipuAI-specific branding from UI labels so any OpenAI-compatible provider works without confusion:
+| Key | Before | After |
+|-----|--------|-------|
+| `settings.modeLLM` | `'GLM API (Direct)'` | `'Direct API'` |
+| `settings.apiKey` | `'GLM API Key'` | `'API Key'` |
+| `settings.apiKeyPlaceholder` | `'Enter your ZhipuAI API Key'` | `'Enter API key for your provider'` |
+| `settings.modelPlaceholder` | `'glm-4.7-flash'` | `'e.g. glm-4.7-flash, gpt-4o ...'` |
+| `error.glm5xx` | `'GLM service is temporarily unavailable'` | `'LLM service is temporarily unavailable'` |
+
+#### Model Name Dropdown (datalist combobox)
+Replaced plain text input with `<input list>` + `<datalist>` — user can pick from presets or type any custom model name freely.
+
+**New export in `src/config/llm.ts`:** `LLM_MODEL_PRESETS`
+
+| Group | Models |
+|-------|--------|
+| GLM (ZhipuAI) | glm-4.7-flash, glm-4-plus, glm-4-air, glm-z1-flash, glm-z1-airx |
+| OpenAI | gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo |
+| Anthropic | claude-opus-4-6, claude-sonnet-4-6, claude-haiku-4-5-20251001 |
+| DeepSeek | deepseek-chat, deepseek-reasoner |
+| Qwen (Alibaba) | qwen-turbo, qwen-plus, qwen-max |
+| Mistral | mistral-large-latest, mistral-small-latest |
+
+**Files changed:**
+| File | Change |
+|------|--------|
+| `src/config/llm.ts` | Add `LLM_MODEL_PRESETS` |
+| `src/components/settings/LLMSettings.vue` | Bug fixes + model datalist combobox + URL normalization in Test button |
+| `src/composables/useLLM.ts` | Auto-append `/chat/completions` if base URL given |
+| `src/i18n/en.ts` | Generic provider labels, updated URL field hint |
+| `src/i18n/zh.ts` | Generic provider labels (ZH), updated URL field hint |
+
+#### Test Results — 2026-02-27
+Tested against GWM internal proxy (`https://llmproxy.gwm.cn/v1`) with model `default/deepseek-v3-2`.
+
+| ID | Test Case | Result |
+|----|-----------|--------|
+| TC-01 | Save settings | ✅ Pass |
+| TC-02 | Settings restored on re-open | ✅ Pass |
+| TC-03 | Model datalist dropdown appears | ✅ Pass |
+| TC-04 | API Key Test button | ✅ Pass |
+| TC-05 | Coach Direct API streaming | ✅ Pass |
+| TC-06 | Coach response completes | ✅ Pass |
+| TC-07 | Analyze Direct API streaming | ✅ Pass |
+| TC-08 | Analyze response completes | ✅ Pass |
+| TC-09 | Blank URL falls back to GLM default | ✅ Pass |
+
+**All 9 test cases passed.** URL normalization (base URL → `/chat/completions` auto-append) confirmed working.
+
+---
+
 ## Completed Improvements — v8.24 (2026-02-26)
 
 ### Documentation: Bilingual User Manual

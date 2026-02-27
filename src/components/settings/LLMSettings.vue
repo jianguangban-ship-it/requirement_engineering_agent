@@ -50,7 +50,10 @@
         <!-- Model Name -->
         <div class="field-group" :class="{ dimmed: bothWebhook }">
           <label class="field-label">{{ t('settings.model') }}</label>
-          <input v-model="localModel" type="text" class="field-input" :placeholder="t('settings.modelPlaceholder')" :disabled="bothWebhook" />
+          <input v-model="localModel" type="text" list="model-presets" class="field-input" :placeholder="t('settings.modelPlaceholder')" :disabled="bothWebhook" autocomplete="off" />
+          <datalist id="model-presets">
+            <option v-for="model in allModelPresets" :key="model" :value="model" />
+          </datalist>
         </div>
 
         <!-- Coach Skill -->
@@ -152,11 +155,12 @@ import {
   getCoachMode, setCoachMode, coachMode,
   getAnalyzeMode, setAnalyzeMode, analyzeMode,
   getProviderUrl, setProviderUrl,
-  GLM_BASE_URL, GLM_DEFAULT_MODEL
+  GLM_BASE_URL, GLM_DEFAULT_MODEL, LLM_MODEL_PRESETS
 } from '@/config/llm'
 import {
-  getCoachSkill, getCoachSkillDefault, setCoachSkill, resetCoachSkill, coachSkillModified,
-  getAnalyzeSkill, getAnalyzeSkillDefault, setAnalyzeSkill, resetAnalyzeSkill, analyzeSkillModified
+  getCoachSkill, setCoachSkill, resetCoachSkill, coachSkillModified,
+  getAnalyzeSkill, setAnalyzeSkill, resetAnalyzeSkill, analyzeSkillModified,
+  getCoachSkillDefault, getAnalyzeSkillDefault
 } from '@/config/skills/index'
 import {
   TEMPLATES, setCustomTemplates, resetCustomTemplates, customTemplatesModified, effectiveTemplates
@@ -180,8 +184,12 @@ const localProviderUrl = ref(localStorage.getItem('provider-url') ?? '')
 
 function currentLang(): 'zh' | 'en' { return isZh.value ? 'zh' : 'en' }
 
-const localCoachSkill = ref(localStorage.getItem('coach-skill') ?? getCoachSkillDefault(currentLang()))
-const localAnalyzeSkill = ref(localStorage.getItem('analyze-skill') ?? getAnalyzeSkillDefault(currentLang()))
+// Bug fix: use the skill abstraction instead of duplicating the localStorage key logic
+const localCoachSkill = ref(getCoachSkill(currentLang()))
+const localAnalyzeSkill = ref(getAnalyzeSkill(currentLang()))
+
+/** Flat list of all preset model names for the datalist */
+const allModelPresets = computed(() => LLM_MODEL_PRESETS.flatMap(g => g.models))
 
 function cloneTemplates(arr: TemplateDefinition[]): TemplateDefinition[] {
   return arr.map(t => ({ ...t, label: { ...t.label }, content: { ...t.content } }))
@@ -205,8 +213,8 @@ watch(() => props.modelValue, (open) => {
     localAnalyzeMode.value = getAnalyzeMode()
     localProviderUrl.value = localStorage.getItem('provider-url') ?? ''
     const lang = currentLang()
-    localCoachSkill.value = localStorage.getItem('coach-skill') ?? getCoachSkillDefault(lang)
-    localAnalyzeSkill.value = localStorage.getItem('analyze-skill') ?? getAnalyzeSkillDefault(lang)
+    localCoachSkill.value = getCoachSkill(lang)
+    localAnalyzeSkill.value = getAnalyzeSkill(lang)
     localTemplates.value = cloneTemplates(effectiveTemplates.value)
     editingChipIndex.value = -1
     validationState.value = 'idle'
@@ -220,7 +228,9 @@ async function handleTestKey() {
   validationState.value = 'testing'
   validationError.value = ''
   try {
-    const res = await fetch(localProviderUrl.value.trim() || GLM_BASE_URL, {
+    const rawTestUrl = localProviderUrl.value.trim() || GLM_BASE_URL
+    const testEndpointUrl = rawTestUrl.endsWith('/chat/completions') ? rawTestUrl : rawTestUrl.replace(/\/$/, '') + '/chat/completions'
+    const res = await fetch(testEndpointUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
       body: JSON.stringify({ model: localModel.value.trim() || GLM_DEFAULT_MODEL, stream: false, messages: [{ role: 'user', content: 'hi' }], max_tokens: 1 })
@@ -339,7 +349,7 @@ function handleImport(e: Event) {
 function handleSave() {
   setProviderUrl(localProviderUrl.value)
   setApiKey(localApiKey.value.trim())
-  setModel(localModel.value.trim() || 'glm-4.7-flash')
+  setModel(localModel.value.trim() || GLM_DEFAULT_MODEL)
   setCoachMode(localMode.value); coachMode.value = localMode.value
   setAnalyzeMode(localAnalyzeMode.value); analyzeMode.value = localAnalyzeMode.value
   setCoachSkill(localCoachSkill.value)

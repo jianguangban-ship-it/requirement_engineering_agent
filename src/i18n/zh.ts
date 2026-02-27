@@ -89,7 +89,7 @@ export default {
     emptyResponse: '服务器返回空响应，请检查 n8n 工作流中 Respond_to_Webhook 节点配置',
     glm401: 'API Key 无效，请点击 ⚙ 设置进行更新。',
     glm429: '请求频率超限，请稍候后重试。',
-    glm5xx: 'GLM 服务暂时不可用，请稍后重试。'
+    glm5xx: 'LLM 服务暂时不可用，请稍后重试。'
   },
   urlMode: {
     testTooltip: '测试模式：需要在 n8n 编辑器中点击 "Listen" 按钮',
@@ -154,14 +154,14 @@ export default {
   settings: {
     title: 'LLM 设置',
     coachMode: 'Coach 模式',
-    modeLLM: 'GLM API（直连）',
+    modeLLM: '直连 API',
     modeWebhook: 'n8n Webhook',
-    providerUrl: '服务商 Base URL',
-    providerUrlPlaceholder: '留空使用默认（GLM API）',
-    apiKey: 'GLM API Key',
-    apiKeyPlaceholder: '输入您的 ZhipuAI API Key',
+    providerUrl: '服务商 Base URL（或完整 chat/completions 地址）',
+    providerUrlPlaceholder: '例如 https://your-proxy/v1  — 留空使用 GLM 默认',
+    apiKey: 'API Key',
+    apiKeyPlaceholder: '输入您的服务商 API Key',
     model: '模型名称',
-    modelPlaceholder: 'glm-4.7-flash',
+    modelPlaceholder: '例如 glm-4.7-flash、gpt-4o ...',
     analyzeMode: '分析模式',
     coachSkill: 'Coach 提示词',
     analyzeSkill: '分析提示词',
