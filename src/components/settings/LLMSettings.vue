@@ -28,7 +28,7 @@
           <input v-model="localProviderUrl" type="text" class="field-input" :placeholder="t('settings.providerUrlPlaceholder')" :disabled="bothWebhook" />
         </div>
 
-        <!-- GLM API Key -->
+        <!-- API Key -->
         <div class="field-group" :class="{ dimmed: bothWebhook }">
           <label class="field-label">{{ t('settings.apiKey') }}</label>
           <div class="key-row">
@@ -63,7 +63,14 @@
               <label class="field-label">{{ t('settings.coachSkill') }}</label>
               <span v-if="coachSkillModified" class="skill-modified-badge">● {{ t('settings.skillModified') }}</span>
             </div>
-            <button class="btn-reset" @click="handleResetCoach" :disabled="localMode === 'webhook'">{{ t('settings.skillReset') }}</button>
+            <div class="skill-actions">
+              <label class="btn-skill-md" :class="{ disabled: localMode === 'webhook' }">
+                ⬆ {{ t('settings.importSkillMd') }}
+                <input type="file" accept=".md,.txt" @change="handleImportCoachMd" style="display:none" :disabled="localMode === 'webhook'" />
+              </label>
+              <button class="btn-skill-md" @click="handleExportCoachMd" :disabled="localMode === 'webhook'">⬇ {{ t('settings.exportSkillMd') }}</button>
+              <button class="btn-reset" @click="handleResetCoach" :disabled="localMode === 'webhook'">{{ t('settings.skillReset') }}</button>
+            </div>
           </div>
           <textarea v-model="localCoachSkill" class="skill-textarea" :disabled="localMode === 'webhook'" />
           <div class="skill-footer">
@@ -79,7 +86,14 @@
               <label class="field-label">{{ t('settings.analyzeSkill') }}</label>
               <span v-if="analyzeSkillModified" class="skill-modified-badge">● {{ t('settings.skillModified') }}</span>
             </div>
-            <button class="btn-reset" @click="handleResetAnalyze" :disabled="localAnalyzeMode === 'webhook'">{{ t('settings.skillReset') }}</button>
+            <div class="skill-actions">
+              <label class="btn-skill-md" :class="{ disabled: localAnalyzeMode === 'webhook' }">
+                ⬆ {{ t('settings.importSkillMd') }}
+                <input type="file" accept=".md,.txt" @change="handleImportAnalyzeMd" style="display:none" :disabled="localAnalyzeMode === 'webhook'" />
+              </label>
+              <button class="btn-skill-md" @click="handleExportAnalyzeMd" :disabled="localAnalyzeMode === 'webhook'">⬇ {{ t('settings.exportSkillMd') }}</button>
+              <button class="btn-reset" @click="handleResetAnalyze" :disabled="localAnalyzeMode === 'webhook'">{{ t('settings.skillReset') }}</button>
+            </div>
           </div>
           <textarea v-model="localAnalyzeSkill" class="skill-textarea" :disabled="localAnalyzeMode === 'webhook'" />
           <div class="skill-footer">
@@ -121,12 +135,13 @@
                 ⬆ {{ t('settings.importTemplates') }}
                 <input type="file" accept=".json" @change="handleImportTemplates" style="display:none" />
               </label>
+              <button class="btn-add-chip" @click="handleExportTemplatesJson">⬇ {{ t('settings.exportTemplatesJson') }}</button>
               <button class="btn-reset" @click="handleResetTemplates">{{ t('settings.templateReset') }}</button>
             </div>
           </div>
         </details>
 
-        <!-- Export / Import -->
+        <!-- Export / Import API Settings -->
         <div class="field-group">
           <label class="field-label">{{ t('settings.exportImport') }}</label>
           <div class="export-row">
@@ -184,7 +199,6 @@ const localProviderUrl = ref(localStorage.getItem('provider-url') ?? '')
 
 function currentLang(): 'zh' | 'en' { return isZh.value ? 'zh' : 'en' }
 
-// Bug fix: use the skill abstraction instead of duplicating the localStorage key logic
 const localCoachSkill = ref(getCoachSkill(currentLang()))
 const localAnalyzeSkill = ref(getAnalyzeSkill(currentLang()))
 
@@ -257,7 +271,48 @@ function handleResetAnalyze() {
   resetAnalyzeSkill()
 }
 
-// Template chip editor
+// ─── Skill MD Import / Export ──────────────────────────────────────────────
+
+function handleImportCoachMd(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    localCoachSkill.value = (ev.target?.result as string) ?? ''
+    ;(e.target as HTMLInputElement).value = ''
+  }
+  reader.readAsText(file)
+}
+
+function handleExportCoachMd() {
+  const blob = new Blob([localCoachSkill.value], { type: 'text/markdown' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = 'coach-skill.md'; a.click()
+  URL.revokeObjectURL(url)
+}
+
+function handleImportAnalyzeMd(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    localAnalyzeSkill.value = (ev.target?.result as string) ?? ''
+    ;(e.target as HTMLInputElement).value = ''
+  }
+  reader.readAsText(file)
+}
+
+function handleExportAnalyzeMd() {
+  const blob = new Blob([localAnalyzeSkill.value], { type: 'text/markdown' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = 'analyze-skill.md'; a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ─── Template chip editor ──────────────────────────────────────────────────
+
 function toggleChipEdit(idx: number) {
   editingChipIndex.value = editingChipIndex.value === idx ? -1 : idx
 }
@@ -304,24 +359,28 @@ function handleImportTemplates(e: Event) {
   reader.readAsText(file)
 }
 
-// Export / Import
+function handleExportTemplatesJson() {
+  const blob = new Blob([JSON.stringify(localTemplates.value, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = `template-chips-${new Date().toISOString().slice(0, 10)}.json`; a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ─── Export / Import API Settings ─────────────────────────────────────────
+
 function handleExport() {
   const data = {
     'provider-url': localProviderUrl.value,
     'glm-api-key': localApiKey.value,
     'glm-model': localModel.value,
     'coach-mode': localMode.value,
-    'analyze-mode': localAnalyzeMode.value,
-    'coach-skill': localCoachSkill.value,
-    'analyze-skill': localAnalyzeSkill.value,
-    'custom-templates': localTemplates.value
+    'analyze-mode': localAnalyzeMode.value
   }
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  a.href = url
-  a.download = `jira-agent-settings-${new Date().toISOString().slice(0, 10)}.json`
-  a.click()
+  a.href = url; a.download = `jira-agent-api-settings-${new Date().toISOString().slice(0, 10)}.json`; a.click()
   URL.revokeObjectURL(url)
 }
 
@@ -337,9 +396,7 @@ function handleImport(e: Event) {
       if (data['glm-model']) localModel.value = data['glm-model']
       if (data['coach-mode']) localMode.value = data['coach-mode']
       if (data['analyze-mode']) localAnalyzeMode.value = data['analyze-mode']
-      if (data['coach-skill']) localCoachSkill.value = data['coach-skill']
-      if (data['analyze-skill']) localAnalyzeSkill.value = data['analyze-skill']
-      if (Array.isArray(data['custom-templates'])) localTemplates.value = cloneTemplates(data['custom-templates'])
+      // Skills and templates are imported independently via their own buttons
     } catch { /* ignore invalid JSON */ }
     ;(e.target as HTMLInputElement).value = ''
   }
@@ -354,7 +411,6 @@ function handleSave() {
   setAnalyzeMode(localAnalyzeMode.value); analyzeMode.value = localAnalyzeMode.value
   setCoachSkill(localCoachSkill.value)
   setAnalyzeSkill(localAnalyzeSkill.value)
-  // Save templates (reset to defaults if unchanged)
   const builtinJson = JSON.stringify(TEMPLATES)
   const localJson = JSON.stringify(localTemplates.value)
   if (localJson === builtinJson) resetCustomTemplates()
@@ -373,8 +429,8 @@ function handleSave() {
 .modal-content {
   background-color: var(--bg-secondary); border: 1px solid var(--border-color);
   border-radius: var(--radius-lg); box-shadow: var(--shadow-modal);
-  padding: 24px; max-width: 480px; width: 100%;
-  max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
+  padding: 24px; max-width: 800px; width: 100%;
+  max-height: 88vh; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
   animation: scaleIn 0.2s ease-out;
 }
 .modal-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
@@ -420,17 +476,29 @@ function handleSave() {
 .key-badge--valid { color: var(--accent-green); }
 .key-badge--invalid { color: var(--accent-red, #f87171); }
 
-.skill-header { display: flex; align-items: center; justify-content: space-between; }
+.skill-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
 .skill-label-row { display: flex; align-items: center; gap: 8px; }
+.skill-actions { display: flex; align-items: center; gap: 6px; }
 .skill-modified-badge { font-size: 10px; font-weight: 600; color: var(--accent-orange); }
+
 .btn-reset {
   font-size: 11px; padding: 3px 8px; border-radius: var(--radius-sm);
   border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.15s;
 }
 .btn-reset:hover:not(:disabled) { color: var(--text-primary); background: var(--bg-tertiary); }
 .btn-reset:disabled { cursor: not-allowed; opacity: 0.4; }
+
+.btn-skill-md {
+  font-size: 11px; padding: 3px 8px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color); background: transparent; color: var(--text-muted);
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  display: inline-flex; align-items: center;
+}
+.btn-skill-md:hover:not(:disabled):not(.disabled) { color: var(--accent-blue); border-color: var(--accent-blue); }
+.btn-skill-md:disabled, .btn-skill-md.disabled { cursor: not-allowed; opacity: 0.4; }
+
 .skill-textarea {
-  width: 100%; height: 160px; padding: 8px 12px; resize: vertical;
+  width: 100%; height: 200px; padding: 8px 12px; resize: vertical;
   border-radius: var(--radius-md); border: 1px solid var(--border-color);
   background-color: var(--bg-tertiary); color: var(--text-primary);
   font-size: 12px; font-family: var(--font-mono); line-height: 1.6; outline: none; box-sizing: border-box;
@@ -478,11 +546,11 @@ function handleSave() {
   font-size: 11px; font-family: var(--font-mono); line-height: 1.5; outline: none; box-sizing: border-box;
 }
 .chip-content-area:focus { border-color: var(--accent-blue); }
-.chip-list-actions { display: flex; gap: 8px; margin-top: 4px; }
+.chip-list-actions { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
 .btn-add-chip {
   flex: 1; padding: 7px 12px; border-radius: var(--radius-md); border: 1px dashed var(--border-color);
   background: transparent; color: var(--text-muted); font-size: 12px; cursor: pointer; transition: all 0.15s;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: center; white-space: nowrap; min-width: fit-content;
 }
 .btn-add-chip:hover { color: var(--accent-blue); border-color: var(--accent-blue); }
 .btn-import-chip { cursor: pointer; }

@@ -7,7 +7,7 @@
         <span class="dot blue"></span>
       </div>
       <h1 class="header-title">{{ t('header.title') }}</h1>
-      <span class="header-version">v8.25</span>
+      <span class="header-version">v8.27</span>
     </div>
     <div class="header-right">
       <!-- Language Toggle -->
