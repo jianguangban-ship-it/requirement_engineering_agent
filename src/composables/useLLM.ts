@@ -5,8 +5,15 @@ import { getCoachSkill, getAnalyzeSkill } from '@/config/skills/index'
 import { webhookUrl, WEBHOOK_CONFIG } from '@/config/webhook'
 import { useI18n } from '@/i18n'
 
-/** Whether the coach system-prompt skill is active. Toggle from the UI for free-form chat. */
-export const coachSkillEnabled = ref(true)
+const LS_KEY_COACH_SKILL_ENABLED = 'coach-skill-enabled'
+
+/** Whether the coach system-prompt skill is active. Toggle from the UI for free-form chat. Persisted to localStorage. */
+export const coachSkillEnabled = ref(localStorage.getItem(LS_KEY_COACH_SKILL_ENABLED) !== 'false')
+
+export function setCoachSkillEnabled(val: boolean): void {
+  coachSkillEnabled.value = val
+  localStorage.setItem(LS_KEY_COACH_SKILL_ENABLED, String(val))
+}
 
 /** Tagged error class for HTTP 429 so callers can start backoff instead of showing an error */
 class GLM429Error extends Error {
@@ -69,7 +76,7 @@ ${d.description || '(empty)'}
 
   async function _callGLMStream(
     systemPrompt: string,
-    payload: WebhookPayload,
+    userMessage: string,
     onChunk: (text: string) => void,
     signal: AbortSignal
   ): Promise<void> {
@@ -87,7 +94,7 @@ ${d.description || '(empty)'}
       stream: true,
       messages: [
         ...(systemPrompt ? [{ role: 'system' as const, content: systemPrompt }] : []),
-        { role: 'user', content: buildUserMessage(payload) }
+        { role: 'user', content: userMessage }
       ]
     }
 
@@ -205,7 +212,15 @@ ${d.description || '(empty)'}
         let tokenCount = 0
         let streamStart = 0
 
-        await _callGLMStream(coachSkillEnabled.value ? getCoachSkill(lang) : '', payload, (chunk) => {
+        // Skill ON  → structured JIRA review request with system prompt
+        // Skill OFF → free-form chat: send the description text as-is
+        const skillOn = coachSkillEnabled.value
+        const systemPrompt = skillOn ? getCoachSkill(lang) : ''
+        const userMessage = skillOn
+          ? buildUserMessage(payload)
+          : (payload.data.description || payload.data.summary || '')
+
+        await _callGLMStream(systemPrompt, userMessage, (chunk) => {
           if (tokenCount === 0) streamStart = Date.now()
           tokenCount++
           accumulated += chunk
@@ -286,7 +301,7 @@ ${d.description || '(empty)'}
         let tokenCount = 0
         let streamStart = 0
 
-        await _callGLMStream(getAnalyzeSkill(lang), payload, (chunk) => {
+        await _callGLMStream(getAnalyzeSkill(lang), buildUserMessage(payload), (chunk) => {
           if (tokenCount === 0) streamStart = Date.now()
           tokenCount++
           accumulated += chunk

@@ -40,6 +40,10 @@ function formatMarkdownText(text: string): string {
   // Paragraphs
   t = t.replace(/\n\n+/g, '</p><p class="coach-para">')
   t = t.replace(/\n/g, '<br>')
+  // Strip <br> injected between block-level elements (div, h3, h4, hr) — those create
+  // unwanted empty lines because every \n was blindly converted above
+  t = t.replace(/(<\/div>|<\/h[34]>|<hr[^>]*>)<br>/g, '$1')
+  t = t.replace(/<br>(<div|<h[34])/g, '$1')
   t = '<p class="coach-para">' + t + '</p>'
   t = t.replace(/<p class="coach-para"><\/p>/g, '')
 

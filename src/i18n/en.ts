@@ -32,15 +32,15 @@ export default {
     descWords: 'words',
     descSentences: 'sentences',
     reset: 'Reset',
-    aiAnalyze: 'AI Smart Analysis',
-    confirmCreate: 'Confirm Create (JIRA)',
+    aiAnalyze: 'Analyze Task',
+    confirmCreate: 'Create JIRA',
     creating: 'Creating...',
     analyzing: 'Analyzing...',
     select: 'Select'
   },
   panel: {
-    aiAgentResponse: 'AI Agent Review Message',
-    jiraResponse: 'JIRA Create Issue Response',
+    aiAgentResponse: 'Task Review Message',
+    jiraResponse: 'JIRA System Response',
     waitingAI: 'Waiting for AI Agent response...',
     aiAnalyzing: 'AI is analyzing...',
     retryBtn: 'Retry',
@@ -96,7 +96,7 @@ export default {
     prodTooltip: 'Production Mode: Requires n8n workflow to be Active (green)'
   },
   coach: {
-    title: 'AI Coach Guidance',
+    title: 'Writing Coach Message',
     emptyHint: 'Get AI guidance to write better task descriptions',
     emptySubHint: 'Fill in basic info and description, then click the button below',
     analyzing: 'AI Coach is analyzing...',

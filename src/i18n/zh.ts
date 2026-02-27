@@ -32,15 +32,15 @@ export default {
     descWords: '词',
     descSentences: '句',
     reset: '重置',
-    aiAnalyze: 'AI 智能分析',
-    confirmCreate: '确认创建 (JIRA)',
+    aiAnalyze: '分析任务',
+    confirmCreate: '创建 JIRA',
     creating: '创建中...',
     analyzing: '分析中...',
     select: '选择'
   },
   panel: {
-    aiAgentResponse: 'AI Agent 审核消息',
-    jiraResponse: 'JIRA 创建结果',
+    aiAgentResponse: '任务审核消息',
+    jiraResponse: 'JIRA 系统响应',
     waitingAI: '等待 AI Agent 响应...',
     aiAnalyzing: 'AI 正在分析...',
     retryBtn: '重试',
@@ -96,7 +96,7 @@ export default {
     prodTooltip: '生产模式：需要 n8n 工作流处于 Active 状态（绿色）'
   },
   coach: {
-    title: 'AI 任务辅导信息',
+    title: '写作辅导消息',
     emptyHint: '获取 AI 辅导，写出更优质的任务描述',
     emptySubHint: '填写基本信息和描述后，点击下方按钮',
     analyzing: 'AI Coach 正在分析...',

@@ -9,13 +9,13 @@
   >
     <template #header-actions>
       <span class="mode-badge" :class="coachMode === 'llm' ? 'badge-llm' : 'badge-n8n'">
-        {{ coachMode === 'llm' ? 'GLM' : 'n8n' }}
+        {{ coachMode === 'llm' ? 'LLM' : 'n8n' }}
       </span>
       <button
         v-if="coachMode === 'llm'"
         class="skill-toggle"
         :class="{ 'skill-on': coachSkillEnabled, 'skill-off': !coachSkillEnabled }"
-        @click="coachSkillEnabled = !coachSkillEnabled"
+        @click="setCoachSkillEnabled(!coachSkillEnabled)"
         :title="coachSkillEnabled ? t('coach.skillOn') : t('coach.skillOff')"
       >
         {{ coachSkillEnabled ? t('coach.skillOn') : t('coach.skillOff') }}
@@ -126,7 +126,7 @@ import { formatCoachResponse } from '@/utils/formatCoach'
 import { effectiveTemplates } from '@/config/templates/index'
 import { useToast } from '@/composables/useToast'
 import { coachMode } from '@/config/llm'
-import { coachSkillEnabled } from '@/composables/useLLM'
+import { coachSkillEnabled, setCoachSkillEnabled } from '@/composables/useLLM'
 import PanelShell from '@/components/layout/PanelShell.vue'
 import QuickChip from '@/components/shared/QuickChip.vue'
 
@@ -289,7 +289,7 @@ const chips = computed(() =>
 }
 .coach-response {
   font-size: 13px;
-  line-height: 1.7;
+  line-height: 1.55;
   color: var(--text-secondary);
 }
 
@@ -297,12 +297,12 @@ const chips = computed(() =>
 .coach-response :deep(.coach-status-badge) {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 8px;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 6px;
   font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 12px;
+  font-size: 12px;
+  margin-bottom: 8px;
 }
 .coach-response :deep(.coach-status-pass) {
   background-color: rgba(63, 185, 80, 0.15);
@@ -323,7 +323,7 @@ const chips = computed(() =>
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 0;
+  padding: 3px 0;
   border-bottom: 1px solid var(--border-color);
   font-size: 12px;
 }
@@ -331,52 +331,54 @@ const chips = computed(() =>
 .coach-response :deep(.coach-info-value) { color: var(--text-primary); font-weight: 500; }
 .coach-response :deep(.coach-main-message) {
   background-color: var(--bg-tertiary);
-  border-radius: 8px;
-  padding: 12px;
-  margin: 12px 0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 6px 0;
   border-left: 3px solid var(--accent-blue);
 }
 .coach-response :deep(.coach-comment-title) {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 10px;
-  padding-bottom: 6px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
   border-bottom: 1px solid var(--border-color);
 }
-.coach-response :deep(.coach-issues-list) { display: flex; flex-direction: column; gap: 8px; }
+.coach-response :deep(.coach-issues-list) { display: flex; flex-direction: column; gap: 5px; }
 .coach-response :deep(.coach-issue-item) {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 5px 8px;
   background-color: rgba(248, 81, 73, 0.06);
-  border-radius: 8px;
+  border-radius: 6px;
   border-left: 3px solid var(--accent-red);
 }
 .coach-response :deep(.coach-issue-num) {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 22px;
+  min-width: 18px;
+  height: 18px;
   background-color: var(--accent-red);
   color: white;
   border-radius: 50%;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
+  flex-shrink: 0;
+  margin-top: 1px;
 }
-.coach-response :deep(.coach-issue-text) { font-size: 12px; line-height: 1.6; color: var(--text-secondary); }
+.coach-response :deep(.coach-issue-text) { font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
 .coach-response :deep(.coach-highlight-error) { color: var(--accent-red); font-weight: 600; }
-.coach-response :deep(.coach-para) { margin-bottom: 12px; }
-.coach-response :deep(.coach-h3) { font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 16px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border-color); }
-.coach-response :deep(.coach-h4) { font-size: 13px; font-weight: 600; color: var(--accent-blue); margin: 12px 0 6px; }
-.coach-response :deep(.coach-hr) { border: none; border-top: 1px dashed var(--border-color); margin: 16px 0; }
+.coach-response :deep(.coach-para) { margin-bottom: 6px; }
+.coach-response :deep(.coach-h3) { font-size: 13px; font-weight: 600; color: var(--text-primary); margin: 10px 0 5px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
+.coach-response :deep(.coach-h4) { font-size: 12px; font-weight: 600; color: var(--accent-blue); margin: 8px 0 4px; }
+.coach-response :deep(.coach-hr) { border: none; border-top: 1px dashed var(--border-color); margin: 10px 0; }
 .coach-response :deep(.coach-bold) { color: var(--accent-green); font-weight: 600; }
 .coach-response :deep(.coach-code) { background-color: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: var(--font-mono); color: var(--accent-blue); }
-.coach-response :deep(.coach-list-item) { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0; padding: 6px 10px; background-color: var(--bg-tertiary); border-radius: 6px; border-left: 3px solid var(--border-color); }
-.coach-response :deep(.coach-list-num) { color: var(--accent-blue); font-weight: 600; min-width: 20px; }
-.coach-response :deep(.coach-list-bullet) { color: var(--accent-green); font-weight: bold; }
+.coach-response :deep(.coach-list-item) { display: flex; align-items: baseline; gap: 5px; margin: 0; padding: 0 0 0 4px; }
+.coach-response :deep(.coach-list-num) { color: var(--accent-blue); font-weight: 600; min-width: 16px; flex-shrink: 0; }
+.coach-response :deep(.coach-list-bullet) { color: var(--text-muted); font-weight: bold; flex-shrink: 0; }
 .coach-response :deep(.coach-icon-error) { color: var(--accent-red); }
 .coach-response :deep(.coach-icon-success) { color: var(--accent-green); }
 .coach-response :deep(.coach-icon-warning) { color: var(--accent-orange); }
