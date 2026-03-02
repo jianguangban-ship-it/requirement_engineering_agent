@@ -7,14 +7,14 @@
         <!-- Provider Base URL -->
         <div class="field-group">
           <label class="field-label">{{ t('settings.providerUrl') }}</label>
-          <input v-model="localProviderUrl" type="text" class="field-input" :placeholder="t('settings.providerUrlPlaceholder')" :disabled="bothWebhook" />
+          <input v-model="localProviderUrl" type="text" class="field-input" :placeholder="t('settings.providerUrlPlaceholder')" />
         </div>
 
         <!-- API Key -->
         <div class="field-group">
           <label class="field-label">{{ t('settings.apiKey') }}</label>
           <div class="key-row">
-            <input v-model="localApiKey" type="password" class="field-input" :placeholder="t('settings.apiKeyPlaceholder')" :disabled="bothWebhook" />
+            <input v-model="localApiKey" type="password" class="field-input" :placeholder="t('settings.apiKeyPlaceholder')" />
             <button class="btn-test" :disabled="!localApiKey.trim() || validationState === 'testing'" @click="handleTestKey">
               {{ validationState === 'testing' ? t('settings.testing') : t('settings.testKey') }}
             </button>
@@ -39,22 +39,22 @@
         </div>
 
         <!-- Coach Skill -->
-        <div class="field-group" :class="{ dimmed: localMode === 'webhook' }">
+        <div class="field-group">
           <div class="skill-header">
             <div class="skill-label-row">
               <label class="field-label">{{ t('settings.coachSkill') }}</label>
               <span v-if="coachSkillModified" class="skill-modified-badge">● {{ t('settings.skillModified') }}</span>
             </div>
             <div class="skill-actions">
-              <label class="btn-skill-md" :class="{ disabled: localMode === 'webhook' }">
+              <label class="btn-skill-md">
                 ⬆ {{ t('settings.importSkillMd') }}
-                <input type="file" accept=".md,.txt" @change="handleImportCoachMd" style="display:none" :disabled="localMode === 'webhook'" />
+                <input type="file" accept=".md,.txt" @change="handleImportCoachMd" style="display:none" />
               </label>
-              <button class="btn-skill-md" @click="handleExportCoachMd" :disabled="localMode === 'webhook'">⬇ {{ t('settings.exportSkillMd') }}</button>
-              <button class="btn-reset" @click="handleResetCoach" :disabled="localMode === 'webhook'">{{ t('settings.skillReset') }}</button>
+              <button class="btn-skill-md" @click="handleExportCoachMd">⬇ {{ t('settings.exportSkillMd') }}</button>
+              <button class="btn-reset" @click="handleResetCoach">{{ t('settings.skillReset') }}</button>
             </div>
           </div>
-          <textarea v-model="localCoachSkill" class="skill-textarea" :disabled="localMode === 'webhook'" />
+          <textarea v-model="localCoachSkill" class="skill-textarea" />
           <div class="skill-footer">
             <p class="skill-hint">{{ t('settings.skillHint') }}</p>
             <span class="skill-counter">{{ localCoachSkill.length }} chars · ~{{ Math.floor(localCoachSkill.length / 4) }} tokens</span>
@@ -62,22 +62,22 @@
         </div>
 
         <!-- Analyze Skill -->
-        <div class="field-group" :class="{ dimmed: localAnalyzeMode === 'webhook' }">
+        <div class="field-group">
           <div class="skill-header">
             <div class="skill-label-row">
               <label class="field-label">{{ t('settings.analyzeSkill') }}</label>
               <span v-if="analyzeSkillModified" class="skill-modified-badge">● {{ t('settings.skillModified') }}</span>
             </div>
             <div class="skill-actions">
-              <label class="btn-skill-md" :class="{ disabled: localAnalyzeMode === 'webhook' }">
+              <label class="btn-skill-md">
                 ⬆ {{ t('settings.importSkillMd') }}
-                <input type="file" accept=".md,.txt" @change="handleImportAnalyzeMd" style="display:none" :disabled="localAnalyzeMode === 'webhook'" />
+                <input type="file" accept=".md,.txt" @change="handleImportAnalyzeMd" style="display:none" />
               </label>
-              <button class="btn-skill-md" @click="handleExportAnalyzeMd" :disabled="localAnalyzeMode === 'webhook'">⬇ {{ t('settings.exportSkillMd') }}</button>
-              <button class="btn-reset" @click="handleResetAnalyze" :disabled="localAnalyzeMode === 'webhook'">{{ t('settings.skillReset') }}</button>
+              <button class="btn-skill-md" @click="handleExportAnalyzeMd">⬇ {{ t('settings.exportSkillMd') }}</button>
+              <button class="btn-reset" @click="handleResetAnalyze">{{ t('settings.skillReset') }}</button>
             </div>
           </div>
-          <textarea v-model="localAnalyzeSkill" class="skill-textarea" :disabled="localAnalyzeMode === 'webhook'" />
+          <textarea v-model="localAnalyzeSkill" class="skill-textarea" />
           <div class="skill-footer">
             <p class="skill-hint">{{ t('settings.skillHint') }}</p>
             <span class="skill-counter">{{ localAnalyzeSkill.length }} chars · ~{{ Math.floor(localAnalyzeSkill.length / 4) }} tokens</span>
