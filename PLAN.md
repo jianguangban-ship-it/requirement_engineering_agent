@@ -1201,6 +1201,174 @@ Added a comprehensive user manual (`USER_MANUAL.md`) at the project root, writte
 
 ---
 
+## Completed Improvements — v8.26 (2026-03-02)
+
+### Performance Sprint
+
+Comprehensive performance pass targeting keystroke-frequency hot paths and streaming render overhead.
+
+#### 1. Debounced Draft Auto-Save
+**Problem:** `saveDraft()` called `localStorage.setItem(JSON.stringify(...))` synchronously on every keystroke via a `deep: true` watcher.
+**Fix:** 300ms debounce on the watcher. Also removed redundant spread copies in the watch source — `deep: true` handles nested reactivity directly.
+**File:** `src/composables/useForm.ts`
+
+#### 2. Debounced Response Storage Clearing
+**Problem:** `clearResponsesFromStorage()` fired 3x `localStorage.removeItem` on every character typed in the description field.
+**Fix:** 500ms debounce on the watcher.
+**File:** `src/App.vue`
+
+#### 3. Hoisted `useI18n()` in `formatCoachResponse`
+**Problem:** `formatCoachResponse()` called `useI18n()` inside its function body, creating new closures on every streaming token (dozens/sec).
+**Fix:** Moved `useI18n()` call to module scope — safe because the custom `useI18n()` returns functions that close over a module-level `currentLang` ref.
+**File:** `src/utils/formatCoach.ts`
+
+#### 4. rAF-Throttled Streaming Render
+**Problem:** `formattedResponse`/`formattedAnalysis` computed properties ran `formatCoachResponse()` (12 sequential regex passes) on every streaming token.
+**Fix:** Replaced computed with `ref` updated via `requestAnimationFrame`. The raw `response` prop still updates at full speed (cursor/speed indicators), but expensive HTML formatting runs at most once per display frame.
+**Files:** `src/components/panels/CoachPanel.vue`, `src/components/panels/AIReviewPanel.vue`
+
+#### 5. Debounced `jsonPayload`
+**Problem:** `jsonPayload` computed rebuilt `JSON.stringify(buildPayload('preview'), null, 2)` on every keystroke, feeding the always-mounted DevTools panel.
+**Fix:** Replaced computed with a 500ms debounced `ref`. The confirm modal and DevTools tolerate slight staleness.
+**File:** `src/App.vue`
+
+#### 6. Extracted `createStreamFlow` Factory
+**Problem:** Coach and Analyze request flows were ~130 lines each of near-identical code — same state shape, same 429 backoff logic, same abort controller pattern. Bug fixes had to be applied in two places.
+**Fix:** Extracted `createStreamFlow()` factory function that both flows instantiate. The factory encapsulates: reactive state refs, abort controller lifecycle, streaming accumulation, 429 backoff timer, and error handling. Public API preserved — no changes needed in consuming components.
+**File:** `src/composables/useLLM.ts`
+
+#### 7. Fixed 429 Timer Leak
+**Problem:** If `requestCoach`/`requestAnalyze` was called while a 429 backoff timer was already running, a second `setInterval` started without clearing the first — leaking timers.
+**Fix:** `createStreamFlow.request()` now clears any existing backoff timer at the start of every call.
+**File:** `src/composables/useLLM.ts`
+
+#### 8. Max 429 Retry Limit (3 attempts)
+**Problem:** 429 auto-retry looped indefinitely if the server kept rate-limiting.
+**Fix:** Added `MAX_429_RETRIES = 3` constant. After 3 consecutive 429 retries, the flow stops and surfaces `error.maxRetries` to the user. Retry count resets on fresh user-initiated calls.
+**Files:** `src/composables/useLLM.ts`, `src/i18n/en.ts`, `src/i18n/zh.ts`
+
+**Files changed:**
+| File | Change |
+|------|--------|
+| `src/composables/useForm.ts` | Debounce draft watcher (300ms) |
+| `src/composables/useLLM.ts` | `createStreamFlow` factory, timer leak fix, max 3 retries |
+| `src/utils/formatCoach.ts` | Hoist `useI18n()` to module scope |
+| `src/components/panels/CoachPanel.vue` | rAF-throttled `formattedResponse` |
+| `src/components/panels/AIReviewPanel.vue` | rAF-throttled `formattedAnalysis` |
+| `src/App.vue` | Debounce `clearResponsesFromStorage`, lazy `jsonPayload` |
+| `src/i18n/en.ts` | Add `error.maxRetries` |
+| `src/i18n/zh.ts` | Add `error.maxRetries` |
+| `src/components/layout/AppHeader.vue` | Version → v8.26 |
+
+---
+
+## Completed Improvements — v8.27 (2026-03-02)
+
+### i18n: Full Localization Pass
+
+Localized all remaining hardcoded English strings across the codebase. Added 13 new i18n keys to both `en.ts` and `zh.ts`.
+
+#### Localized Strings
+
+| Location | Before | After |
+|----------|--------|-------|
+| `TicketHistoryPanel.vue` — `relativeDate()` | `'just now'`, `'Xm ago'`, `'Xh ago'`, `'Xd ago'` | `t('history.justNow')`, `t('history.minsAgo')`, etc. |
+| `ProcessingSummary.vue` — JIRA label | `'JIRA Ticket'` | `t('panel.jiraTicket')` |
+| `CoachPanel.vue` — drag-drop errors | `'Please drop a valid .json file'`, `'Invalid template JSON file'` | `t('toast.invalidDropFile')`, `t('toast.invalidTemplateJson')` |
+| `App.vue` — template import toast | `'No new templates to import (duplicates skipped)'` | `t('toast.noDuplicateTemplates')` |
+| `DevTools.vue` — 7 labels | `'Active URL'`, `'Coach'`, `'Analyze'`, `'Coach Error/Cancel'`, `'Analyze Error/Cancel'`, `'error'`, `'cancelled'` | `t('dev.activeUrl')`, `t('dev.coach')`, etc. |
+
+**Files changed:**
+| File | Change |
+|------|--------|
+| `src/i18n/en.ts` | +13 keys: `history.justNow/minsAgo/hoursAgo/daysAgo`, `panel.jiraTicket`, `toast.invalidDropFile/invalidTemplateJson/noDuplicateTemplates`, `dev.activeUrl/coach/analyze/coachErrorCancel/analyzeErrorCancel/error/cancelled` |
+| `src/i18n/zh.ts` | Matching 13 ZH keys |
+| `src/components/panels/TicketHistoryPanel.vue` | `relativeDate()` uses `t()` |
+| `src/components/panels/ProcessingSummary.vue` | JIRA label uses `t()` |
+| `src/components/panels/CoachPanel.vue` | Drag-drop toasts use `t()` |
+| `src/components/dev/DevTools.vue` | All labels use `t()` |
+| `src/App.vue` | Template import toast uses `t()` |
+| `src/components/layout/AppHeader.vue` | Version → v8.27 |
+
+---
+
+## Completed Improvements — v8.29 (2026-03-02)
+
+### Keyboard Navigation, Focus Rings & Testing Foundation
+
+Added visible `:focus-visible` rings for keyboard users, arrow-key roving navigation for button groups, and bootstrapped the Vitest testing framework with 52 unit tests covering all pure utility functions.
+
+#### Changes
+
+1. **Focus rings** — Global `:focus-visible` rule in `global.css` gives all focusable elements a blue outline on keyboard focus. Inputs suppress double-styling since they already have `box-shadow`.
+2. **Arrow-key navigation** — New `useRovingIndex` composable enables ArrowLeft/Right/Up/Down navigation within button groups. Wired into type-buttons (BasicInfoSection) and story-point buttons (StoryPointsPicker).
+3. **Vitest infrastructure** — Installed `vitest`, `@vue/test-utils`, `jsdom`. Added `test` config to `vite.config.ts` and `test`/`test:watch` scripts to `package.json`.
+4. **Unit tests (52 tests, 4 suites):**
+   - `diffText.test.ts` — 9 tests for LCS word-diff (identical, add, delete, replace, empty, HTML escaping)
+   - `formatCoach.test.ts` — 19 tests for markdown formatting + structured response rendering
+   - `formatJson.test.ts` — 8 tests for JSON syntax highlighting
+   - `useForm.test.ts` — 16 tests for canSubmit, qualityScore, qualityScoreColor/Label, computedSummary
+
+**New files:**
+| File | Purpose |
+|------|---------|
+| `src/composables/useRovingIndex.ts` | Arrow-key roving focus for button groups |
+| `src/utils/__tests__/diffText.test.ts` | Unit tests for diffWords |
+| `src/utils/__tests__/formatCoach.test.ts` | Unit tests for formatCoachResponse |
+| `src/utils/__tests__/formatJson.test.ts` | Unit tests for formatJson |
+| `src/composables/__tests__/useForm.test.ts` | Unit tests for useForm computeds |
+
+**Files changed:**
+| File | Change |
+|------|--------|
+| `src/styles/global.css` | `:focus-visible` ring + suppress on `.input-base` |
+| `src/composables/useRovingIndex.ts` | **NEW** |
+| `src/components/form/BasicInfoSection.vue` | Wire `useRovingIndex` on type-buttons |
+| `src/components/form/StoryPointsPicker.vue` | Wire `useRovingIndex` on points-picker |
+| `vite.config.ts` | Add Vitest `test` block |
+| `package.json` | Add `vitest`, `@vue/test-utils`, `jsdom`; `test` scripts |
+| `src/components/layout/AppHeader.vue` | Version → v8.29 |
+
+---
+
+## Completed Improvements — v8.28 (2026-03-02)
+
+### Accessibility: Foundational ARIA Pass
+
+Added ARIA roles, labels, and focus management across the entire app. Screen readers can now identify modals, the combobox, icon-only buttons, form labels, and panel regions.
+
+#### Changes
+
+1. **Modals** — Added `role="dialog"`, `aria-modal="true"`, `aria-labelledby` to all 3 modals (confirm, settings, hotkey). Created `useFocusTrap` composable for keyboard focus trapping inside open modals.
+2. **AssigneeCombobox** — Full ARIA combobox pattern: `role="combobox"` on input, `aria-expanded`, `aria-controls`, `aria-activedescendant`; `role="listbox"` on dropdown; `role="option"` + `aria-selected` on each option.
+3. **Icon-only buttons** — Added `aria-label` to all icon-only buttons (theme toggle, settings gear, copy buttons, skill toggle, diff toggle, clear button, modal close button).
+4. **Form labels** — `for`/`id` associations on SummaryBuilder selects/inputs (vehicle, product, layer, component, detail) and BasicInfoSection project select. `role="group"` + `aria-label` on type-buttons and StoryPointsPicker.
+5. **PanelShell** — `role="region"` + `:aria-label="title"` on the panel wrapper.
+
+**New file:**
+| File | Purpose |
+|------|---------|
+| `src/composables/useFocusTrap.ts` | Reusable focus trap for modals |
+
+**Files changed:**
+| File | Change |
+|------|--------|
+| `src/composables/useFocusTrap.ts` | **NEW** — focus trap composable |
+| `src/App.vue` | `role="dialog"`, `aria-modal`, `aria-labelledby` on confirm modal; focus trap |
+| `src/components/settings/LLMSettings.vue` | Same ARIA attrs on settings modal; focus trap |
+| `src/components/shared/HotkeyModal.vue` | Same ARIA attrs; focus trap; `aria-label` on close btn |
+| `src/components/form/AssigneeCombobox.vue` | Full ARIA combobox pattern |
+| `src/components/layout/AppHeader.vue` | `aria-label` on theme + settings buttons; version → v8.28 |
+| `src/components/panels/CoachPanel.vue` | `aria-label` on copy + skill toggle buttons |
+| `src/components/panels/AIReviewPanel.vue` | `aria-label` on copy + diff buttons |
+| `src/components/form/SummaryBuilder.vue` | `for`/`id` on labels+inputs; `aria-label` on copy btn |
+| `src/components/form/BasicInfoSection.vue` | `for`/`id` on project label+select; `role="group"` on type buttons |
+| `src/components/form/StoryPointsPicker.vue` | `role="group"` + `aria-label` on wrapper |
+| `src/components/layout/PanelShell.vue` | `role="region"` + `aria-label` |
+| `src/components/panels/TicketHistoryPanel.vue` | `aria-label` on clear button |
+
+---
+
 ## Potential Next Improvements
 
 ### High Priority
@@ -1232,3 +1400,13 @@ Added a comprehensive user manual (`USER_MANUAL.md`) at the project root, writte
 - [x] **Summary preview copy button** — clipboard icon in QualityMeter header (via named slot); copies assembled 5-part summary; fires toast on success
 - [x] **Assignee avatar/initials** — colored initials circle before each name in the combobox dropdown; color deterministically hashed from user ID; handles CJK + Latin names
 - [x] **Form field character limits** — live `{n}/50` counter under Component, `{n}/100` under Detail; turns orange at 80%, red at 100%; `maxlength` enforced
+
+---
+
+## v8.30 — Build Optimization
+
+### Changes
+- [x] **Manual chunks** — `manualChunks` function in `vite.config.ts` splits vendor (vue/@vue) and config (`src/config/**`) into separate chunks; improves caching since framework and config data change rarely
+- [x] **Drop console/debugger** — `esbuild.drop: ['console', 'debugger']` strips any console/debugger statements from production builds as a safeguard
+- [x] **Hidden sourcemaps** — `build.sourcemap: 'hidden'` generates `.map` files for error-tracking tools without exposing `sourceMappingURL` to end users
+- [x] **Version bump** — v8.29 → v8.30 in AppHeader

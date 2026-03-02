@@ -7,7 +7,7 @@
         <span class="dot blue"></span>
       </div>
       <h1 class="header-title">{{ t('header.title') }}</h1>
-      <span class="header-version">v8.28</span>
+      <span class="header-version">v8.30</span>
     </div>
     <div class="header-right">
       <!-- Language Toggle -->
@@ -53,7 +53,7 @@
       </span>
 
       <!-- Theme Toggle -->
-      <button class="theme-btn" @click="toggleTheme" :title="isDark ? t('header.themeLight') : t('header.themeDark')">
+      <button class="theme-btn" @click="toggleTheme" :title="isDark ? t('header.themeLight') : t('header.themeDark')" :aria-label="isDark ? t('header.themeLight') : t('header.themeDark')">
         <svg v-if="isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="5"/>
           <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
@@ -67,7 +67,7 @@
       </button>
 
       <!-- Settings Gear -->
-      <button class="settings-btn" @click="$emit('openSettings')" title="LLM Settings">
+      <button class="settings-btn" @click="$emit('openSettings')" :title="t('settings.title')" :aria-label="t('settings.title')">
         ⚙
       </button>
     </div>

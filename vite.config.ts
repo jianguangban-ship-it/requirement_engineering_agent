@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
@@ -12,5 +13,27 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true
+  },
+  esbuild: {
+    drop: ['console', 'debugger']
+  },
+  build: {
+    sourcemap: 'hidden',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/vue') || id.includes('node_modules/@vue')) {
+            return 'vendor'
+          }
+          if (id.includes('/src/config/')) {
+            return 'config'
+          }
+        }
+      }
+    }
   }
 })
