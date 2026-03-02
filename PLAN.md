@@ -1413,3 +1413,12 @@ Added ARIA roles, labels, and focus management across the entire app. Screen rea
 - [x] **Equal-height columns** — left (Coach) and center (TaskForm) columns now stretch to the same grid row height via flex layout
 - [x] **Remove stale webhook refs** — cleaned up dead `bothWebhook`, `localMode`, `localAnalyzeMode` references in LLMSettings template (leftover from removed n8n mode)
 - [x] **KaTeX math rendering** — integrated KaTeX for LaTeX formula display in AI Coach and Review panels; supports `\(...\)`, `\[...\]`, `$$...$$`, `$...$` delimiters; placeholder-based extraction prevents `<br>` contamination inside TeX; KaTeX split into its own chunk (260 KB / 77 KB gzip) for independent caching
+
+## v8.31 — UX Refinements: Action Buttons & Auto-grow Textarea
+
+### Changes
+- [x] **Auto-grow description textarea** — textarea expands automatically with content via `scrollHeight` watcher; min-height 160px preserved; resize handle removed
+- [x] **Relocate Writing Guidance button** — moved from CoachPanel footer into TaskForm action bar alongside Analyze and Create; users no longer scroll through long Coach content to find it
+- [x] **Icon-only action buttons** — all action buttons converted to compact 36px icon-only squares with hover tooltips; removes text clutter from the action bar
+- [x] **Color-coded buttons** — Reset (red), Writing Guidance (yellow), Analyze Task (blue), Create JIRA (green) for instant visual recognition
+- [x] **i18n updates** — shortened "Get Writing Guidance" → "Writing Guidance" / "获取写作指导" → "写作指导"; added `coaching` loading-state key
