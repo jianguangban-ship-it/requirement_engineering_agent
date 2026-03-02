@@ -163,6 +163,9 @@ const { t } = useI18n()
   border: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
   overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 .form-actions {
   padding: 20px;

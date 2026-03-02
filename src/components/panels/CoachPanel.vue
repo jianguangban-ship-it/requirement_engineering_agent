@@ -3,9 +3,7 @@
     :title="t('coach.title')"
     :status="statusInfo.status"
     :status-label="t('status.' + statusInfo.key)"
-    resizable
-    height="400px"
-    max-height="650px"
+    max-height="none"
   >
     <template #header-actions>
       <span class="mode-badge badge-llm" :title="currentModel">{{ currentModel }}</span>

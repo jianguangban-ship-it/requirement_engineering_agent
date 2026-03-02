@@ -471,6 +471,13 @@ onUnmounted(() => {
 .col-left,
 .col-center {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.col-left > :deep(*),
+.col-center > :deep(*) {
+  flex: 1;
+  min-height: 0;
 }
 .col-right {
   min-width: 0;
