@@ -29,6 +29,9 @@ export default defineConfig({
           if (id.includes('node_modules/vue') || id.includes('node_modules/@vue')) {
             return 'vendor'
           }
+          if (id.includes('node_modules/katex')) {
+            return 'katex'
+          }
           if (id.includes('/src/config/')) {
             return 'config'
           }

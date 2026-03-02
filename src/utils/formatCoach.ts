@@ -1,4 +1,5 @@
 import { useI18n } from '@/i18n'
+import katex from 'katex'
 
 // Hoist to module scope — avoids creating new closures on every streaming token
 const { t } = useI18n()
@@ -8,6 +9,28 @@ function escapeHtml(text: string): string {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
+}
+
+function renderMath(html: string): string {
+  // Display math: $$ ... $$ and \[ ... \]
+  html = html.replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => {
+    try { return katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false }) }
+    catch { return `$$${tex}$$` }
+  })
+  html = html.replace(/\\\[([\s\S]+?)\\\]/g, (_, tex) => {
+    try { return katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false }) }
+    catch { return `\\[${tex}\\]` }
+  })
+  // Inline math: \( ... \) and single $ ... $ (not $$)
+  html = html.replace(/\\\(([\s\S]+?)\\\)/g, (_, tex) => {
+    try { return katex.renderToString(tex.trim(), { displayMode: false, throwOnError: false }) }
+    catch { return `\\(${tex}\\)` }
+  })
+  html = html.replace(/(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g, (_, tex) => {
+    try { return katex.renderToString(tex.trim(), { displayMode: false, throwOnError: false }) }
+    catch { return `$${tex}$` }
+  })
+  return html
 }
 
 function formatMarkdownText(text: string): string {
@@ -50,7 +73,7 @@ function formatMarkdownText(text: string): string {
   t = '<p class="coach-para">' + t + '</p>'
   t = t.replace(/<p class="coach-para"><\/p>/g, '')
 
-  return t
+  return renderMath(t)
 }
 
 function formatCommentList(comment: string): string {
