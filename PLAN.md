@@ -1410,3 +1410,6 @@ Added ARIA roles, labels, and focus management across the entire app. Screen rea
 - [x] **Drop console/debugger** — `esbuild.drop: ['console', 'debugger']` strips any console/debugger statements from production builds as a safeguard
 - [x] **Hidden sourcemaps** — `build.sourcemap: 'hidden'` generates `.map` files for error-tracking tools without exposing `sourceMappingURL` to end users
 - [x] **Version bump** — v8.29 → v8.30 in AppHeader
+- [x] **Equal-height columns** — left (Coach) and center (TaskForm) columns now stretch to the same grid row height via flex layout
+- [x] **Remove stale webhook refs** — cleaned up dead `bothWebhook`, `localMode`, `localAnalyzeMode` references in LLMSettings template (leftover from removed n8n mode)
+- [x] **KaTeX math rendering** — integrated KaTeX for LaTeX formula display in AI Coach and Review panels; supports `\(...\)`, `\[...\]`, `$$...$$`, `$...$` delimiters; placeholder-based extraction prevents `<br>` contamination inside TeX; KaTeX split into its own chunk (260 KB / 77 KB gzip) for independent caching
