@@ -305,97 +305,84 @@ const chips = computed(() =>
   line-height: 1.55;
   color: var(--text-secondary);
 }
-
-/* Coach formatted content styles */
-.coach-response :deep(.coach-status-badge) {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
+/* Headings */
+.coach-response :deep(h1),
+.coach-response :deep(h2) { font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 12px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
+.coach-response :deep(h3) { font-size: 13px; font-weight: 600; color: var(--text-primary); margin: 10px 0 5px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
+.coach-response :deep(h4),
+.coach-response :deep(h5),
+.coach-response :deep(h6) { font-size: 12px; font-weight: 600; color: var(--accent-blue); margin: 8px 0 4px; }
+/* Paragraphs */
+.coach-response :deep(p) { margin: 0 0 6px; }
+/* Bold & italic */
+.coach-response :deep(strong) { color: var(--accent-green); font-weight: 600; }
+.coach-response :deep(em) { font-style: italic; }
+/* Inline code */
+.coach-response :deep(code) { background-color: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: var(--font-mono); color: var(--accent-blue); }
+/* Code blocks */
+.coach-response :deep(pre) { background-color: var(--bg-tertiary); border-radius: 6px; padding: 10px 12px; margin: 6px 0; overflow-x: auto; border: 1px solid var(--border-color); }
+.coach-response :deep(pre code) { padding: 0; background: none; font-size: 12px; color: var(--text-secondary); }
+/* Horizontal rules */
+.coach-response :deep(hr) { border: none; border-top: 1px dashed var(--border-color); margin: 10px 0; }
+.coach-response :deep(hr.coach-response-divider) { border-top: 2px solid var(--accent-blue); margin: 16px 0; }
+/* Lists */
+.coach-response :deep(ul),
+.coach-response :deep(ol) { margin: 4px 0; padding-left: 20px; }
+.coach-response :deep(li) { margin: 2px 0; }
+.coach-response :deep(li::marker) { color: var(--text-muted); }
+.coach-response :deep(ol li::marker) { color: var(--accent-blue); font-weight: 600; }
+/* Blockquotes */
+.coach-response :deep(blockquote) { border-left: 3px solid var(--accent-blue); margin: 6px 0; padding: 4px 10px; background-color: var(--bg-tertiary); border-radius: 0 6px 6px 0; color: var(--text-secondary); }
+.coach-response :deep(blockquote p) { margin: 0; }
+/* Links */
+.coach-response :deep(a) { color: var(--accent-blue); text-decoration: none; }
+.coach-response :deep(a:hover) { text-decoration: underline; }
+/* Tables */
+.coach-response :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin: 8px 0;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
+  overflow: hidden;
+  display: block;
+  overflow-x: auto;
+}
+.coach-response :deep(thead) { background-color: var(--bg-tertiary); }
+.coach-response :deep(th) {
+  color: var(--text-primary);
   font-weight: 600;
-  font-size: 12px;
-  margin-bottom: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+  text-align: left;
 }
-.coach-response :deep(.coach-status-pass) {
-  background-color: rgba(63, 185, 80, 0.15);
-  color: var(--accent-green);
-  border: 1px solid rgba(63, 185, 80, 0.3);
+.coach-response :deep(td) {
+  padding: 5px 10px;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
-.coach-response :deep(.coach-status-fail) {
-  background-color: rgba(248, 81, 73, 0.15);
-  color: var(--accent-red);
-  border: 1px solid rgba(248, 81, 73, 0.3);
+.coach-response :deep(tbody tr:hover) { background-color: var(--bg-secondary); }
+/* Structured coach fields (status badges, info rows, etc.) */
+.coach-response :deep(.coach-status-badge) {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; margin-bottom: 8px;
 }
-.coach-response :deep(.coach-status-warn) {
-  background-color: rgba(210, 153, 34, 0.15);
-  color: var(--accent-orange);
-  border: 1px solid rgba(210, 153, 34, 0.3);
-}
-.coach-response :deep(.coach-info-row) {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 3px 0;
-  border-bottom: 1px solid var(--border-color);
-  font-size: 12px;
-}
+.coach-response :deep(.coach-status-pass) { background-color: rgba(63,185,80,.15); color: var(--accent-green); border: 1px solid rgba(63,185,80,.3); }
+.coach-response :deep(.coach-status-fail) { background-color: rgba(248,81,73,.15); color: var(--accent-red); border: 1px solid rgba(248,81,73,.3); }
+.coach-response :deep(.coach-status-warn) { background-color: rgba(210,153,34,.15); color: var(--accent-orange); border: 1px solid rgba(210,153,34,.3); }
+.coach-response :deep(.coach-info-row) { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--border-color); font-size: 12px; }
 .coach-response :deep(.coach-info-label) { color: var(--text-muted); }
 .coach-response :deep(.coach-info-value) { color: var(--text-primary); font-weight: 500; }
-.coach-response :deep(.coach-main-message) {
-  background-color: var(--bg-tertiary);
-  border-radius: 6px;
-  padding: 8px 10px;
-  margin: 6px 0;
-  border-left: 3px solid var(--accent-blue);
-}
-.coach-response :deep(.coach-comment-title) {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 6px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--border-color);
-}
+.coach-response :deep(.coach-main-message) { background-color: var(--bg-tertiary); border-radius: 6px; padding: 8px 10px; margin: 6px 0; border-left: 3px solid var(--accent-blue); }
+.coach-response :deep(.coach-comment-title) { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
 .coach-response :deep(.coach-issues-list) { display: flex; flex-direction: column; gap: 5px; }
-.coach-response :deep(.coach-issue-item) {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 5px 8px;
-  background-color: rgba(248, 81, 73, 0.06);
-  border-radius: 6px;
-  border-left: 3px solid var(--accent-red);
-}
-.coach-response :deep(.coach-issue-num) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  background-color: var(--accent-red);
-  color: white;
-  border-radius: 50%;
-  font-size: 10px;
-  font-weight: 600;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
+.coach-response :deep(.coach-issue-item) { display: flex; align-items: flex-start; gap: 8px; padding: 5px 8px; background-color: rgba(248,81,73,.06); border-radius: 6px; border-left: 3px solid var(--accent-red); }
+.coach-response :deep(.coach-issue-num) { display: flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; background-color: var(--accent-red); color: white; border-radius: 50%; font-size: 10px; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
 .coach-response :deep(.coach-issue-text) { font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
 .coach-response :deep(.coach-highlight-error) { color: var(--accent-red); font-weight: 600; }
-.coach-response :deep(.coach-para) { margin-bottom: 6px; }
-.coach-response :deep(.coach-h3) { font-size: 13px; font-weight: 600; color: var(--text-primary); margin: 10px 0 5px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
-.coach-response :deep(.coach-h4) { font-size: 12px; font-weight: 600; color: var(--accent-blue); margin: 8px 0 4px; }
-.coach-response :deep(.coach-hr) { border: none; border-top: 1px dashed var(--border-color); margin: 10px 0; }
-.coach-response :deep(.coach-response-divider) { border: none; border-top: 2px solid #58a6ff; margin: 16px 0; }
-.coach-response :deep(.coach-bold) { color: var(--accent-green); font-weight: 600; }
-.coach-response :deep(.coach-code) { background-color: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: var(--font-mono); color: var(--accent-blue); }
-.coach-response :deep(.coach-list-item) { display: flex; align-items: baseline; gap: 5px; margin: 0; padding: 0 0 0 4px; }
-.coach-response :deep(.coach-list-num) { color: var(--accent-blue); font-weight: 600; min-width: 16px; flex-shrink: 0; }
-.coach-response :deep(.coach-list-bullet) { color: var(--text-muted); font-weight: bold; flex-shrink: 0; }
-.coach-response :deep(.coach-icon-error) { color: var(--accent-red); }
-.coach-response :deep(.coach-icon-success) { color: var(--accent-green); }
-.coach-response :deep(.coach-icon-warning) { color: var(--accent-orange); }
 
 /* Mode badge */
 .mode-badge {

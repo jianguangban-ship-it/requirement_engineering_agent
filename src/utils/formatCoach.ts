@@ -1,7 +1,6 @@
 import { useI18n } from '@/i18n'
-import katex from 'katex'
+import { renderMarkdown } from '@/utils/markdown'
 
-// Hoist to module scope — avoids creating new closures on every streaming token
 const { t } = useI18n()
 
 function escapeHtml(text: string): string {
@@ -11,94 +10,25 @@ function escapeHtml(text: string): string {
     .replace(/>/g, '&gt;')
 }
 
-// Extract math delimiters from RAW text (before HTML escaping), replace with
-// placeholders. This must run BEFORE escapeHtml so that < > inside TeX are
-// preserved for KaTeX, and BEFORE markdown formatting so \n→<br> doesn't
-// corrupt TeX content.
-function extractMath(rawText: string): { text: string; restore: (html: string) => string } {
-  const slots: string[] = []
-  const placeholder = (i: number) => `\x00MATH${i}\x00`
-
-  function collect(tex: string, display: boolean, fallback: string): string {
-    try {
-      // AI models often pre-escape * and _ for Markdown safety (e.g. i_d^{\*}),
-      // but \* and \_ are not valid LaTeX math commands.
-      // Strip these Markdown escapes so KaTeX receives clean TeX (e.g. i_d^{*}).
-      const clean = tex.trim()
-        .replace(/\\\*/g, '*')
-        .replace(/\\_(?![a-zA-Z])/g, '_')  // \_ → _ only when not part of a command like \_text
-      slots.push(katex.renderToString(clean, { displayMode: display, throwOnError: false }))
-    } catch {
-      slots.push(fallback)
-    }
-    return placeholder(slots.length - 1)
-  }
-
-  let t = rawText
-  // Display math: $$ ... $$ and \[ ... \] (must come before inline)
-  t = t.replace(/\$\$([\s\S]+?)\$\$/g, (m, tex) => collect(tex, true, m))
-  t = t.replace(/\\\[([\s\S]+?)\\\]/g, (m, tex) => collect(tex, true, m))
-  // Inline math: \( ... \) and single $ ... $ (not $$)
-  t = t.replace(/\\\(([\s\S]+?)\\\)/g, (m, tex) => collect(tex, false, m))
-  t = t.replace(/(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g, (m, tex) => collect(tex, false, m))
-
-  return {
-    text: t,
-    restore: (html: string) => html.replace(/\x00MATH(\d+)\x00/g, (_, i) => slots[+i] ?? '')
-  }
-}
-
+/**
+ * Render a markdown string to HTML using markdown-it + KaTeX.
+ * Applies coach-specific post-processing (turn dividers, status icons).
+ */
 function formatMarkdownText(text: string): string {
   if (!text) return ''
-  const math = extractMath(text)
-  let t = escapeHtml(math.text)
 
-  // Markdown escape sequences → HTML entities (before bold/italic regex)
-  // Prevents \* from pairing with other * and triggering bold formatting
-  t = t.replace(/\\\*/g, '&#42;')
-  t = t.replace(/\\_/g, '&#95;')
-  t = t.replace(/\\\\/g, '&#92;')
+  // Response-boundary divider (between accumulated coach turns) —
+  // replace BEFORE markdown parsing so it doesn't get wrapped in <p>
+  let preprocessed = text.replace(/^===COACH_TURN===$/gm, '<hr class="coach-response-divider">')
 
-  // Headers
-  t = t.replace(/^### (.+)$/gm, '<h4 class="coach-h4">$1</h4>')
-  t = t.replace(/^## (.+)$/gm, '<h3 class="coach-h3">$1</h3>')
+  // Render markdown (tables, math, code, lists, headings, etc.)
+  let html = renderMarkdown(preprocessed)
 
-  // Response-boundary divider (between accumulated coach turns)
-  t = t.replace(/^===COACH_TURN===$/gm, '<hr class="coach-response-divider">')
+  // Restore the divider — renderMarkdown sanitises HTML but our <hr> may
+  // have been wrapped in <p>; lift it out
+  html = html.replace(/<p>\s*(<hr class="coach-response-divider">\s*)<\/p>/g, '$1')
 
-  // Horizontal rule (within a single response)
-  t = t.replace(/^---+$/gm, '<hr class="coach-hr">')
-
-  // Bold
-  t = t.replace(/\*\*(.+?)\*\*/g, '<strong class="coach-bold">$1</strong>')
-  t = t.replace(/__(.+?)__/g, '<strong class="coach-bold">$1</strong>')
-
-  // Inline code
-  t = t.replace(/`([^`]+)`/g, '<code class="coach-code">$1</code>')
-
-  // Status icons
-  t = t.replace(/🔴/g, '<span class="coach-icon-error">🔴</span>')
-  t = t.replace(/🟢/g, '<span class="coach-icon-success">🟢</span>')
-  t = t.replace(/🟡/g, '<span class="coach-icon-warning">🟡</span>')
-  t = t.replace(/❌/g, '<span class="coach-icon-error">❌</span>')
-  t = t.replace(/✅/g, '<span class="coach-icon-success">✅</span>')
-  t = t.replace(/⚠️/g, '<span class="coach-icon-warning">⚠️</span>')
-
-  // List items
-  t = t.replace(/^[-*]\s+(.+)$/gm, '<div class="coach-list-item"><span class="coach-list-bullet">•</span> $1</div>')
-  t = t.replace(/^(\d+)\.\s+(.+)$/gm, '<div class="coach-list-item"><span class="coach-list-num">$1.</span> $2</div>')
-
-  // Paragraphs
-  t = t.replace(/\n\n+/g, '</p><p class="coach-para">')
-  t = t.replace(/\n/g, '<br>')
-  // Strip <br> injected between block-level elements (div, h3, h4, hr) — those create
-  // unwanted empty lines because every \n was blindly converted above
-  t = t.replace(/(<\/div>|<\/h[34]>|<hr[^>]*>)<br>/g, '$1')
-  t = t.replace(/<br>(<div|<h[34])/g, '$1')
-  t = '<p class="coach-para">' + t + '</p>'
-  t = t.replace(/<p class="coach-para"><\/p>/g, '')
-
-  return math.restore(t)
+  return html
 }
 
 function formatCommentList(comment: string): string {

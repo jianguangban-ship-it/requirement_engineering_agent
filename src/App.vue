@@ -204,14 +204,38 @@ const canCoachSubmit = computed(() => {
   return canSubmit.value
 })
 
-// Build payload
+// Build payload — for coach/preview, content adapts to Skill and Task-Coach toggles
 function buildPayload(action: 'analyze' | 'create' | 'coach' | 'preview'): WebhookPayload {
+  const meta = { source: 'jira_agent_ui_v8.0', timestamp: Date.now(), action }
+
+  // analyze / create always need the full task fields
+  if (action === 'analyze' || action === 'create') {
+    return {
+      meta,
+      data: {
+        project_key: form.projectKey,
+        project_name: getProjectName(),
+        issue_type: form.issueType,
+        summary: computedSummary.value,
+        description: form.description,
+        assignee: form.assignee,
+        estimated_points: form.estimatedPoints
+      }
+    }
+  }
+
+  // coach / preview — content controlled by Skill-ON/OFF and Task-Coach-ON/OFF
+  const skillOn = coachSkillEnabled.value
+  const taskCoachOn = taskCoachEnabled.value
+
+  if (!skillOn || !taskCoachOn) {
+    // Skill-OFF or Task-Coach-OFF: only description
+    return { meta, data: { description: form.description } }
+  }
+
+  // Skill-ON + Task-Coach-ON: full payload
   return {
-    meta: {
-      source: 'jira_agent_ui_v8.0',
-      timestamp: Date.now(),
-      action
-    },
+    meta,
     data: {
       project_key: form.projectKey,
       project_name: getProjectName(),
@@ -229,7 +253,8 @@ const jsonPayload = ref('')
 let _payloadTimer: ReturnType<typeof setTimeout> | null = null
 watch(
   [() => form.description, () => form.projectKey, () => form.issueType,
-   computedSummary, () => form.assignee, () => form.estimatedPoints],
+   computedSummary, () => form.assignee, () => form.estimatedPoints,
+   coachSkillEnabled, taskCoachEnabled],
   () => {
     if (_payloadTimer) clearTimeout(_payloadTimer)
     _payloadTimer = setTimeout(() => {

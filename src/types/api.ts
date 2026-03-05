@@ -5,13 +5,13 @@ export interface WebhookPayload {
     action: 'analyze' | 'create' | 'coach' | 'preview'
   }
   data: {
-    project_key: string
-    project_name: string
-    issue_type: string
-    summary: string
+    project_key?: string
+    project_name?: string
+    issue_type?: string
+    summary?: string
     description: string
-    assignee: string
-    estimated_points: number
+    assignee?: string
+    estimated_points?: number
   }
 }
 

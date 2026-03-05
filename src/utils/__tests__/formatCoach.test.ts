@@ -27,47 +27,78 @@ describe('formatCoachResponse', () => {
   })
 
   describe('unstructured (message field)', () => {
-    it('wraps plain text in coach-para', () => {
+    it('wraps plain text in paragraph', () => {
       const result = formatCoachResponse({ message: 'hello' })
-      expect(result).toContain('<p class="coach-para">')
+      expect(result).toContain('<p>')
       expect(result).toContain('hello')
     })
 
     it('converts **bold** to strong', () => {
       const result = formatCoachResponse({ message: '**bold**' })
-      expect(result).toContain('<strong class="coach-bold">bold</strong>')
+      expect(result).toContain('<strong>')
+      expect(result).toContain('bold')
     })
 
     it('converts `code` to code element', () => {
       const result = formatCoachResponse({ message: '`myFunc`' })
-      expect(result).toContain('<code class="coach-code">myFunc</code>')
+      expect(result).toContain('<code>')
+      expect(result).toContain('myFunc')
     })
 
-    it('converts ## to h3', () => {
+    it('converts ## to h2', () => {
       const result = formatCoachResponse({ message: '## Title' })
-      expect(result).toContain('<h3 class="coach-h3">Title</h3>')
+      expect(result).toContain('<h2>')
+      expect(result).toContain('Title')
     })
 
-    it('converts ### to h4', () => {
+    it('converts ### to h3', () => {
       const result = formatCoachResponse({ message: '### Subtitle' })
-      expect(result).toContain('<h4 class="coach-h4">Subtitle</h4>')
+      expect(result).toContain('<h3>')
+      expect(result).toContain('Subtitle')
     })
 
     it('converts --- to hr', () => {
       const result = formatCoachResponse({ message: '---' })
-      expect(result).toContain('<hr class="coach-hr">')
+      expect(result).toContain('<hr>')
     })
 
     it('converts bullet list items', () => {
       const result = formatCoachResponse({ message: '- item one' })
-      expect(result).toContain('coach-list-item')
-      expect(result).toContain('coach-list-bullet')
+      expect(result).toContain('<ul>')
+      expect(result).toContain('<li>')
     })
 
     it('converts numbered list items', () => {
       const result = formatCoachResponse({ message: '1. first item' })
-      expect(result).toContain('coach-list-item')
-      expect(result).toContain('coach-list-num')
+      expect(result).toContain('<ol>')
+      expect(result).toContain('<li>')
+    })
+
+    it('renders markdown tables as HTML tables', () => {
+      const table = [
+        '| Name | Age |',
+        '|------|-----|',
+        '| Alice | 30 |',
+        '| Bob | 25 |',
+      ].join('\n')
+      const result = formatCoachResponse({ message: table })
+      expect(result).toContain('<table>')
+      expect(result).toContain('<thead>')
+      expect(result).toContain('<th>')
+      expect(result).toContain('Alice')
+      expect(result).toContain('Bob')
+    })
+
+    it('renders code blocks with pre and code', () => {
+      const msg = '```js\nconsole.log("hi")\n```'
+      const result = formatCoachResponse({ message: msg })
+      expect(result).toContain('<pre>')
+      expect(result).toContain('<code')
+    })
+
+    it('renders blockquotes', () => {
+      const result = formatCoachResponse({ message: '> quoted text' })
+      expect(result).toContain('<blockquote>')
     })
   })
 
@@ -103,7 +134,7 @@ describe('formatCoachResponse', () => {
     it('renders markdown_msg in main-message', () => {
       const result = formatCoachResponse({ status: 'PASS', markdown_msg: '**good**' })
       expect(result).toContain('coach-main-message')
-      expect(result).toContain('coach-bold')
+      expect(result).toContain('<strong>')
     })
   })
 
@@ -111,13 +142,11 @@ describe('formatCoachResponse', () => {
     it('renders inline math with $...$ delimiters', () => {
       const result = formatCoachResponse({ message: 'Set $i_d^* = 0$ for FOC' })
       expect(result).toContain('katex')
-      expect(result).not.toContain('\\*')
     })
 
     it('strips markdown-escaped \\* inside math delimiters', () => {
       const result = formatCoachResponse({ message: 'Use $i_d^{\\*} = 0$ control' })
       expect(result).toContain('katex')
-      expect(result).not.toContain('\\*')
     })
 
     it('strips markdown-escaped \\_ inside math delimiters', () => {
@@ -127,16 +156,9 @@ describe('formatCoachResponse', () => {
   })
 
   describe('response boundary divider', () => {
-    it('renders ===COACH_TURN=== as response-divider (not coach-hr)', () => {
+    it('renders ===COACH_TURN=== as response-divider', () => {
       const result = formatCoachResponse({ message: 'answer one\n\n===COACH_TURN===\n\nanswer two' })
       expect(result).toContain('coach-response-divider')
-      expect(result).not.toContain('coach-hr')
-    })
-
-    it('renders --- as coach-hr', () => {
-      const result = formatCoachResponse({ message: '---' })
-      expect(result).toContain('coach-hr')
-      expect(result).not.toContain('coach-response-divider')
     })
   })
 

@@ -105,7 +105,7 @@ requirement_engineering_agent/
 │   │   └── dev/
 │   │       └── DevTools.vue            # Payload viewer + webhook config (collapsible)
 │   └── utils/
-│       ├── formatJson.ts         # JSON syntax highlighting
+│       ├── formatJson.ts         # JSON syntax highlightingp
 │       ├── formatCoach.ts        # Coach response markdown→HTML parser
 │       └── validators.ts         # Form validation helpers
 ```
@@ -1431,3 +1431,76 @@ Added ARIA roles, labels, and focus management across the entire app. Screen rea
 - [x] **Unified response dividers** — response boundary between accumulated AI Coach turns now uses a distinct `===COACH_TURN===` marker rendered as a `2px solid #58a6ff` blue line (`coach-response-divider`); in-response `---` horizontal rules remain as subtle `1px dashed` separators (`coach-hr`); enables clear visual distinction between complete AI answers
 - [x] **LaTeX Markdown-escape fix** — AI models that pre-escape `*` and `_` for Markdown safety (e.g. `$i_d^{\*}$`) now have these stripped inside math delimiters before KaTeX rendering; `\*` → `*` and `\_` → `_` (when not part of a LaTeX command); prevents broken formula output
 - [x] **New test cases** — 5 tests added to `formatCoach.test.ts` covering LaTeX escape stripping, response-boundary divider rendering, and in-response `---` rendering
+
+## v8.33 — Markdown Rendering Engine & Payload Consistency
+
+### Design: Replace custom regex markdown parser with markdown-it
+
+The old `formatMarkdownText()` in `formatCoach.ts` was a hand-rolled chain of ~12 regex substitutions that converted markdown to HTML. Each new markdown feature (tables, code blocks, blockquotes, nested lists) would require yet another fragile regex. Tables specifically were not supported — the AI Coach returning a markdown table would render as raw pipe characters.
+
+**Decision:** Adopt the same architecture used by react-markdown/remark-math in the React ecosystem, but for Vue:
+
+| Layer | Library | Role |
+|-------|---------|------|
+| Markdown parsing | **markdown-it** | GFM tables, fenced code, lists, headings, bold/italic, links, blockquotes — all built-in |
+| Math rendering | **markdown-it-texmath** + **katex** (existing) | `$...$`, `$$...$$`, `\(...\)`, `\[...\]` parsed as first-class tokens |
+| XSS sanitization | **DOMPurify** | Sanitizes `v-html` output; allows KaTeX/math tags, blocks `<script>`, `<iframe>`, etc. |
+
+**Why markdown-it over marked or unified/rehype:**
+- Plugin-based, battle-tested, GFM tables enabled by default (no extra plugin)
+- `markdown-it-texmath` integrates KaTeX directly as a markdown-it plugin — math delimiters are tokenized at parse time, not regex-replaced afterwards
+- `html: true` mode delegates sanitization to DOMPurify, which is more robust than trusting the parser to escape everything
+- Smaller bundle impact than the full unified/remark/rehype stack
+
+### Design: Payload content controlled by Skill/Task-Coach toggles
+
+The "View Request Payload" in DevTools should show exactly what will be sent to the AI. The actual LLM request is composed of two parts: **system prompt** (from skill) + **user message** (from payload data). These must stay consistent.
+
+**Payload rules:**
+
+| Toggle State | Payload `data` fields | Coach system prompt | Coach user message |
+|---|---|---|---|
+| **Skill-ON + Task-Coach-ON** | `project_key`, `project_name`, `issue_type`, `summary`, `description`, `assignee`, `estimated_points` | coach skill | `buildUserMessage()` — structured with all fields |
+| **Skill-ON + Task-Coach-OFF** | `description` only | coach skill | description text directly |
+| **Skill-OFF** | `description` only | (empty) | description text directly |
+
+Analyze and Create actions always use the full payload regardless of toggles (they require all fields for JIRA ticket creation/structured review).
+
+### Changes
+
+#### Markdown rendering engine
+- [x] **markdown-it integration** — new `src/utils/markdown.ts` configures markdown-it with `html: true`, `breaks: true`, `linkify: true`; texmath plugin for KaTeX math; DOMPurify sanitization with allow-list for KaTeX tags (`eq`, `eqn`, `section`, `annotation`)
+- [x] **formatCoach.ts rewrite** — `formatMarkdownText()` reduced from ~50 lines of regex to 15 lines calling `renderMarkdown()`; structured output (status badges, info rows, comment lists) unchanged
+- [x] **CSS migration** — both `CoachPanel.vue` and `AIReviewPanel.vue` styles updated from custom `.coach-*` classes to standard HTML element selectors (`h1`–`h6`, `strong`, `code`, `pre`, `table`, `ul`, `ol`, `blockquote`, `a`); structured coach classes (`.coach-status-badge`, `.coach-info-row`, etc.) preserved
+- [x] **Table rendering** — markdown tables now render as proper `<table>` with styled `<thead>`, hover rows, horizontal scroll on overflow; no more raw pipe characters
+- [x] **Code block rendering** — fenced code blocks render in `<pre><code>` with language class, tertiary background, border, horizontal scroll
+- [x] **Blockquote rendering** — `>` quoted text renders with purple left border and tertiary background
+- [x] **texmath CSS** — added `markdown-it-texmath/css/texmath.css` import to global styles
+- [x] **Type declaration** — added `markdown-it-texmath` module declaration in `env.d.ts`
+- [x] **AI-escaped math fix preserved** — `\*` → `*` and `\_` → `_` cleanup inside math delimiters runs before markdown-it parsing
+
+#### Payload consistency
+- [x] **Toggle-aware `buildPayload()`** — for `coach` and `preview` actions, payload `data` now includes only description when Skill-OFF or Task-Coach-OFF; full fields only when both Skill-ON and Task-Coach-ON; `analyze`/`create` actions always return full payload
+- [x] **Live preview reactivity** — `coachSkillEnabled` and `taskCoachEnabled` added as watch dependencies to the debounced payload watcher; DevTools preview updates immediately when toggles change
+- [x] **Optional data fields** — `WebhookPayload.data` fields (except `description`) made optional in `src/types/api.ts` to support reduced payloads
+- [x] **Coach user message alignment** — coach `getUserMessage` sends description text directly when Skill-OFF or Task-Coach-OFF (matches payload); calls `buildUserMessage()` only when Skill-ON + Task-Coach-ON (matches full payload)
+- [x] **Dynamic `buildUserMessage()`** — only includes fields that are present in the payload (checks for `undefined`); no more hardcoded field list
+
+#### Tests
+- [x] **Updated test suite** — `formatCoach.test.ts` assertions updated for markdown-it output (standard HTML elements instead of custom classes); added new tests for tables, code blocks, and blockquotes; all 26 tests pass
+
+### Modified files
+
+| File | Change |
+|------|--------|
+| `package.json` | Added `markdown-it`, `markdown-it-texmath`, `dompurify`; devDeps `@types/markdown-it`, `@types/dompurify` |
+| `src/utils/markdown.ts` | **New** — markdown-it + texmath + DOMPurify rendering pipeline |
+| `src/utils/formatCoach.ts` | Replaced regex parser with `renderMarkdown()` call; removed `extractMath()` (now handled by texmath plugin) |
+| `src/components/panels/CoachPanel.vue` | CSS: custom `.coach-*` classes → standard HTML element selectors + table/code/blockquote styles |
+| `src/components/panels/AIReviewPanel.vue` | Same CSS migration as CoachPanel |
+| `src/styles/global.css` | Added `markdown-it-texmath/css/texmath.css` import |
+| `env.d.ts` | Added `markdown-it-texmath` module type declaration |
+| `src/types/api.ts` | `WebhookPayload.data` fields made optional (except `description`) |
+| `src/App.vue` | `buildPayload()` branches by Skill/Task-Coach toggles for coach/preview; watch includes toggle refs |
+| `src/composables/useLLM.ts` | `buildUserMessage()` dynamic field inclusion; coach `getUserMessage` aligned with payload content |
+| `src/utils/__tests__/formatCoach.test.ts` | Updated for markdown-it output; added table, code block, blockquote tests |

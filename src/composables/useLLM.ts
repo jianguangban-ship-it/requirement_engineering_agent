@@ -182,28 +182,32 @@ export function useLLM() {
 
   // ─── Shared helpers ────────────────────────────────────────────────────────
 
+  /** Build the LLM user message from payload data fields. Only includes fields present in the payload. */
   function buildUserMessage(payload: WebhookPayload, zh: boolean): string {
     const d = payload.data
+    const lines: string[] = []
+
     if (zh) {
-      return `请帮我审阅以下 JIRA 任务描述并给出改进建议：
-
-**项目**: ${d.project_name}
-**任务类型**: ${d.issue_type}
-**摘要**: ${d.summary}
-**描述**:
-${d.description || '（未填写）'}
-**经办人**: ${d.assignee || '（未分配）'}
-**故事点**: ${d.estimated_points}`
+      lines.push('请帮我审阅以下 JIRA 任务描述并给出改进建议：')
+      lines.push('')
+      if (d.project_name) lines.push(`**项目**: ${d.project_name}`)
+      if (d.issue_type) lines.push(`**任务类型**: ${d.issue_type}`)
+      if (d.summary) lines.push(`**摘要**: ${d.summary}`)
+      lines.push(`**描述**:\n${d.description || '（未填写）'}`)
+      if (d.assignee !== undefined) lines.push(`**经办人**: ${d.assignee || '（未分配）'}`)
+      if (d.estimated_points !== undefined) lines.push(`**故事点**: ${d.estimated_points}`)
+    } else {
+      lines.push('Please review the following JIRA task description and provide improvement suggestions:')
+      lines.push('')
+      if (d.project_name) lines.push(`**Project**: ${d.project_name}`)
+      if (d.issue_type) lines.push(`**Issue Type**: ${d.issue_type}`)
+      if (d.summary) lines.push(`**Summary**: ${d.summary}`)
+      lines.push(`**Description**:\n${d.description || '(empty)'}`)
+      if (d.assignee !== undefined) lines.push(`**Assignee**: ${d.assignee || '(unassigned)'}`)
+      if (d.estimated_points !== undefined) lines.push(`**Story Points**: ${d.estimated_points}`)
     }
-    return `Please review the following JIRA task description and provide improvement suggestions:
 
-**Project**: ${d.project_name}
-**Issue Type**: ${d.issue_type}
-**Summary**: ${d.summary}
-**Description**:
-${d.description || '(empty)'}
-**Assignee**: ${d.assignee || '(unassigned)'}
-**Story Points**: ${d.estimated_points}`
+    return lines.join('\n')
   }
 
   async function _callGLMStream(
@@ -291,16 +295,16 @@ ${d.description || '(empty)'}
 
   const coach = createStreamFlow({
     preserveHistory: true,
-    getSystemPrompt: (lang, payload) => {
-      const skillOn = coachSkillEnabled.value
-      return skillOn ? getCoachSkill(lang) : ''
+    getSystemPrompt: (lang) => {
+      return coachSkillEnabled.value ? getCoachSkill(lang) : ''
     },
     getUserMessage: (payload, zh) => {
-      const skillOn = coachSkillEnabled.value
-      const taskOn = taskCoachEnabled.value
-      return (skillOn && taskOn)
-        ? buildUserMessage(payload, zh)
-        : (payload.data.description || payload.data.summary || '')
+      // Skill-OFF or Task-Coach-OFF → payload only has description, send it directly
+      if (!coachSkillEnabled.value || !taskCoachEnabled.value) {
+        return payload.data.description || ''
+      }
+      // Skill-ON + Task-Coach-ON → build structured user message from full payload
+      return buildUserMessage(payload, zh)
     }
   }, _callGLMStream, t, isZh)
 
