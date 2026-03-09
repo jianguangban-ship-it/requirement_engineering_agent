@@ -17,18 +17,8 @@ function escapeHtml(text: string): string {
 function formatMarkdownText(text: string): string {
   if (!text) return ''
 
-  // Response-boundary divider (between accumulated coach turns) —
-  // replace BEFORE markdown parsing so it doesn't get wrapped in <p>
-  let preprocessed = text.replace(/^===COACH_TURN===$/gm, '<hr class="coach-response-divider">')
-
   // Render markdown (tables, math, code, lists, headings, etc.)
-  let html = renderMarkdown(preprocessed)
-
-  // Restore the divider — renderMarkdown sanitises HTML but our <hr> may
-  // have been wrapped in <p>; lift it out
-  html = html.replace(/<p>\s*(<hr class="coach-response-divider">\s*)<\/p>/g, '$1')
-
-  return html
+  return renderMarkdown(text)
 }
 
 function formatCommentList(comment: string): string {

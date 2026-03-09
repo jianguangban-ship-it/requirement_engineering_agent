@@ -1576,3 +1576,167 @@ The old `JsonViewer` was a flat `v-html` dump using `formatJson()` — just rege
 | `src/utils/__tests__/formatCoach.test.ts` | Added 2 syntax highlighting tests (C++, Python) |
 | `src/i18n/en.ts` | Added `dev.expandAll`, `dev.collapseAll` |
 | `src/i18n/zh.ts` | Added `dev.expandAll`, `dev.collapseAll` |
+
+---
+
+## v8.35 — Task Coach label consistency fix (2026-03-09)
+
+### Design rationale
+
+When the **Skill toggle** is switched OFF, the Task Coach button was correctly disabled and visually grayed out, but its **label** still showed "Task Coach ON" if it had been enabled before. This created a confusing inconsistency — the button looked off but said "ON". The fix ensures the label, title, and aria-label all reflect the effective state by requiring **both** `taskCoachEnabled` and `coachSkillEnabled` to be true before showing "Task Coach ON".
+
+### Changes
+
+- [x] **Task Coach label fix** — button text, `title`, and `aria-label` now use `(taskCoachEnabled && coachSkillEnabled)` instead of just `taskCoachEnabled`, so the label reads "Task Coach OFF" whenever Skill is OFF
+- [x] **USER_MANUAL.md** — added dedicated "Task Coach Toggle" section documenting the dependency on Skill toggle and the automatic label/state behavior
+- [x] **Version bump** — v8.34 → v8.35
+
+### Modified files
+
+| File | Change |
+|------|--------|
+| `src/components/panels/CoachPanel.vue` | Task Coach button: label, title, aria-label now check both `taskCoachEnabled && coachSkillEnabled` |
+| `src/components/layout/AppHeader.vue` | Version bump v8.34 → v8.35 |
+| `USER_MANUAL.md` | Version bump + added Task Coach Toggle section with dependency explanation |
+
+---
+
+## v8.36 — Chat-style Coach Panel UI (2026-03-09)
+
+### Design rationale
+
+The Coach panel was a single-response renderer that concatenated multi-turn conversations with `===COACH_TURN===` separators. This produced a wall of text that was hard to follow. The redesign transforms it into a **proper chat UI** with distinct user/agent message bubbles, avatars, typing indicators, and auto-scroll — following the requirements in `new_requirements.MD`.
+
+Key architectural decisions:
+- **`createStreamFlow` dual mode** — Added `chatMode` flag to the shared factory, so the Analyze flow stays unchanged while Coach uses a `ChatMessage[]` array model
+- **Full conversation history** sent to the LLM API — each request includes the full `[system, user, assistant, user, ...]` message chain, enabling true multi-turn dialogue instead of the `_historyPrefix` string hack
+- **Per-bubble formatting** — Each assistant message is independently formatted via `formatCoachResponse()`, with RAF-throttling applied per ChatBubble during streaming
+- **Backward-compatible** — `coachResponse` still works as a computed ref (returns last assistant message) so DevTools and response persistence don't break
+
+### Changes
+
+- [x] **`ChatMessage` interface** — Added to `types/api.ts` with `id`, `role`, `content`, `timestamp`, `isStreaming` fields
+- [x] **`useLLM.ts` rewrite** — `createStreamFlow` now supports `chatMode: true` with messages array model; `_callGLMStream` accepts full `LLMChatMessage[]` instead of separate system/user strings; removed `_historyPrefix` concatenation
+- [x] **`ChatBubble.vue`** — New component: role-based layout (user right / agent left), avatar with breathing halo animation during streaming, bubble corner connection, RAF-throttled markdown rendering, timestamp
+- [x] **`CoachPanel.vue` rewrite** — Template now renders `ChatBubble` list with auto-scroll, typing indicator (3 animated dots), stream footer, and retry row; empty state with chips preserved
+- [x] **`App.vue` wiring** — Props changed from `:response` to `:messages`; persistence updated to serialize/restore `ChatMessage[]` with format migration
+- [x] **Avatar assets** — `agent_avy.png` and `user_avy.png` copied to `public/` for static serving
+- [x] **`formatCoach.ts` cleanup** — Removed `===COACH_TURN===` divider preprocessing (dead code since messages are now separate array entries)
+- [x] **i18n** — Added `coach.userLabel`, `coach.agentLabel`, `coach.typing` keys in EN and ZH
+
+### Visual specifications (from new_requirements.MD)
+
+| Spec | Implementation |
+|------|---------------|
+| Avatar size | 36x36px |
+| Avatar shape | `border-radius: 10px` (rounded rectangle) |
+| Agent thinking indicator | Breathing green halo animation on avatar |
+| User bubble | Right-aligned, blue-tinted background, sharp top-right corner |
+| Agent bubble | Left-aligned, neutral background, sharp top-left corner |
+| Loading state | 3 animated bouncing dots with agent avatar |
+| Auto-scroll | `watch` on message array + `nextTick` smooth scroll |
+| Avatar preloading | Static assets in `public/`, no dynamic import jitter |
+
+### Modified files
+
+| File | Change |
+|------|--------|
+| `src/types/api.ts` | Added `ChatMessage` interface |
+| `src/composables/useLLM.ts` | Chat mode in `createStreamFlow`, messages array model, full history API calls |
+| `src/components/chat/ChatBubble.vue` | **New** — chat bubble with avatar, role-based layout, streaming support |
+| `src/components/panels/CoachPanel.vue` | Rewritten: message list + ChatBubble + typing indicator + auto-scroll |
+| `src/App.vue` | Wire `coachMessages`, update persistence format |
+| `src/utils/formatCoach.ts` | Removed `===COACH_TURN===` dead code |
+| `src/i18n/en.ts` | Added `coach.userLabel`, `coach.agentLabel`, `coach.typing` |
+| `src/i18n/zh.ts` | Added `coach.userLabel`, `coach.agentLabel`, `coach.typing` |
+| `src/components/layout/AppHeader.vue` | Version bump v8.35 → v8.36 |
+| `public/agent_avy.png` | **New** — agent avatar static asset |
+| `public/user_avy.png` | **New** — user avatar static asset |
+
+---
+
+## v8.36 continued — Sidebar-accent layout, smart scroll, shortcut reorganization, cancel/reset morph
+
+### Sidebar-accent layout
+Replaced bubble-based chat design with a cleaner **sidebar-accent** layout matching the reference UI:
+- Both roles left-aligned; no bubble backgrounds
+- 2px colored vertical border: **blue** for Agent, **gray** for User
+- Uppercase role label ("AI COACH" / "YOU") above content
+- Agent avatar visible; user identified by label + gray accent bar
+- Shared `.coach-response` CSS extracted to `src/styles/coach-response.css` (global import, zero duplication)
+
+### Smart auto-scroll
+- Added `@vueuse/core` dependency; `useScroll` tracks whether user is at bottom
+- Auto-scroll **pauses** when user scrolls up to read history; resumes when they scroll back down
+- New messages always trigger smooth scroll; streaming chunks use instant scroll
+
+### TransitionGroup animations
+- Messages enter/exit via Vue `<TransitionGroup name="chat-msg">` (slide-up + fade)
+- Typing indicator wrapped in `<Transition>` for smooth appear/disappear
+
+### Avatar preloading
+- `<link rel="preload">` added to `index.html` for both avatar images — no first-paint flash
+
+### Keyboard shortcut reorganization
+
+| Shortcut | Before | After |
+|----------|--------|-------|
+| `Ctrl+Enter` | Analyze Task | **Writing Guidance** |
+| `Ctrl+Shift+Enter` | Create JIRA | **Analyze Task** |
+| `Ctrl+Shift+C` | — | **Create JIRA** |
+| `Ctrl+,` | Settings | Settings (unchanged) |
+
+### Cancel/Reset button morph
+The Reset button in TaskForm now **morphs** into a Cancel button during coach streaming:
+- **Coach loading** → red pulsing stop-square icon, emits `cancelCoach`
+- **Idle** → red circular-arrow icon, emits `reset`
+- Icon swap uses Vue `<Transition name="icon-swap" mode="out-in">` with scale+rotate animation
+- Removed the inline cancel button from CoachPanel's stream footer (was hard to catch while scrolling)
+
+### Modified files
+
+| File | Change |
+|------|--------|
+| `src/components/chat/ChatBubble.vue` | Rewritten: sidebar-accent layout with role label + 2px colored border |
+| `src/components/panels/CoachPanel.vue` | Typing indicator restyled; `<TransitionGroup>`; smart scroll via `@vueuse/core`; removed inline cancel btn |
+| `src/components/form/TaskForm.vue` | Reset button morphs to Cancel during coach loading; `icon-swap` transition; `cancelCoach` emit |
+| `src/App.vue` | Wire `@cancel-coach`; shortcut keys reorganized |
+| `src/components/shared/HotkeyModal.vue` | Updated shortcut table |
+| `src/styles/coach-response.css` | **New** — extracted shared coach markdown styles |
+| `src/styles/global.css` | Import `coach-response.css` |
+| `src/i18n/en.ts` | New shortcut + hotkey labels |
+| `src/i18n/zh.ts` | New shortcut + hotkey labels |
+| `index.html` | Avatar preload hints |
+| `USER_MANUAL.md` | Updated keyboard shortcuts section |
+| `package.json` | Added `@vueuse/core` dependency |
+
+---
+
+## v8.37 — Portrait + Bubble Layout, Slate Theme, Theme-Aware Syntax (2026-03-09)
+
+### Design Rationale
+Refactored the Coach chat UI from a sidebar-accent layout to a polished **Portrait + Bubble** design. Agent messages appear on the left with a white card bubble and subtle shadow; user messages sit on the right with a blue-tinted bubble and flex-row-reverse layout. Updated the light theme palette to Tailwind's slate scale for a cleaner, more modern look. Added theme-aware syntax highlighting so code blocks switch from `github-dark-dimmed` (dark mode) to `github-light` colors (light mode). KaTeX math formulas now inherit `--text-primary` instead of using hardcoded black.
+
+### Changes
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | Light theme → slate palette | `--bg-primary: #F8FAFC` (slate-50), `--text-primary: #1E293B` (slate-800), secondary/tertiary/muted all from slate scale |
+| 2 | Portrait + Bubble layout | Agent: avatar left, `bg-secondary` bubble, `shadow-sm`, rounded `12px 12px 12px 4px`. User: avatar right (`flex-row-reverse`), blue-tinted bubble (`rgba(88,166,255,0.1)`), rounded `12px 12px 4px 12px` |
+| 3 | User avatar | Added circular blue avatar with person icon SVG for user messages |
+| 4 | Removed accent bars | Removed 2px vertical accent borders from chat messages |
+| 5 | Typing indicator | Updated to bubble style matching new layout |
+| 6 | Theme-aware highlight.js | Light-mode CSS overrides (`github-light` palette) scoped via `[data-theme="light"] .hljs` selectors |
+| 7 | KaTeX color matching | `.coach-response .katex` inherits `--text-primary` so math formulas match surrounding text |
+| 8 | Performance confirmed | `useI18n()` already at module level in `formatCoach.ts`; `saveDraft()` already has 300ms debounce |
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `src/styles/variables.css` | Light theme colors → slate scale |
+| `src/styles/coach-response.css` | Light hljs overrides, KaTeX color fix |
+| `src/components/chat/ChatBubble.vue` | Full rewrite: Portrait + Bubble layout |
+| `src/components/panels/CoachPanel.vue` | Typing indicator → bubble style |
+| `src/components/layout/AppHeader.vue` | Version bump → v8.37 |
+| `PLAN.md` | This changelog entry |

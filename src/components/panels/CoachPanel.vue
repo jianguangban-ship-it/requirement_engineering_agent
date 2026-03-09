@@ -25,12 +25,12 @@
         }"
         :disabled="!coachSkillEnabled"
         @click="setTaskCoachEnabled(!taskCoachEnabled)"
-        :title="taskCoachEnabled ? t('coach.taskCoachOn') : t('coach.taskCoachOff')"
-        :aria-label="taskCoachEnabled ? t('coach.taskCoachOn') : t('coach.taskCoachOff')"
+        :title="(taskCoachEnabled && coachSkillEnabled) ? t('coach.taskCoachOn') : t('coach.taskCoachOff')"
+        :aria-label="(taskCoachEnabled && coachSkillEnabled) ? t('coach.taskCoachOn') : t('coach.taskCoachOff')"
       >
-        {{ taskCoachEnabled ? t('coach.taskCoachOn') : t('coach.taskCoachOff') }}
+        {{ (taskCoachEnabled && coachSkillEnabled) ? t('coach.taskCoachOn') : t('coach.taskCoachOff') }}
       </button>
-      <button v-if="response && !isLoading" class="copy-btn" @click="copyResponse" :title="t('toast.copied')" :aria-label="t('toast.copied')">
+      <button v-if="messages.length > 0 && !isLoading" class="copy-btn" @click="copyLastResponse" :title="t('toast.copied')" :aria-label="t('toast.copied')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="9" y="2" width="13" height="13" rx="2"/>
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke-linecap="round"/>
@@ -44,8 +44,8 @@
       </svg>
     </template>
 
-    <!-- Empty state / backoff state -->
-    <div v-if="!response && !isLoading" class="empty-state">
+    <!-- Empty state (no messages yet, not loading) -->
+    <div v-if="messages.length === 0 && !isLoading" class="empty-state">
       <!-- 429 backoff countdown -->
       <template v-if="backoffSecs > 0">
         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent-orange)">
@@ -80,37 +80,45 @@
       </template>
     </div>
 
-    <!-- Loading state (waiting for first token) -->
-    <div v-else-if="isLoading && !response" class="loading-state">
-      <svg class="spinner green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4">
-        <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-linecap="round" opacity="0.25"/>
-        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
-      </svg>
-      <p class="loading-text green">{{ t('coach.analyzing') }}</p>
-      <button class="cancel-btn" @click="$emit('cancel')">
-        <svg class="cancel-icon" viewBox="0 0 24 24" fill="currentColor">
-          <rect x="6" y="6" width="12" height="12" rx="2" />
-        </svg>
-        {{ t('settings.cancel') }}
-      </button>
-    </div>
+    <!-- Chat messages -->
+    <div v-else class="chat-container" ref="chatContainerRef">
+      <TransitionGroup name="chat-msg" tag="div" class="chat-list">
+        <ChatBubble
+          v-for="msg in messages"
+          :key="msg.id"
+          :message="msg"
+        />
+      </TransitionGroup>
 
-    <!-- Coach response (streaming or complete) -->
-    <div v-else>
-      <div v-if="isLoading" class="cancel-row">
-        <button class="cancel-btn" @click="$emit('cancel')">
-          <svg class="cancel-icon" viewBox="0 0 24 24" fill="currentColor">
-            <rect x="6" y="6" width="12" height="12" rx="2" />
-          </svg>
-          {{ t('settings.cancel') }}
-        </button>
+      <!-- Typing indicator: waiting for first token -->
+      <Transition name="chat-msg">
+        <div v-if="isLoading && isWaitingFirstToken" class="typing-row">
+          <div class="typing-avatar-col">
+            <img src="/agent_avy.png" class="typing-avatar avatar-thinking" alt="Coach" />
+          </div>
+          <div class="typing-bubble">
+            <span class="typing-label">{{ t('coach.agentLabel') }}</span>
+            <div class="typing-dots">
+              <span class="typing-dot" /><span class="typing-dot" /><span class="typing-dot" />
+            </div>
+          </div>
+        </div>
+      </Transition>
+
+      <!-- Backoff inside chat -->
+      <div v-if="backoffSecs > 0" class="chat-backoff">
+        <p class="backoff-text">{{ t('coach.backoffLabel') }} <strong>{{ backoffSecs }}s</strong></p>
+        <button class="cancel-btn small-cancel" @click="$emit('cancel')">{{ t('coach.backoffCancel') }}</button>
       </div>
-      <div class="coach-response" v-html="formattedResponse" />
-      <div v-if="isLoading" class="stream-footer">
+
+      <!-- Stream footer (cursor + speed only — cancel is on the TaskForm Reset button) -->
+      <div v-if="isLoading && !isWaitingFirstToken" class="stream-footer">
         <span class="streaming-cursor green" />
         <span v-if="streamSpeed > 0" class="stream-speed">{{ streamSpeed }} {{ t('dev.streamSpeed') }}</span>
       </div>
-      <div v-if="!isLoading && (wasCancelled || hadError)" class="retry-row">
+
+      <!-- Retry row -->
+      <div v-if="!isLoading && (wasCancelled || hadError) && messages.length > 0" class="retry-row">
         <button class="retry-btn" :disabled="retryCountdown > 0" @click="handleRetry">
           <svg class="retry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -123,18 +131,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onUnmounted } from 'vue'
+import { computed, ref, watch, onUnmounted, nextTick, onMounted } from 'vue'
+import type { ChatMessage } from '@/types/api'
+import { useScroll } from '@vueuse/core'
 import { useI18n } from '@/i18n'
-import { formatCoachResponse } from '@/utils/formatCoach'
 import { effectiveTemplates } from '@/config/templates/index'
 import { useToast } from '@/composables/useToast'
 import { coachSkillEnabled, setCoachSkillEnabled, taskCoachEnabled, setTaskCoachEnabled } from '@/composables/useLLM'
 import { currentModel } from '@/config/llm'
 import PanelShell from '@/components/layout/PanelShell.vue'
 import QuickChip from '@/components/shared/QuickChip.vue'
+import ChatBubble from '@/components/chat/ChatBubble.vue'
 
 const props = defineProps<{
-  response: unknown
+  messages: ChatMessage[]
   isLoading: boolean
   wasCancelled: boolean
   hadError: boolean
@@ -155,6 +165,16 @@ const { addToast } = useToast()
 const isDragging = ref(false)
 const retryCountdown = ref(0)
 let _cooldownTimer: number | null = null
+const chatContainerRef = ref<HTMLElement>()
+
+// Waiting for first token: loading + last message is assistant with empty content
+const isWaitingFirstToken = computed(() => {
+  if (!props.isLoading) return false
+  const msgs = props.messages
+  if (msgs.length === 0) return true
+  const last = msgs[msgs.length - 1]
+  return last.role === 'assistant' && !last.content
+})
 
 function handleRetry() {
   emit('retry')
@@ -170,7 +190,6 @@ function handleRetry() {
 
 onUnmounted(() => {
   if (_cooldownTimer !== null) clearInterval(_cooldownTimer)
-  if (_rafId !== null) cancelAnimationFrame(_rafId)
 })
 
 function handleDrop(e: DragEvent) {
@@ -195,30 +214,53 @@ function handleDrop(e: DragEvent) {
 
 const statusInfo = computed(() => {
   if (props.isLoading) return { status: 'loading' as const, key: 'loading' }
-  if (props.response) return { status: 'success' as const, key: 'success' }
+  if (props.messages.length > 0) return { status: 'success' as const, key: 'success' }
   return { status: 'idle' as const, key: 'idle' }
 })
 
-// rAF-throttled to avoid running 12-regex formatter on every streaming token
-const formattedResponse = ref('')
-let _rafId: number | null = null
-watch(() => props.response, (val) => {
-  if (_rafId !== null) return
-  _rafId = requestAnimationFrame(() => {
-    formattedResponse.value = formatCoachResponse(val)
-    _rafId = null
-  })
-}, { immediate: true })
+// ─── Smart auto-scroll (pauses when user scrolls up) ─────────────────────────
+const scrollParentRef = ref<HTMLElement>()
 
-const rawText = computed(() => {
-  const r = props.response as Record<string, unknown>
-  return typeof r?.message === 'string' ? r.message : ''
+// Resolve the actual scrollable ancestor (.panel-body) after mount
+onMounted(() => {
+  const el = chatContainerRef.value?.closest('.panel-body') as HTMLElement | null
+  if (el) scrollParentRef.value = el
 })
 
-async function copyResponse() {
-  const text = rawText.value || JSON.stringify(props.response, null, 2)
-  if (!text) return
-  await navigator.clipboard.writeText(text)
+const { arrivedState } = useScroll(scrollParentRef)
+
+// Auto-scroll only when user is near the bottom (hasn't scrolled up to read history)
+let _prevMsgCount = 0
+
+watch(
+  () => {
+    const msgs = props.messages
+    const last = msgs[msgs.length - 1]
+    return { count: msgs.length, len: last?.content?.length ?? 0 }
+  },
+  (cur) => {
+    const isNewMessage = cur.count !== _prevMsgCount
+    _prevMsgCount = cur.count
+
+    // Skip auto-scroll if user has scrolled up (not at bottom)
+    // Always scroll for brand-new messages; only skip streaming chunks
+    if (!isNewMessage && !arrivedState.bottom) return
+
+    nextTick(() => {
+      const el = scrollParentRef.value
+      if (!el) return
+      el.scrollTo({ top: el.scrollHeight, behavior: isNewMessage ? 'smooth' : 'instant' })
+    })
+  },
+  { deep: true }
+)
+
+// Copy last assistant response
+function copyLastResponse() {
+  const assistantMsgs = props.messages.filter(m => m.role === 'assistant' && m.content)
+  const last = assistantMsgs[assistantMsgs.length - 1]
+  if (!last) return
+  navigator.clipboard.writeText(last.content)
   addToast('success', t('toast.copied'), 2000)
 }
 
@@ -238,8 +280,16 @@ const chips = computed(() =>
 }
 .green { color: var(--accent-green); }
 
-.empty-state,
-.loading-state {
+/* Chat container */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 4px;
+  min-height: 100px;
+}
+
+/* Empty state */
+.empty-state {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -291,99 +341,71 @@ const chips = computed(() =>
   font-weight: 500;
   pointer-events: none;
 }
-.spinner {
-  width: 32px;
-  height: 32px;
-  margin-bottom: 8px;
-  animation: spin 1s linear infinite;
+
+/* Typing indicator — bubble style */
+.typing-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
 }
-.loading-text {
-  font-size: 12px;
+.typing-avatar-col {
+  flex-shrink: 0;
 }
-.coach-response {
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--text-secondary);
+.typing-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--bg-tertiary);
 }
-/* Headings */
-.coach-response :deep(h1),
-.coach-response :deep(h2) { font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 12px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
-.coach-response :deep(h3) { font-size: 13px; font-weight: 600; color: var(--text-primary); margin: 10px 0 5px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
-.coach-response :deep(h4),
-.coach-response :deep(h5),
-.coach-response :deep(h6) { font-size: 12px; font-weight: 600; color: var(--accent-blue); margin: 8px 0 4px; }
-/* Paragraphs */
-.coach-response :deep(p) { margin: 0 0 6px; }
-/* Bold & italic */
-.coach-response :deep(strong) { color: var(--accent-green); font-weight: 600; }
-.coach-response :deep(em) { font-style: italic; }
-/* Inline code */
-.coach-response :deep(code) { background-color: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: var(--font-mono); color: var(--accent-blue); }
-/* Code blocks — structural styles; colors from highlight.js theme */
-.coach-response :deep(pre) { border-radius: 6px; padding: 10px 12px; margin: 6px 0; overflow-x: auto; border: 1px solid var(--border-color); background-color: var(--bg-tertiary); }
-.coach-response :deep(pre code) { padding: 0; background: transparent; font-size: 12px; font-family: var(--font-mono); }
-.coach-response :deep(pre code.hljs) { background: transparent; padding: 0; }
-/* Horizontal rules */
-.coach-response :deep(hr) { border: none; border-top: 1px dashed var(--border-color); margin: 10px 0; }
-.coach-response :deep(hr.coach-response-divider) { border-top: 2px solid var(--accent-blue); margin: 16px 0; }
-/* Lists */
-.coach-response :deep(ul),
-.coach-response :deep(ol) { margin: 4px 0; padding-left: 20px; }
-.coach-response :deep(li) { margin: 2px 0; }
-.coach-response :deep(li::marker) { color: var(--text-muted); }
-.coach-response :deep(ol li::marker) { color: var(--accent-blue); font-weight: 600; }
-/* Blockquotes */
-.coach-response :deep(blockquote) { border-left: 3px solid var(--accent-blue); margin: 6px 0; padding: 4px 10px; background-color: var(--bg-tertiary); border-radius: 0 6px 6px 0; color: var(--text-secondary); }
-.coach-response :deep(blockquote p) { margin: 0; }
-/* Links */
-.coach-response :deep(a) { color: var(--accent-blue); text-decoration: none; }
-.coach-response :deep(a:hover) { text-decoration: underline; }
-/* Tables */
-.coach-response :deep(table) {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  margin: 8px 0;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  overflow: hidden;
+.avatar-thinking {
+  animation: breathe 2s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.3); }
+  50% { box-shadow: 0 0 8px 4px rgba(63, 185, 80, 0.15); }
+}
+.typing-bubble {
+  background-color: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+  border-radius: 12px 12px 12px 4px;
+  padding: 10px 14px;
+}
+.typing-label {
   display: block;
-  overflow-x: auto;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--accent-blue);
+  margin-bottom: 4px;
 }
-.coach-response :deep(thead) { background-color: var(--bg-tertiary); }
-.coach-response :deep(th) {
-  color: var(--text-primary);
-  font-weight: 600;
-  padding: 6px 10px;
-  border: 1px solid var(--border-color);
-  white-space: nowrap;
-  text-align: left;
+.typing-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
 }
-.coach-response :deep(td) {
-  padding: 5px 10px;
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  line-height: 1.4;
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--accent-blue);
+  animation: typingBounce 1.4s ease-in-out infinite;
 }
-.coach-response :deep(tbody tr:hover) { background-color: var(--bg-secondary); }
-/* Structured coach fields (status badges, info rows, etc.) */
-.coach-response :deep(.coach-status-badge) {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; margin-bottom: 8px;
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
 }
-.coach-response :deep(.coach-status-pass) { background-color: rgba(63,185,80,.15); color: var(--accent-green); border: 1px solid rgba(63,185,80,.3); }
-.coach-response :deep(.coach-status-fail) { background-color: rgba(248,81,73,.15); color: var(--accent-red); border: 1px solid rgba(248,81,73,.3); }
-.coach-response :deep(.coach-status-warn) { background-color: rgba(210,153,34,.15); color: var(--accent-orange); border: 1px solid rgba(210,153,34,.3); }
-.coach-response :deep(.coach-info-row) { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--border-color); font-size: 12px; }
-.coach-response :deep(.coach-info-label) { color: var(--text-muted); }
-.coach-response :deep(.coach-info-value) { color: var(--text-primary); font-weight: 500; }
-.coach-response :deep(.coach-main-message) { background-color: var(--bg-tertiary); border-radius: 6px; padding: 8px 10px; margin: 6px 0; border-left: 3px solid var(--accent-blue); }
-.coach-response :deep(.coach-comment-title) { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
-.coach-response :deep(.coach-issues-list) { display: flex; flex-direction: column; gap: 5px; }
-.coach-response :deep(.coach-issue-item) { display: flex; align-items: flex-start; gap: 8px; padding: 5px 8px; background-color: rgba(248,81,73,.06); border-radius: 6px; border-left: 3px solid var(--accent-red); }
-.coach-response :deep(.coach-issue-num) { display: flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; background-color: var(--accent-red); color: white; border-radius: 50%; font-size: 10px; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
-.coach-response :deep(.coach-issue-text) { font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
-.coach-response :deep(.coach-highlight-error) { color: var(--accent-red); font-weight: 600; }
+
+/* Backoff inside chat */
+.chat-backoff {
+  text-align: center;
+  padding: 12px;
+}
 
 /* Mode badge */
 .mode-badge {
@@ -402,11 +424,6 @@ const chips = computed(() =>
   background-color: rgba(88, 166, 255, 0.15);
   color: var(--accent-blue);
   border: 1px solid rgba(88, 166, 255, 0.3);
-}
-.badge-n8n {
-  background-color: rgba(210, 153, 34, 0.15);
-  color: var(--accent-orange);
-  border: 1px solid rgba(210, 153, 34, 0.3);
 }
 
 /* Skill toggle */
@@ -468,12 +485,7 @@ const chips = computed(() =>
   height: 13px;
 }
 
-/* Cancel & retry (inline, matching AIReviewPanel) */
-.cancel-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
-}
+/* Cancel & retry */
 .cancel-btn {
   display: inline-flex;
   align-items: center;
@@ -487,7 +499,6 @@ const chips = computed(() =>
   border: 1px solid rgba(248, 81, 73, 0.3);
   cursor: pointer;
   transition: background-color 0.15s;
-  margin-top: 12px;
 }
 .cancel-btn:hover { background-color: rgba(248, 81, 73, 0.2); }
 .cancel-icon { width: 12px; height: 12px; }
@@ -519,10 +530,6 @@ const chips = computed(() =>
   cursor: not-allowed;
 }
 .retry-icon { width: 12px; height: 12px; }
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
 
 .stream-footer {
   display: flex;
@@ -556,5 +563,30 @@ const chips = computed(() =>
   padding: 5px 14px;
   font-size: 12px;
   margin-top: 0;
+}
+
+/* TransitionGroup / Transition animations for message entry/exit */
+.chat-msg-enter-active {
+  transition: all 0.25s ease-out;
+}
+.chat-msg-leave-active {
+  transition: all 0.15s ease-in;
+}
+.chat-msg-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.chat-msg-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.chat-msg-move {
+  transition: transform 0.25s ease;
+}
+
+/* Chat list wrapper (TransitionGroup tag) */
+.chat-list {
+  display: flex;
+  flex-direction: column;
 }
 </style>

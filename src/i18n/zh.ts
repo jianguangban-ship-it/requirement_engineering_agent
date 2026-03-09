@@ -124,7 +124,10 @@ export default {
     skillOn: '技能 开',
     skillOff: '技能 关',
     taskCoachOn: '任务辅导 开',
-    taskCoachOff: '任务辅导 关'
+    taskCoachOff: '任务辅导 关',
+    userLabel: '你',
+    agentLabel: '教练',
+    typing: '思考中...'
   },
   quality: {
     excellent: '优秀',
@@ -151,8 +154,9 @@ export default {
     noDuplicateTemplates: '无新模板可导入（重复项已跳过）'
   },
   shortcuts: {
-    analyze: 'Ctrl+Enter',
-    create: 'Ctrl+Shift+Enter'
+    coach: 'Ctrl+Enter',
+    analyze: 'Ctrl+Shift+Enter',
+    create: 'Ctrl+Shift+C'
   },
   history: {
     title: '工单历史',
@@ -166,6 +170,7 @@ export default {
   },
   hotkeys: {
     title: '键盘快捷键',
+    coach: '获取写作指导',
     analyze: '运行 AI 分析',
     create: '打开创建 JIRA 对话框',
     settings: '打开设置',

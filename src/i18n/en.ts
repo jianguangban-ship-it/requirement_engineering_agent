@@ -124,7 +124,10 @@ export default {
     skillOn: 'Skill ON',
     skillOff: 'Skill OFF',
     taskCoachOn: 'Task Coach ON',
-    taskCoachOff: 'Task Coach OFF'
+    taskCoachOff: 'Task Coach OFF',
+    userLabel: 'You',
+    agentLabel: 'Coach',
+    typing: 'Thinking...'
   },
   quality: {
     excellent: 'Excellent',
@@ -151,8 +154,9 @@ export default {
     noDuplicateTemplates: 'No new templates to import (duplicates skipped)'
   },
   shortcuts: {
-    analyze: 'Ctrl+Enter',
-    create: 'Ctrl+Shift+Enter'
+    coach: 'Ctrl+Enter',
+    analyze: 'Ctrl+Shift+Enter',
+    create: 'Ctrl+Shift+C'
   },
   history: {
     title: 'Ticket History',
@@ -166,6 +170,7 @@ export default {
   },
   hotkeys: {
     title: 'Keyboard Shortcuts',
+    coach: 'Get Writing Guidance',
     analyze: 'Run AI Analyze',
     create: 'Open Create JIRA modal',
     settings: 'Open Settings',

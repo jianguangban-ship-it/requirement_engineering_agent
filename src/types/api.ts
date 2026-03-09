@@ -55,6 +55,15 @@ export interface LLMChatMessage {
   role: 'system' | 'user' | 'assistant'
   content: string
 }
+
+/** A single message in the coach chat conversation */
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: number
+  isStreaming?: boolean
+}
 export interface LLMRequestBody {
   model: string
   messages: LLMChatMessage[]

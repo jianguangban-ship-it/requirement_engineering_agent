@@ -34,13 +34,13 @@
 }
 
 [data-theme="light"] {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f6f8fa;
-  --bg-tertiary: #eef0f3;
-  --border-color: #d0d7de;
-  --text-primary: #1f2328;
-  --text-secondary: #57606a;   /* fix: was #24292f, too close to primary */
-  --text-muted: #8c959f;
+  --bg-primary: #F8FAFC;       /* slate-50 */
+  --bg-secondary: #f1f5f9;     /* slate-100 */
+  --bg-tertiary: #e2e8f0;      /* slate-200 */
+  --border-color: #cbd5e1;     /* slate-300 */
+  --text-primary: #1E293B;     /* slate-800 */
+  --text-secondary: #475569;   /* slate-600 */
+  --text-muted: #94a3b8;       /* slate-400 */
   --accent-green: #1a7f37;
   --accent-blue: #0969da;
   --accent-red: #cf222e;

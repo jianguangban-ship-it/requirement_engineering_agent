@@ -1,0 +1,81 @@
+/* ─── Shared coach response markdown styles ───────────────────────────────────
+   Used by ChatBubble.vue and any component rendering coach/assistant markdown.
+   Applied via the `.coach-response` wrapper class (unscoped so child HTML works). */
+
+.coach-response h1,
+.coach-response h2 { font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 12px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
+.coach-response h3 { font-size: 13px; font-weight: 600; color: var(--text-primary); margin: 10px 0 5px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
+.coach-response h4,
+.coach-response h5,
+.coach-response h6 { font-size: 12px; font-weight: 600; color: var(--accent-blue); margin: 8px 0 4px; }
+
+.coach-response p { margin: 0 0 6px; }
+.coach-response strong { color: var(--accent-green); font-weight: 600; }
+.coach-response em { font-style: italic; }
+
+.coach-response code { background-color: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: var(--font-mono); color: var(--accent-blue); }
+.coach-response pre { border-radius: 6px; padding: 10px 12px; margin: 6px 0; overflow-x: auto; border: 1px solid var(--border-color); background-color: var(--bg-tertiary); }
+.coach-response pre code { padding: 0; background: transparent; font-size: 12px; font-family: var(--font-mono); }
+.coach-response pre code.hljs { background: transparent; padding: 0; }
+
+.coach-response hr { border: none; border-top: 1px dashed var(--border-color); margin: 10px 0; }
+
+.coach-response ul,
+.coach-response ol { margin: 4px 0; padding-left: 20px; }
+.coach-response li { margin: 2px 0; }
+.coach-response li::marker { color: var(--text-muted); }
+.coach-response ol li::marker { color: var(--accent-blue); font-weight: 600; }
+
+.coach-response blockquote { border-left: 3px solid var(--accent-blue); margin: 6px 0; padding: 4px 10px; background-color: var(--bg-tertiary); border-radius: 0 6px 6px 0; color: var(--text-secondary); }
+.coach-response blockquote p { margin: 0; }
+
+.coach-response a { color: var(--accent-blue); text-decoration: none; }
+.coach-response a:hover { text-decoration: underline; }
+
+.coach-response table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; display: block; overflow-x: auto; }
+.coach-response thead { background-color: var(--bg-tertiary); }
+.coach-response th { color: var(--text-primary); font-weight: 600; padding: 6px 10px; border: 1px solid var(--border-color); white-space: nowrap; text-align: left; }
+.coach-response td { padding: 5px 10px; border: 1px solid var(--border-color); color: var(--text-secondary); line-height: 1.4; }
+.coach-response tbody tr:hover { background-color: var(--bg-secondary); }
+
+.coach-response .coach-status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; margin-bottom: 8px; }
+.coach-response .coach-status-pass { background-color: rgba(63,185,80,.15); color: var(--accent-green); border: 1px solid rgba(63,185,80,.3); }
+.coach-response .coach-status-fail { background-color: rgba(248,81,73,.15); color: var(--accent-red); border: 1px solid rgba(248,81,73,.3); }
+.coach-response .coach-status-warn { background-color: rgba(210,153,34,.15); color: var(--accent-orange); border: 1px solid rgba(210,153,34,.3); }
+.coach-response .coach-info-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--border-color); font-size: 12px; }
+.coach-response .coach-info-label { color: var(--text-muted); }
+.coach-response .coach-info-value { color: var(--text-primary); font-weight: 500; }
+.coach-response .coach-main-message { background-color: var(--bg-tertiary); border-radius: 6px; padding: 8px 10px; margin: 6px 0; border-left: 3px solid var(--accent-blue); }
+.coach-response .coach-comment-title { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
+.coach-response .coach-issues-list { display: flex; flex-direction: column; gap: 5px; }
+.coach-response .coach-issue-item { display: flex; align-items: flex-start; gap: 8px; padding: 5px 8px; background-color: rgba(248,81,73,.06); border-radius: 6px; border-left: 3px solid var(--accent-red); }
+.coach-response .coach-issue-num { display: flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; background-color: var(--accent-red); color: white; border-radius: 50%; font-size: 10px; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
+.coach-response .coach-issue-text { font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
+.coach-response .coach-highlight-error { color: var(--accent-red); font-weight: 600; }
+
+/* ─── KaTeX: match text color ────────────────────────────────────────────────── */
+.coach-response .katex { color: var(--text-primary); }
+.coach-response .katex .mathnormal,
+.coach-response .katex .mathit,
+.coach-response .katex .mathrm { color: inherit; }
+
+/* ─── Light-mode highlight.js overrides (github-light palette) ───────────────── */
+[data-theme="light"] .hljs { background: var(--bg-tertiary); color: #24292e; }
+[data-theme="light"] .hljs-keyword,
+[data-theme="light"] .hljs-selector-tag,
+[data-theme="light"] .hljs-type { color: #d73a49; }
+[data-theme="light"] .hljs-string,
+[data-theme="light"] .hljs-addition { color: #032f62; }
+[data-theme="light"] .hljs-comment,
+[data-theme="light"] .hljs-quote { color: #6a737d; font-style: italic; }
+[data-theme="light"] .hljs-number,
+[data-theme="light"] .hljs-literal { color: #005cc5; }
+[data-theme="light"] .hljs-built_in,
+[data-theme="light"] .hljs-builtin-name { color: #e36209; }
+[data-theme="light"] .hljs-function .hljs-title,
+[data-theme="light"] .hljs-title.function_ { color: #6f42c1; }
+[data-theme="light"] .hljs-variable,
+[data-theme="light"] .hljs-attr { color: #005cc5; }
+[data-theme="light"] .hljs-deletion { color: #b31d28; background-color: #ffeef0; }
+[data-theme="light"] .hljs-meta { color: #735c0f; }
+[data-theme="light"] .hljs-symbol { color: #e36209; }

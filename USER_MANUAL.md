@@ -1,7 +1,7 @@
 # Agentic Engineering Platform — User Manual
 # 智能工程平台 — 用户手册
 
-> Version / 版本: v8.32 | Language / 语言: English · 中文
+> Version / 版本: v8.36 | Language / 语言: English · 中文
 
 ---
 
@@ -160,11 +160,31 @@ The **Writing Coach Message** panel is on the **left column**. It provides writi
 
 **写作辅导消息**面板位于**左列**。在运行完整 AI 分析之前，Coach 提供写作指导，帮助你提前优化任务描述质量。
 
+### Chat-Style Conversation / 对话式交互
+
+Starting from v8.36, the Coach panel uses a **chat-style interface** with message bubbles:
+
+- **Your messages** appear on the **right** with a blue-tinted bubble and your avatar
+- **Coach responses** appear on the **left** with a neutral bubble and the Coach avatar
+- Multi-turn conversations are fully preserved — each exchange is a separate bubble
+- The panel **auto-scrolls** to the latest message during streaming
+
+你的消息显示在**右侧**（蓝色气泡 + 用户头像），Coach 回复显示在**左侧**（中性气泡 + Coach 头像）。多轮对话完整保留，面板在流式输出时自动滚动到最新消息。
+
 ### Getting Guidance / 获取指导
 
 1. Fill in at least the **Basic Info** and **Task Description** fields in the center form.
 2. Click the **Get Writing Guidance / 获取写作指导** button at the bottom of the Coach panel.
-3. The AI will analyze your draft and return structured feedback.
+3. Your input appears as a user message bubble; the AI response streams in as a Coach bubble.
+4. Send follow-up messages to continue the conversation — full history is sent to the AI.
+
+### Streaming & Thinking Indicator / 流式输出与思考指示
+
+- When the Coach is thinking (waiting for the first token), a **breathing green halo** glows around the Coach avatar with **animated dots**
+- During streaming, a cursor and token speed indicator appear below the response
+- Click **Cancel** to stop streaming at any time
+
+Coach 思考时头像周围会有**绿色呼吸光晕**和跳动的点；流式输出中底部显示速度指示器，随时可点击取消。
 
 ### Model Badge / 模型标识
 
@@ -182,6 +202,19 @@ In the panel header, you will see a **Skill ON / Skill OFF** toggle button.
 | **Skill OFF** | No system prompt — AI responds freely; useful for general questions or brainstorming |
 
 点击切换按钮可随时开启或关闭技能提示词，**关闭**后 AI 将自由回答，适合头脑风暴或非 JIRA 相关问题。
+
+### Task Coach Toggle / 任务辅导开关
+
+Next to the Skill toggle, a **Task Coach ON / Task Coach OFF** button controls whether full task fields (project, type, summary, assignee, points) are sent to the Coach alongside the description.
+
+| State | Behavior |
+|-------|----------|
+| **Task Coach ON** | Full task context (all form fields) is included in the Coach prompt |
+| **Task Coach OFF** | Only the description text is sent — lighter, free-form coaching |
+
+**Dependency on Skill toggle:** Task Coach is only effective when **Skill is ON**. When Skill is switched OFF, the Task Coach button automatically shows **"Task Coach OFF"**, is visually grayed out, and is disabled. Toggling Skill back ON restores the Task Coach to its previous state.
+
+**与技能开关的依赖关系：**任务辅导仅在**技能开启**时生效。技能关闭后，任务辅导按钮自动显示为 **"Task Coach OFF"**（灰色禁用状态）。重新开启技能后恢复此前状态。
 
 **Dynamic Focus Layout / 动态聚焦布局:**
 When **Skill OFF** is active, the interface automatically enters **Free-Chat Mode**:
@@ -301,8 +334,8 @@ The counter below the text area shows real-time **word count** and **sentence co
 | Button | Shortcut | When available | Action |
 |--------|----------|----------------|--------|
 | **Reset / 重置** | — | Always | Clears the entire form and removes the draft from local storage |
-| **Analyze Task / 分析任务** | `Ctrl+Enter` | When required fields are filled (hidden in free-chat mode) | Sends the task to the AI Agent for review |
-| **Create JIRA / 创建 JIRA** | `Ctrl+Shift+Enter` | After AI analysis completes | Opens the payload preview modal |
+| **Analyze Task / 分析任务** | `Ctrl+Shift+Enter` | When required fields are filled (hidden in free-chat mode) | Sends the task to the AI Agent for review |
+| **Create JIRA / 创建 JIRA** | `Ctrl+Shift+C` | After AI analysis completes | Opens the payload preview modal |
 
 > **Note:** The **Create JIRA** button only appears after a successful AI analysis. You must analyze before creating.
 > **注意：**「创建 JIRA」按钮仅在 AI 分析成功后出现，必须先分析再创建。
@@ -311,8 +344,8 @@ The counter below the text area shows real-time **word count** and **sentence co
 
 ## 8. Analyze Task / 分析任务
 
-Click **Analyze Task** (or press `Ctrl+Enter`) to send your task to the AI Agent.
-点击**分析任务**（或按 `Ctrl+Enter`）将任务发送给 AI Agent 进行审核。
+Click **Analyze Task** (or press `Ctrl+Shift+Enter`) to send your task to the AI Agent.
+点击**分析任务**（或按 `Ctrl+Shift+Enter`）将任务发送给 AI Agent 进行审核。
 
 ### What the AI reviews / AI 审核内容
 
@@ -490,8 +523,9 @@ Press **`?`** anywhere (outside a text input) to open the shortcuts reference mo
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+Enter` | Run Analyze Task / 运行任务分析 |
-| `Ctrl+Shift+Enter` | Open Create JIRA modal / 打开创建 JIRA 弹窗 |
+| `Ctrl+Enter` | Get Writing Guidance / 获取写作指导 |
+| `Ctrl+Shift+Enter` | Run Analyze Task / 运行任务分析 |
+| `Ctrl+Shift+C` | Open Create JIRA modal / 打开创建 JIRA 弹窗 |
 | `Ctrl+,` | Open Settings / 打开设置 |
 | `Escape` | Close any open modal / 关闭当前弹窗 |
 | `?` | Show this keyboard shortcuts cheat sheet / 显示快捷键列表 |
@@ -538,7 +572,7 @@ The LLM API has a rate limit. The app automatically waits and retries. You can c
 
 #### "Create JIRA" button not visible / 「创建 JIRA」按钮不显示
 
-This button only appears **after a successful AI analysis**. Run the analysis first by clicking **Analyze Task** or pressing `Ctrl+Enter`.
+This button only appears **after a successful AI analysis**. Run the analysis first by clicking **Analyze Task** or pressing `Ctrl+Shift+Enter`.
 
 #### Draft restored toast on startup / 启动时提示草稿已恢复
 

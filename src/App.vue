@@ -34,7 +34,7 @@
         <!-- LEFT: AI Coach -->
         <div class="col-left">
           <CoachPanel
-            :response="coachResponse"
+            :messages="coachMessages"
             :is-loading="isCoachLoading"
             :was-cancelled="coachWasCancelled"
             :had-error="coachHadError"
@@ -68,6 +68,7 @@
             @analyze="handleAnalyze"
             @create="handleCreateClick"
             @reset="handleReset"
+            @cancel-coach="cancelCoach"
             @project-change="onProjectChange"
             @clear-error="errorMessage = ''"
           />
@@ -170,7 +171,7 @@ const {
 } = useWebhook()
 
 const {
-  isCoachLoading, coachResponse, coachWasCancelled, coachHadError,
+  isCoachLoading, coachResponse, coachMessages, coachWasCancelled, coachHadError,
   coachStreamSpeed, coachBackoffSecs,
   requestCoach, cancelCoach, retryCoach, clearCoachResponse,
   isAnalyzeLoading, analyzeResponse, previousAnalyzeResponse, analyzeWasCancelled, analyzeHadError,
@@ -283,8 +284,8 @@ function buildFormSnapshot(): string {
 
 function saveResponsesToStorage() {
   localStorage.setItem(LS_RESPONSE_SNAPSHOT, buildFormSnapshot())
-  if (coachResponse.value !== null)
-    localStorage.setItem(LS_COACH_RESPONSE, JSON.stringify(coachResponse.value))
+  if (coachMessages.value.length > 0)
+    localStorage.setItem(LS_COACH_RESPONSE, JSON.stringify(coachMessages.value))
   if (analyzeResponse.value !== null)
     localStorage.setItem(LS_ANALYZE_RESPONSE, JSON.stringify(analyzeResponse.value))
 }
@@ -318,7 +319,13 @@ function restoreResponsesFromStorage() {
   try {
     const savedCoach = localStorage.getItem(LS_COACH_RESPONSE)
     const savedAnalyze = localStorage.getItem(LS_ANALYZE_RESPONSE)
-    if (savedCoach) coachResponse.value = JSON.parse(savedCoach)
+    if (savedCoach) {
+      const parsed = JSON.parse(savedCoach)
+      // Support new ChatMessage[] format; ignore old single-object format
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].role) {
+        coachMessages.value = parsed
+      }
+    }
     if (savedAnalyze) analyzeResponse.value = JSON.parse(savedAnalyze)
   } catch { /* ignore malformed entries */ }
 }
@@ -368,7 +375,10 @@ async function confirmCreate() {
 async function handleCoachRequest() {
   if (!canCoachSubmit.value || isCoachLoading.value) return
   errorMessage.value = ''
-  const err = await requestCoach(buildPayload('coach'))
+  const payload = buildPayload('coach')
+  // In Skill-OFF mode, clear description immediately (acts as chat input box)
+  if (!coachSkillEnabled.value) form.description = ''
+  const err = await requestCoach(payload)
   if (!err) {
     addToast('success', t('toast.coachSuccess'))
     saveResponsesToStorage()
@@ -462,10 +472,13 @@ function handleKeyboard(e: KeyboardEvent) {
     if (!showConfirmModal.value) showSettingsModal.value = true
   } else if (e.ctrlKey && e.shiftKey && e.key === 'Enter') {
     e.preventDefault()
+    handleAnalyze()
+  } else if (e.ctrlKey && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
+    e.preventDefault()
     if (analyzeResponse.value) handleCreateClick()
   } else if (e.ctrlKey && e.key === 'Enter') {
     e.preventDefault()
-    handleAnalyze()
+    handleCoachRequest()
   }
 }
 

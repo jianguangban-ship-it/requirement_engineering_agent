@@ -1,5 +1,5 @@
-import { ref } from 'vue'
-import type { LLMRequestBody, LLMStreamChunk, WebhookPayload } from '@/types/api'
+import { ref, computed } from 'vue'
+import type { LLMRequestBody, LLMStreamChunk, LLMChatMessage, WebhookPayload, ChatMessage } from '@/types/api'
 import { getProviderUrl, getApiKey, getModel } from '@/config/llm'
 import { getCoachSkill, getAnalyzeSkill } from '@/config/skills/index'
 import { useI18n } from '@/i18n'
@@ -28,6 +28,11 @@ class GLM429Error extends Error {
   constructor(msg: string) { super(msg); this.name = 'GLM429Error' }
 }
 
+let _msgIdCounter = 0
+function nextMsgId(): string {
+  return `msg-${Date.now()}-${++_msgIdCounter}`
+}
+
 // ─── Stream flow factory ──────────────────────────────────────────────────────
 // Eliminates duplication between Coach and Analyze flows.
 // Fixes: timer leak on concurrent 429, infinite retry loop (max 3).
@@ -38,15 +43,14 @@ interface StreamFlowOptions {
   getSystemPrompt: (lang: 'en' | 'zh', payload: WebhookPayload) => string
   getUserMessage: (payload: WebhookPayload, isZh: boolean) => string
   onBeforeRequest?: (currentResponse: unknown) => void
-  /** When true, new responses are appended after previous ones with a --- separator */
-  preserveHistory?: boolean
+  /** When true, uses chat message array model instead of single response */
+  chatMode?: boolean
 }
 
 function createStreamFlow(
   opts: StreamFlowOptions,
   callStream: (
-    systemPrompt: string,
-    userMessage: string,
+    messages: LLMChatMessage[],
     onChunk: (text: string) => void,
     signal: AbortSignal
   ) => Promise<void>,
@@ -60,11 +64,13 @@ function createStreamFlow(
   const streamSpeed = ref(0)
   const backoffSecs = ref(0)
 
+  // Chat mode: message array
+  const messages = ref<ChatMessage[]>([])
+
   let _ac: AbortController | null = null
   let _lastPayload: WebhookPayload | null = null
   let _backoffTimer: number | null = null
   let _retryCount = 0
-  let _historyPrefix = ''
 
   async function request(payload: WebhookPayload, _isAutoRetry = false): Promise<string | null> {
     // Clear any existing backoff timer to prevent timer leak
@@ -76,13 +82,6 @@ function createStreamFlow(
     // Reset retry count on fresh user-initiated calls
     if (!_isAutoRetry) _retryCount = 0
 
-    // Capture current response as history prefix before clearing
-    if (!_isAutoRetry && opts.preserveHistory && response.value) {
-      const r = response.value as Record<string, unknown>
-      const text = typeof r?.message === 'string' ? r.message : ''
-      if (text) _historyPrefix = text
-    }
-
     _lastPayload = payload
     wasCancelled.value = false
     hadError.value = false
@@ -90,38 +89,111 @@ function createStreamFlow(
     backoffSecs.value = 0
     isLoading.value = true
 
-    opts.onBeforeRequest?.(response.value)
-    response.value = null
+    const lang: 'en' | 'zh' = isZh.value ? 'zh' : 'en'
+    const systemPrompt = opts.getSystemPrompt(lang, payload)
+    const userMessage = opts.getUserMessage(payload, isZh.value)
+
+    if (opts.chatMode) {
+      // Chat mode: push user message, then stream assistant reply
+      if (!_isAutoRetry) {
+        messages.value.push({
+          id: nextMsgId(),
+          role: 'user',
+          content: userMessage,
+          timestamp: Date.now()
+        })
+      }
+
+      // Add empty assistant message placeholder
+      const assistantMsg: ChatMessage = {
+        id: nextMsgId(),
+        role: 'assistant',
+        content: '',
+        timestamp: Date.now(),
+        isStreaming: true
+      }
+      messages.value.push(assistantMsg)
+      // Also set response for backward compat (DevTools etc.)
+      response.value = null
+    } else {
+      opts.onBeforeRequest?.(response.value)
+      response.value = null
+    }
+
     _ac = new AbortController()
 
     try {
-      const lang: 'en' | 'zh' = isZh.value ? 'zh' : 'en'
       let accumulated = ''
       let tokenCount = 0
       let streamStart = 0
 
-      const systemPrompt = opts.getSystemPrompt(lang, payload)
-      const userMessage = opts.getUserMessage(payload, isZh.value)
+      // Build API messages array
+      const apiMessages: LLMChatMessage[] = []
+      if (systemPrompt) {
+        apiMessages.push({ role: 'system', content: systemPrompt })
+      }
 
-      const historyPrefix = _historyPrefix ? _historyPrefix + '\n\n===COACH_TURN===\n\n' : ''
+      if (opts.chatMode) {
+        // Send full conversation history (excluding the current empty assistant placeholder)
+        for (const msg of messages.value) {
+          if (msg === messages.value[messages.value.length - 1]) break // skip the empty assistant placeholder
+          apiMessages.push({ role: msg.role, content: msg.content })
+        }
+      } else {
+        apiMessages.push({ role: 'user', content: userMessage })
+      }
 
-      await callStream(systemPrompt, userMessage, (chunk) => {
+      await callStream(apiMessages, (chunk) => {
         if (tokenCount === 0) streamStart = Date.now()
         tokenCount++
         accumulated += chunk
-        const full = historyPrefix + accumulated
-        response.value = { markdown_msg: full, message: full }
+
+        if (opts.chatMode) {
+          // Update the last assistant message in the array
+          const lastMsg = messages.value[messages.value.length - 1]
+          if (lastMsg && lastMsg.role === 'assistant') {
+            lastMsg.content = accumulated
+          }
+          // Also update response ref for backward compat
+          response.value = { markdown_msg: accumulated, message: accumulated }
+        } else {
+          response.value = { markdown_msg: accumulated, message: accumulated }
+        }
+
         const elapsed = (Date.now() - streamStart) / 1000
         if (elapsed > 0) streamSpeed.value = Math.round(tokenCount / elapsed)
       }, _ac.signal)
+
+      // Mark streaming complete
+      if (opts.chatMode) {
+        const lastMsg = messages.value[messages.value.length - 1]
+        if (lastMsg && lastMsg.role === 'assistant') {
+          lastMsg.isStreaming = false
+        }
+      }
+
       return null
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') {
         wasCancelled.value = true
         streamSpeed.value = 0
+        // Mark streaming stopped on cancel
+        if (opts.chatMode) {
+          const lastMsg = messages.value[messages.value.length - 1]
+          if (lastMsg && lastMsg.role === 'assistant') {
+            lastMsg.isStreaming = false
+          }
+        }
         return 'cancelled'
       }
       if (error instanceof GLM429Error) {
+        // Remove the empty assistant placeholder on 429 so retry can re-add it
+        if (opts.chatMode) {
+          const lastMsg = messages.value[messages.value.length - 1]
+          if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.content) {
+            messages.value.pop()
+          }
+        }
         _retryCount++
         if (_retryCount >= MAX_429_RETRIES) {
           streamSpeed.value = 0
@@ -141,6 +213,13 @@ function createStreamFlow(
       }
       streamSpeed.value = 0
       hadError.value = true
+      // Mark streaming stopped on error
+      if (opts.chatMode) {
+        const lastMsg = messages.value[messages.value.length - 1]
+        if (lastMsg && lastMsg.role === 'assistant') {
+          lastMsg.isStreaming = false
+        }
+      }
       return error instanceof Error ? error.message : t('error.requestFailed')
     } finally {
       _ac = null
@@ -163,7 +242,7 @@ function createStreamFlow(
   }
 
   function clear() {
-    _historyPrefix = ''
+    messages.value = []
     response.value = null
     wasCancelled.value = false
     hadError.value = false
@@ -171,7 +250,7 @@ function createStreamFlow(
     backoffSecs.value = 0
   }
 
-  return { isLoading, response, wasCancelled, hadError, streamSpeed, backoffSecs,
+  return { isLoading, response, messages, wasCancelled, hadError, streamSpeed, backoffSecs,
            request, cancel, retry, clear }
 }
 
@@ -211,8 +290,7 @@ export function useLLM() {
   }
 
   async function _callGLMStream(
-    systemPrompt: string,
-    userMessage: string,
+    apiMessages: LLMChatMessage[],
     onChunk: (text: string) => void,
     signal: AbortSignal
   ): Promise<void> {
@@ -228,10 +306,7 @@ export function useLLM() {
     const body: LLMRequestBody & { stream: true } = {
       model: getModel(),
       stream: true,
-      messages: [
-        ...(systemPrompt ? [{ role: 'system' as const, content: systemPrompt }] : []),
-        { role: 'user', content: userMessage }
-      ]
+      messages: apiMessages
     }
 
     // Normalize: if user entered a base URL (e.g. https://host/v1), append /chat/completions
@@ -291,10 +366,10 @@ export function useLLM() {
     }
   }
 
-  // ─── Coach flow ─────────────────────────────────────────────────────────────
+  // ─── Coach flow (chat mode) ────────────────────────────────────────────────
 
   const coach = createStreamFlow({
-    preserveHistory: true,
+    chatMode: true,
     getSystemPrompt: (lang) => {
       return coachSkillEnabled.value ? getCoachSkill(lang) : ''
     },
@@ -307,6 +382,17 @@ export function useLLM() {
       return buildUserMessage(payload, zh)
     }
   }, _callGLMStream, t, isZh)
+
+  // Backward-compatible computed: last assistant message content
+  const coachResponseCompat = computed(() => {
+    const msgs = coach.messages.value
+    if (msgs.length === 0) return null
+    const last = msgs[msgs.length - 1]
+    if (last.role === 'assistant' && last.content) {
+      return { markdown_msg: last.content, message: last.content }
+    }
+    return coach.response.value
+  })
 
   // ─── Analyze flow ───────────────────────────────────────────────────────────
 
@@ -325,7 +411,8 @@ export function useLLM() {
   return {
     // Coach
     isCoachLoading: coach.isLoading,
-    coachResponse: coach.response,
+    coachResponse: coachResponseCompat,
+    coachMessages: coach.messages,
     coachWasCancelled: coach.wasCancelled,
     coachHadError: coach.hadError,
     coachStreamSpeed: coach.streamSpeed,

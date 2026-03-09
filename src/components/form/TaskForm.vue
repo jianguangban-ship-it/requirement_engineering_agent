@@ -38,14 +38,22 @@
       <!-- Action Buttons -->
       <div class="form-actions">
         <button
-          class="action-btn action-reset"
-          :disabled="isSubmitting || isCoachLoading"
-          :title="t('form.reset')"
-          @click="$emit('reset')"
+          class="action-btn"
+          :class="isCoachLoading ? 'action-cancel' : 'action-reset'"
+          :disabled="isSubmitting && !isCoachLoading"
+          :title="isCoachLoading ? t('settings.cancel') : t('form.reset')"
+          @click="isCoachLoading ? $emit('cancelCoach') : $emit('reset')"
         >
-          <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-          </svg>
+          <Transition name="icon-swap" mode="out-in">
+            <!-- Cancel icon (stop square) when coach is streaming -->
+            <svg v-if="isCoachLoading" key="cancel" class="action-icon" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="6" width="12" height="12" rx="2" />
+            </svg>
+            <!-- Reset icon (circular arrow) when idle -->
+            <svg v-else key="reset" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+          </Transition>
         </button>
         <div class="action-group">
           <!-- Writing Guidance -->
@@ -134,6 +142,7 @@ defineEmits<{
   analyze: []
   create: []
   reset: []
+  cancelCoach: []
   projectChange: []
   clearError: []
 }>()
@@ -266,6 +275,35 @@ const { t } = useI18n()
 }
 .action-create:hover:not(:disabled) {
   filter: brightness(1.15);
+}
+
+/* Cancel (coach streaming) — pulsing red */
+.action-cancel {
+  background-color: var(--accent-red);
+  color: white;
+  animation: cancelPulse 1.5s ease-in-out infinite;
+}
+.action-cancel:hover:not(:disabled) {
+  filter: brightness(1.15);
+  animation: none;
+}
+@keyframes cancelPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(248, 81, 73, 0); }
+}
+
+/* Icon swap transition */
+.icon-swap-enter-active,
+.icon-swap-leave-active {
+  transition: all 0.15s ease;
+}
+.icon-swap-enter-from {
+  opacity: 0;
+  transform: scale(0.6) rotate(-90deg);
+}
+.icon-swap-leave-to {
+  opacity: 0;
+  transform: scale(0.6) rotate(90deg);
 }
 
 /* Disabled overrides for colored buttons */
