@@ -1,4 +1,8 @@
 export default {
+  confirm: {
+    cancel: '取消',
+    confirm: '确认'
+  },
   header: {
     title: '智能工程平台',
     themeDark: '切换深色模式',
@@ -67,6 +71,7 @@ export default {
   dev: {
     viewPayload: '查看请求 Payload',
     viewCoachPayload: '查看 Coach 响应（原始文本）',
+    noCoachResponse: '暂无 Coach 响应 — 请先发送消息。',
     webhookConfig: 'Webhook 配置',
     currentMode: '当前模式',
     production: '生产环境',
@@ -128,7 +133,34 @@ export default {
     taskCoachOff: '任务辅导 关',
     userLabel: '你',
     agentLabel: '教练',
-    typing: '思考中...'
+    typing: '思考中...',
+    // History tabs & features
+    tabChat: '对话',
+    tabHistory: '历史记录',
+    historySearch: '搜索消息...',
+    historyFilterAll: '全部',
+    historyFilterUser: '用户',
+    historyFilterCoach: '教练',
+    historySelected: '已选择 {n} 条',
+    historyDelete: '删除',
+    historyDownloadRaw: '下载原始数据',
+    historyClearAll: '清空全部',
+    historyReplay: '重新发送',
+    historyCapWarning: '{n}/200',
+    historyEmpty: '暂无历史记录',
+    historyEmptySub: '教练对话将会显示在这里',
+    downloadTitle: '下载 {n} 条记录',
+    downloadChooseFormat: '选择导出格式',
+    downloadJson: 'JSON',
+    downloadJsonDesc: '含元数据的结构化数据',
+    downloadMarkdown: 'Markdown',
+    downloadMarkdownDesc: '人类可读的原始内容',
+    downloadBoth: '两者都下载',
+    downloadCancel: '取消',
+    confirmDeleteTitle: '删除记录',
+    confirmDeleteMsg: '确定要删除选中的 {n} 条记录吗？',
+    confirmClearTitle: '清空所有历史',
+    confirmClearMsg: '这将永久删除全部 {n} 条历史记录，此操作无法撤销。'
   },
   quality: {
     excellent: '优秀',
@@ -203,6 +235,8 @@ export default {
     importSettings: '导入',
     importSkillMd: '导入 .md',
     exportSkillMd: '导出 .md',
+    responseFormat: '响应格式指令',
+    responseFormatHint: '附加到所有系统提示词末尾，告知 LLM 如何格式化响应（Markdown、数学公式等）。',
     templateEditor: '快捷模板管理',
     templateReset: '恢复默认',
     addChip: '添加模板',

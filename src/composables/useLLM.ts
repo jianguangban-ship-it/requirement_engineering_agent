@@ -3,6 +3,7 @@ import type { LLMRequestBody, LLMStreamChunk, LLMChatMessage, WebhookPayload, Ch
 import { getProviderUrl, getApiKey, getModel } from '@/config/llm'
 import { getCoachSkill, getAnalyzeSkill } from '@/config/skills/index'
 import { useI18n } from '@/i18n'
+import { addRecord } from '@/composables/useCoachHistory'
 
 const LS_KEY_COACH_SKILL_ENABLED = 'coach-skill-enabled'
 const LS_KEY_TASK_COACH_ENABLED = 'task-coach-enabled'
@@ -102,6 +103,11 @@ function createStreamFlow(
           content: userMessage,
           timestamp: Date.now()
         })
+        // Save user message to global coach history
+        if (opts.chatMode) {
+          const record = addRecord('user', userMessage)
+          messages.value[messages.value.length - 1].hashId = record.id
+        }
       }
 
       // Add empty assistant message placeholder
@@ -169,6 +175,11 @@ function createStreamFlow(
         const lastMsg = messages.value[messages.value.length - 1]
         if (lastMsg && lastMsg.role === 'assistant') {
           lastMsg.isStreaming = false
+          // Save completed coach response to global history
+          if (lastMsg.content) {
+            const record = addRecord('assistant', lastMsg.content)
+            lastMsg.hashId = record.id
+          }
         }
       }
 

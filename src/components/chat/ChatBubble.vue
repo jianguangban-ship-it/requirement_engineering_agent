@@ -21,6 +21,7 @@
       <span class="msg-role-label" :class="[`role-${message.role}`]">
         {{ message.role === 'assistant' ? t('coach.agentLabel') : t('coach.userLabel') }}
         <span class="msg-time">{{ timeLabel }}</span>
+        <span v-if="hashId" class="msg-hash">#{{ hashId }}</span>
       </span>
       <!-- Agent: formatted markdown -->
       <div
@@ -47,6 +48,7 @@ const agentAvatar = '/agent_avy.png'
 
 const props = defineProps<{
   message: ChatMessage
+  hashId?: string
 }>()
 
 // RAF-throttled formatting for streaming messages
@@ -178,6 +180,14 @@ const timeLabel = computed(() => {
   text-transform: none;
   letter-spacing: 0;
   opacity: 0.6;
+}
+.msg-hash {
+  font-size: 9px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.4;
+  font-family: var(--font-mono);
 }
 
 /* Content */

@@ -2049,3 +2049,97 @@ Added a new `<details>` section in `DevTools.vue` between "View Request Payload"
 | `src/i18n/en.ts` | Added `viewCoachPayload` key |
 | `src/i18n/zh.ts` | Added `viewCoachPayload` key |
 | `PLAN.md` | This changelog entry |
+
+---
+
+## v8.43 — Response Format Instructions & DevTools Always-Visible (2026-03-13)
+
+### Response Format Instructions
+
+Added a configurable **response-format.md** skill that is automatically appended to all LLM system prompts (both Coach and Analyze). This tells the LLM to use Markdown formatting with `$`/`$$` math delimiters, standard LaTeX commands, and language matching — ensuring the LLM output is always compatible with our unified/remark/rehype rendering pipeline.
+
+### Integration Design
+
+- `response-format.md` is imported as raw text and appended to the end of every system prompt via `getCoachSkill()` and `getAnalyzeSkill()`
+- New `getCoachSkillRaw()` / `getAnalyzeSkillRaw()` functions return skill content WITHOUT the appended format (used by the settings UI so users edit skills cleanly)
+- Fully configurable: editable in LLM Settings, persisted via localStorage, resettable to default — same pattern as Coach/Analyze skills
+
+### DevTools: Always-Visible Raw Coach Panel
+
+The "View Coach Response (Raw)" panel was previously hidden (`v-if="lastCoachRaw"`) until the first coach response, making it impossible to see on initial launch. Changed to always-visible with a placeholder message when empty.
+
+### Bug Fix Records
+
+| # | Bug | Root Cause | Fix |
+|---|-----|-----------|-----|
+| 1 | "View Coach Response (Raw)" invisible on initial launch | `v-if="lastCoachRaw"` hid the entire `<details>` when no assistant message existed | Removed `v-if`, show placeholder text when empty |
+
+### Test Coverage — 67 tests (all pass)
+
+| Category | Count | Change |
+|----------|-------|--------|
+| All previous categories | 66 | Unchanged |
+| `\left[...\right]` bracket math | 1 | New: inline math with `\left[-\frac{...}\right]^T` in Chinese context |
+
+### Changes
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | Response format skill | `response-format.md` — Markdown + math formatting instructions for LLM |
+| 2 | Skill system integration | `index.ts` — imports `response-format.md`, appends to all system prompts, adds get/set/reset/raw functions |
+| 3 | Settings UI | `LLMSettings.vue` — new "Response Format Instructions" textarea section with reset and char/token counter |
+| 4 | DevTools fix | `DevTools.vue` — raw coach panel always visible, placeholder when empty |
+| 5 | i18n | Added `responseFormat`, `responseFormatHint`, `noCoachResponse` keys in en.ts + zh.ts |
+| 6 | Version bump | `package.json` → 8.43.0, `AppHeader.vue` → v8.43 |
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `src/config/skills/response-format.md` | New: LLM response format instructions (Markdown, math, tables, language) |
+| `src/config/skills/index.ts` | Import response-format.md, append to system prompts, add raw getters + response format get/set/reset |
+| `src/components/settings/LLMSettings.vue` | New Response Format textarea section, use raw skill getters, persist on save |
+| `src/components/dev/DevTools.vue` | Always show raw coach panel, placeholder when empty |
+| `src/i18n/en.ts` | Added `responseFormat`, `responseFormatHint`, `noCoachResponse` |
+| `src/i18n/zh.ts` | Added `responseFormat`, `responseFormatHint`, `noCoachResponse` |
+| `src/utils/__tests__/mathRendering.test.ts` | Added `\left[...\right]` bracket math test (67 total) |
+| `src/components/layout/AppHeader.vue` | UI version → v8.43 |
+| `package.json` | Version → 8.43.0 |
+| `PLAN.md` | This changelog entry |
+
+## v8.44
+
+**Coach History — Global Q&A Record Storage with Bubble & Badge UI**
+
+### Design Rationale
+- Users needed persistent access to past coach conversations across sessions
+- Each message gets a unique 8-char hash ID + full timestamp for identification
+- localStorage chosen over IndexedDB — 200-record cap keeps it well within limits
+- Singleton composable pattern matches existing `useTicketHistory.ts`
+
+### Changes
+1. **CoachHistoryRecord type** — new interface in `api.ts`, derived from ChatMessage minus `isStreaming`
+2. **useCoachHistory composable** — singleton with CRUD, search, filter, cap (200), export (JSON/MD)
+3. **Chat/History tabs** — CoachPanel gains tab bar below header-actions; Chat is live conversation, History is past records
+4. **Hash ID badges** — every chat bubble now shows role badge + timestamp + hash ID
+5. **History tab UI** — search (debounced 150ms), role filter, multi-select with checkboxes, delete, clear all
+6. **Replay** — click on past USER messages to re-send to coach
+7. **Download modal** — compact modal with JSON / Markdown / Both format picker
+8. **i18n** — full EN + ZH strings for all new UI elements
+9. **Save policy** — only saves on normal completion (not cancel/error/429)
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `src/types/api.ts` | Added `CoachHistoryRecord` interface, `hashId` to `ChatMessage` |
+| `src/composables/useCoachHistory.ts` | **New** — history composable |
+| `src/composables/useLLM.ts` | Save messages to history on completion |
+| `src/components/panels/CoachPanel.vue` | Tab bar, history tab integration, replay emit |
+| `src/components/chat/ChatBubble.vue` | Hash ID badge |
+| `src/components/coach/CoachHistoryTab.vue` | **New** — history tab UI |
+| `src/components/coach/DownloadModal.vue` | **New** — format picker modal |
+| `src/components/layout/AppHeader.vue` | Version bump to v8.44 |
+| `src/i18n/en.ts` | Coach history i18n keys, confirm dialog keys |
+| `src/i18n/zh.ts` | Coach history i18n keys (Chinese), confirm dialog keys |
+| `src/App.vue` | Replay handler, setCoachSkillEnabled import |
+| `PLAN.md` | This section |

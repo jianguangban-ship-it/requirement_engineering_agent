@@ -44,6 +44,7 @@
             @retry="handleCoachRetry"
             @apply-chip="applyCoachChip"
             @import-templates="handleTemplateImport"
+            @replay="handleReplay"
           />
         </div>
 
@@ -134,7 +135,7 @@ import type { WebhookPayload } from '@/types/api'
 import { useI18n } from '@/i18n'
 import { useForm } from '@/composables/useForm'
 import { useWebhook } from '@/composables/useWebhook'
-import { useLLM, coachSkillEnabled, taskCoachEnabled } from '@/composables/useLLM'
+import { useLLM, coachSkillEnabled, setCoachSkillEnabled, taskCoachEnabled } from '@/composables/useLLM'
 import { useToast } from '@/composables/useToast'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 import { addTicket } from '@/composables/useTicketHistory'
@@ -387,6 +388,15 @@ async function handleCoachRequest() {
     errorMessage.value = err
     addToast('error', err)
   }
+}
+
+function handleReplay(content: string) {
+  form.description = content
+  // Force Skill OFF for replay — avoids canSubmit guard when form fields are empty
+  if (coachSkillEnabled.value) {
+    setCoachSkillEnabled(false)
+  }
+  nextTick(() => handleCoachRequest())
 }
 
 async function handleCoachRetry() {

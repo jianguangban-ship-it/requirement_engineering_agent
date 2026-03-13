@@ -44,6 +44,28 @@
       </svg>
     </template>
 
+    <!-- Tab bar -->
+    <div class="coach-tabs">
+      <button
+        class="coach-tab"
+        :class="{ 'tab-active': activeTab === 'chat' }"
+        @click="activeTab = 'chat'"
+      >
+        {{ t('coach.tabChat') }}
+      </button>
+      <button
+        class="coach-tab"
+        :class="{ 'tab-active': activeTab === 'history' }"
+        @click="activeTab = 'history'"
+      >
+        {{ t('coach.tabHistory') }}
+        <span v-if="isNearCap" class="cap-badge">
+          {{ t('coach.historyCapWarning').replace('{n}', String(recordCount)) }}
+        </span>
+      </button>
+    </div>
+
+    <template v-if="activeTab === 'chat'">
     <!-- Empty state (no messages yet, not loading) -->
     <div v-if="messages.length === 0 && !isLoading" class="empty-state">
       <!-- 429 backoff countdown -->
@@ -87,6 +109,7 @@
           v-for="msg in messages"
           :key="msg.id"
           :message="msg"
+          :hash-id="msg.hashId"
         />
       </TransitionGroup>
 
@@ -127,6 +150,13 @@
         </button>
       </div>
     </div>
+    </template>
+
+    <!-- History tab -->
+    <CoachHistoryTab
+      v-if="activeTab === 'history'"
+      @replay="handleReplay"
+    />
   </PanelShell>
 </template>
 
@@ -142,6 +172,8 @@ import { currentModel } from '@/config/llm'
 import PanelShell from '@/components/layout/PanelShell.vue'
 import QuickChip from '@/components/shared/QuickChip.vue'
 import ChatBubble from '@/components/chat/ChatBubble.vue'
+import CoachHistoryTab from '@/components/coach/CoachHistoryTab.vue'
+import { isNearCap, recordCount } from '@/composables/useCoachHistory'
 
 const props = defineProps<{
   messages: ChatMessage[]
@@ -157,7 +189,15 @@ const emit = defineEmits<{
   retry: []
   applyChip: [key: string]
   importTemplates: [templates: import('@/types/template').TemplateDefinition[]]
+  replay: [content: string]
 }>()
+
+const activeTab = ref<'chat' | 'history'>('chat')
+
+function handleReplay(content: string) {
+  activeTab.value = 'chat'
+  emit('replay', content)
+}
 
 const { t, isZh } = useI18n()
 const { addToast } = useToast()
@@ -274,6 +314,46 @@ const chips = computed(() =>
 </script>
 
 <style scoped>
+/* Tab bar */
+.coach-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+}
+.coach-tab {
+  flex: 1;
+  text-align: center;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.coach-tab:hover {
+  color: var(--text-secondary);
+}
+.tab-active {
+  color: var(--accent-blue);
+  border-bottom-color: var(--accent-blue);
+  background-color: var(--bg-secondary);
+}
+.cap-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background-color: var(--orange-subtle, var(--bg-tertiary));
+  color: var(--accent-orange);
+  font-weight: 600;
+}
+
 .panel-icon {
   width: 16px;
   height: 16px;

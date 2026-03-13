@@ -1,4 +1,8 @@
 export default {
+  confirm: {
+    cancel: 'Cancel',
+    confirm: 'Confirm'
+  },
   header: {
     title: 'Agentic Engineering Platform',
     themeDark: 'Switch to dark mode',
@@ -67,6 +71,7 @@ export default {
   dev: {
     viewPayload: 'View Request Payload',
     viewCoachPayload: 'View Coach Response (Raw)',
+    noCoachResponse: 'No coach response yet — send a message first.',
     webhookConfig: 'Webhook Configuration',
     currentMode: 'Current Mode',
     production: 'Production',
@@ -128,7 +133,34 @@ export default {
     taskCoachOff: 'Task Coach OFF',
     userLabel: 'You',
     agentLabel: 'Coach',
-    typing: 'Thinking...'
+    typing: 'Thinking...',
+    // History tabs & features
+    tabChat: 'Chat',
+    tabHistory: 'History',
+    historySearch: 'Search messages...',
+    historyFilterAll: 'All',
+    historyFilterUser: 'User',
+    historyFilterCoach: 'Coach',
+    historySelected: '{n} selected',
+    historyDelete: 'Delete',
+    historyDownloadRaw: 'Download Raw',
+    historyClearAll: 'Clear All',
+    historyReplay: 'Replay',
+    historyCapWarning: '{n}/200',
+    historyEmpty: 'No history records yet',
+    historyEmptySub: 'Coach conversations will appear here',
+    downloadTitle: 'Download {n} records',
+    downloadChooseFormat: 'Choose export format',
+    downloadJson: 'JSON',
+    downloadJsonDesc: 'Raw structured data with metadata',
+    downloadMarkdown: 'Markdown',
+    downloadMarkdownDesc: 'Human-readable with raw content',
+    downloadBoth: 'Both',
+    downloadCancel: 'Cancel',
+    confirmDeleteTitle: 'Delete Records',
+    confirmDeleteMsg: 'Are you sure you want to delete {n} selected records?',
+    confirmClearTitle: 'Clear All History',
+    confirmClearMsg: 'This will permanently delete all {n} history records. This cannot be undone.'
   },
   quality: {
     excellent: 'Excellent',
@@ -203,6 +235,8 @@ export default {
     importSettings: 'Import',
     importSkillMd: 'Import .md',
     exportSkillMd: 'Export .md',
+    responseFormat: 'Response Format Instructions',
+    responseFormatHint: 'Appended to all system prompts. Tells the LLM how to format its responses (Markdown, math notation, etc.).',
     templateEditor: 'Template Chips',
     templateReset: 'Reset to Defaults',
     addChip: 'Add Chip',

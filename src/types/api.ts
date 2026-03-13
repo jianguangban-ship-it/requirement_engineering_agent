@@ -63,7 +63,17 @@ export interface ChatMessage {
   content: string
   timestamp: number
   isStreaming?: boolean
+  hashId?: string         // 8-char hex from coach history record
 }
+
+/** A single record in the persistent global coach history */
+export interface CoachHistoryRecord {
+  id: string              // 8-char random hex
+  role: 'user' | 'assistant'
+  content: string         // raw unrendered content
+  timestamp: number       // Date.now() at creation
+}
+
 export interface LLMRequestBody {
   model: string
   messages: LLMChatMessage[]
