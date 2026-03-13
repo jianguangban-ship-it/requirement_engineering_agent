@@ -14,11 +14,11 @@ function escapeHtml(text: string): string {
  * Render a markdown string to HTML using markdown-it + KaTeX.
  * Applies coach-specific post-processing (turn dividers, status icons).
  */
-function formatMarkdownText(text: string): string {
+function formatMarkdownText(text: string, isStreaming = false): string {
   if (!text) return ''
 
   // Render markdown (tables, math, code, lists, headings, etc.)
-  return renderMarkdown(text)
+  return renderMarkdown(text, isStreaming)
 }
 
 function formatCommentList(comment: string): string {
@@ -52,7 +52,7 @@ function formatCommentList(comment: string): string {
   return `<p>${text}</p>`
 }
 
-export function formatCoachResponse(data: unknown): string {
+export function formatCoachResponse(data: unknown, isStreaming = false): string {
   if (!data) return ''
 
   let item: Record<string, unknown> | null = null
@@ -70,7 +70,7 @@ export function formatCoachResponse(data: unknown): string {
 
   if (!hasStructuredFields) {
     const text = (item.raw_content || item.message || item.output || item.content || item.text || '') as string
-    if (text) return formatMarkdownText(text)
+    if (text) return formatMarkdownText(text, isStreaming)
   }
 
   // Build structured output
@@ -106,7 +106,7 @@ export function formatCoachResponse(data: unknown): string {
   }
 
   if (item.markdown_msg) {
-    html += `<div class="coach-main-message">${formatMarkdownText(item.markdown_msg as string)}</div>`
+    html += `<div class="coach-main-message">${formatMarkdownText(item.markdown_msg as string, isStreaming)}</div>`
   }
 
   if (item.comment) {
@@ -117,7 +117,7 @@ export function formatCoachResponse(data: unknown): string {
   }
 
   if (item.raw_content && !item.markdown_msg && !item.comment) {
-    html += `<div class="coach-main-message">${formatMarkdownText(item.raw_content as string)}</div>`
+    html += `<div class="coach-main-message">${formatMarkdownText(item.raw_content as string, isStreaming)}</div>`
   }
 
   return html || '<div class="coach-empty">No content available</div>'

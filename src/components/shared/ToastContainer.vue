@@ -86,25 +86,25 @@ const { toasts, removeToast } = useToast()
 }
 
 .toast-success {
-  border-color: rgba(63, 185, 80, 0.3);
+  border-color: var(--green-border);
 }
 .toast-success .toast-icon {
   color: var(--accent-green);
 }
 .toast-error {
-  border-color: rgba(248, 81, 73, 0.3);
+  border-color: var(--red-border);
 }
 .toast-error .toast-icon {
   color: var(--accent-red);
 }
 .toast-warning {
-  border-color: rgba(210, 153, 34, 0.3);
+  border-color: var(--orange-border);
 }
 .toast-warning .toast-icon {
   color: var(--accent-orange);
 }
 .toast-info {
-  border-color: rgba(88, 166, 255, 0.3);
+  border-color: var(--blue-border);
 }
 .toast-info .toast-icon {
   color: var(--accent-blue);

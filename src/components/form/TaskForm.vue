@@ -160,7 +160,7 @@ const { t } = useI18n()
   padding: 12px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--accent-red);
-  background-color: rgba(248, 81, 73, 0.1);
+  background-color: var(--red-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -225,7 +225,7 @@ const { t } = useI18n()
   border-radius: var(--radius-md);
   border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.165, 0.85, 0.45, 1);
   position: relative;
 }
 .action-btn:disabled {
@@ -288,8 +288,8 @@ const { t } = useI18n()
   animation: none;
 }
 @keyframes cancelPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.4); }
-  50% { box-shadow: 0 0 0 4px rgba(248, 81, 73, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 var(--red-border); }
+  50% { box-shadow: 0 0 0 4px transparent; }
 }
 
 /* Icon swap transition */

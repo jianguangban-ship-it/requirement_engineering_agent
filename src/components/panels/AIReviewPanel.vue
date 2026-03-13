@@ -169,7 +169,7 @@ const formattedAnalysis = ref('')
 watch(() => props.response, (val) => {
   if (_rafId !== null) return
   _rafId = requestAnimationFrame(() => {
-    formattedAnalysis.value = formatCoachResponse(val)
+    formattedAnalysis.value = formatCoachResponse(val, props.isAnalyzing)
     _rafId = null
   })
 }, { immediate: true })
@@ -290,16 +290,16 @@ async function copyResponse() {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 3px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; margin-bottom: 8px;
 }
-.coach-response :deep(.coach-status-pass) { background-color: rgba(63,185,80,.15); color: var(--accent-green); border: 1px solid rgba(63,185,80,.3); }
-.coach-response :deep(.coach-status-fail) { background-color: rgba(248,81,73,.15); color: var(--accent-red); border: 1px solid rgba(248,81,73,.3); }
-.coach-response :deep(.coach-status-warn) { background-color: rgba(210,153,34,.15); color: var(--accent-orange); border: 1px solid rgba(210,153,34,.3); }
+.coach-response :deep(.coach-status-pass) { background-color: var(--green-subtle); color: var(--accent-green); border: 1px solid var(--green-border); }
+.coach-response :deep(.coach-status-fail) { background-color: var(--red-subtle); color: var(--accent-red); border: 1px solid var(--red-border); }
+.coach-response :deep(.coach-status-warn) { background-color: var(--orange-subtle); color: var(--accent-orange); border: 1px solid var(--orange-border); }
 .coach-response :deep(.coach-info-row) { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--border-color); font-size: 12px; }
 .coach-response :deep(.coach-info-label) { color: var(--text-muted); }
 .coach-response :deep(.coach-info-value) { color: var(--text-primary); font-weight: 500; }
 .coach-response :deep(.coach-main-message) { background-color: var(--bg-tertiary); border-radius: 6px; padding: 8px 10px; margin: 6px 0; border-left: 3px solid var(--accent-purple); }
 .coach-response :deep(.coach-comment-title) { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
 .coach-response :deep(.coach-issues-list) { display: flex; flex-direction: column; gap: 5px; }
-.coach-response :deep(.coach-issue-item) { display: flex; align-items: flex-start; gap: 8px; padding: 5px 8px; background-color: rgba(248,81,73,.06); border-radius: 6px; border-left: 3px solid var(--accent-red); }
+.coach-response :deep(.coach-issue-item) { display: flex; align-items: flex-start; gap: 8px; padding: 5px 8px; background-color: var(--red-subtle); border-radius: 6px; border-left: 3px solid var(--accent-red); }
 .coach-response :deep(.coach-issue-num) { display: flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; background-color: var(--accent-red); color: white; border-radius: 50%; font-size: 10px; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
 .coach-response :deep(.coach-issue-text) { font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
 .coach-response :deep(.coach-highlight-error) { color: var(--accent-red); font-weight: 600; }
@@ -318,14 +318,14 @@ async function copyResponse() {
   white-space: nowrap;
 }
 .badge-llm {
-  background-color: rgba(88, 166, 255, 0.15);
+  background-color: var(--blue-subtle);
   color: var(--accent-blue);
-  border: 1px solid rgba(88, 166, 255, 0.3);
+  border: 1px solid var(--blue-border);
 }
 .badge-n8n {
-  background-color: rgba(210, 153, 34, 0.15);
+  background-color: var(--orange-subtle);
   color: var(--accent-orange);
-  border: 1px solid rgba(210, 153, 34, 0.3);
+  border: 1px solid var(--orange-border);
 }
 
 .copy-btn {
@@ -352,7 +352,7 @@ async function copyResponse() {
 .copy-btn.diff-active {
   color: var(--accent-blue);
   border-color: var(--accent-blue);
-  background-color: rgba(88, 166, 255, 0.1);
+  background-color: var(--blue-subtle);
 }
 .copy-btn svg {
   width: 13px;
@@ -367,14 +367,14 @@ async function copyResponse() {
   line-height: 1.7;
 }
 .diff-view :deep(.diff-add) {
-  background-color: rgba(63, 185, 80, 0.2);
+  background-color: var(--green-subtle);
   color: var(--accent-green);
   text-decoration: none;
   border-radius: 2px;
   padding: 0 1px;
 }
 .diff-view :deep(.diff-del) {
-  background-color: rgba(248, 81, 73, 0.15);
+  background-color: var(--red-subtle);
   color: var(--accent-red);
   text-decoration: line-through;
   border-radius: 2px;
@@ -423,14 +423,14 @@ async function copyResponse() {
   border-radius: var(--radius-md);
   font-size: 12px;
   font-weight: 500;
-  background-color: rgba(248, 81, 73, 0.1);
+  background-color: var(--red-subtle);
   color: var(--accent-red);
-  border: 1px solid rgba(248, 81, 73, 0.3);
+  border: 1px solid var(--red-border);
   cursor: pointer;
   transition: background-color 0.15s;
   margin-top: 12px;
 }
-.cancel-btn:hover { background-color: rgba(248, 81, 73, 0.2); }
+.cancel-btn:hover { background-color: var(--red-border); }
 .cancel-icon { width: 12px; height: 12px; }
 
 .retry-row {

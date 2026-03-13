@@ -32,7 +32,7 @@ defineEmits<{
 .quick-chip:hover {
   border-color: var(--accent-blue);
   color: var(--accent-blue);
-  background-color: rgba(88, 166, 255, 0.08);
+  background-color: var(--blue-wash);
 }
 .chip-icon,
 .chip-label {

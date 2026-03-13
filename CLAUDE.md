@@ -39,10 +39,33 @@ npx tap --ts test/*.test.*ts
 ## Project stack
 
 - Vue 3 + TypeScript + Vite
-- Markdown: `markdown-it` + `markdown-it-texmath` (KaTeX) + `DOMPurify`
-- Syntax highlighting: `highlight.js` (tree-shaken, 13 languages)
+- Markdown + Math: `unified` / `remark-parse` / `remark-math` / `remark-gfm` / `remark-breaks` / `remark-rehype` / `rehype-katex` / `rehype-highlight` / `rehype-raw` / `rehype-stringify` + `DOMPurify`
+- Math rendering: **KaTeX** (not MathJax) — fast synchronous rendering, good for streaming LLM output
 - JSON viewer: recursive `JsonNode.vue` component
 - Tests: Vitest + @vue/test-utils
+
+## Architecture decisions — MUST follow
+
+### Prefer AST-based parsing over regex for structured content
+
+**Do NOT use regex-based solutions for parsing markdown, math, or any structured content.**
+Use AST-based libraries (unified/remark/rehype ecosystem) instead.
+
+**Why:** In v8.40–v8.42 we learned that regex-based markdown-math parsing (`markdown-it-texmath` with `/\${2}([^$]*?[^\\])\${2}/gmy`) passed all unit tests but failed in production on real LLM output. Subtle whitespace, encoding, and multiline edge cases made regex fundamentally unreliable. The rewrite to AST-based `remark-math` eliminated an entire class of bugs. This applies generally: whenever you need to parse structured text (markdown, HTML, LaTeX, code), prefer a proper parser/AST over regex.
+
+**How to apply:**
+- Markdown rendering → `unified` + `remark-*` + `rehype-*` pipeline (already in place)
+- Math delimiters → `remark-math` (AST-level, not regex extraction)
+- HTML sanitization → `DOMPurify` (DOM-level, not regex stripping)
+- If you must use regex, limit it to **simple, flat text transformations** (e.g. `\[...\]` → `$$...$$` delimiter conversion) that don't interact with nested/structured content
+
+### Bilingual (Chinese + English) rendering support
+
+All UI rendering — especially markdown + math — **must work correctly in both Chinese and English contexts**. Key differences to account for:
+- Chinese text often has **no space** between text and math delimiters (`横向加速度$a_y$的估计值`)
+- Chinese full-width punctuation (，。：；) can appear adjacent to `$` delimiters
+- Mixed EN/ZH paragraphs are common in LLM coaching responses
+- Test coverage must include Chinese scenarios (see `mathRendering.test.ts` bilingual section, 12+ tests)
 
 ## Key files
 

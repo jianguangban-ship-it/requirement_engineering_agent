@@ -1,21 +1,35 @@
 :root,
 [data-theme="dark"] {
-  --bg-primary: #0d1117;
-  --bg-secondary: #161b22;
-  --bg-tertiary: #21262d;
-  --border-color: #30363d;
-  --text-primary: #e6edf3;
-  --text-secondary: #adbac7;   /* fix: was #f6f7f8, brighter than primary */
-  --text-muted: #768390;
-  --accent-green: #3fb950;
-  --accent-blue: #58a6ff;
-  --accent-red: #f85149;
-  --accent-orange: #e3b341;    /* brighter than #d29922 for dark bg readability */
-  --accent-purple: #a371f7;
+  /* Warm dark palette inspired by Claude.ai dark theme */
+  --bg-primary: #252523;       /* main page bg — warm near-black (Claude bg-100) */
+  --bg-secondary: #2F2E2B;     /* panels, cards — warm elevated (Claude bg-000) */
+  --bg-tertiary: #3A3935;      /* inputs, dropdowns, nested surfaces */
+  --border-color: #4A4740;     /* warm border — low-contrast separator */
+  --text-primary: #FDFAF2;     /* warm white (Claude text-000) */
+  --text-secondary: #BEB9B0;   /* warm light gray (Claude text-200) */
+  --text-muted: #918D85;       /* warm muted (Claude text-400 adjusted) */
+  --accent-green: #5DBB30;     /* warm yellow-green (Claude success-000) */
+  --accent-blue: #6BAAE0;      /* soft blue (Claude accent-000) */
+  --accent-red: #D94848;       /* warm red (Claude danger-100) */
+  --accent-orange: #DA9825;    /* rich amber (Claude warning-000) */
+  --accent-purple: #9B7DF5;    /* warm lavender (Claude accent-pro-000) */
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
-  --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  /* Warm-tinted shadows */
+  --shadow-sm: 0 1px 2px rgba(18, 16, 12, 0.5);
+  --shadow-panel: 0 1px 3px rgba(18, 16, 12, 0.5), 0 4px 16px rgba(18, 16, 12, 0.4);
+  --shadow-modal: 0 8px 32px rgba(18, 16, 12, 0.7), 0 2px 8px rgba(18, 16, 12, 0.5);
+
+  /* Semi-transparent accent overlays */
+  --blue-subtle: rgba(107, 170, 224, 0.12);
+  --blue-border: rgba(107, 170, 224, 0.25);
+  --blue-wash: rgba(107, 170, 224, 0.06);
+  --green-subtle: rgba(93, 187, 48, 0.12);
+  --green-border: rgba(93, 187, 48, 0.25);
+  --green-glow: rgba(93, 187, 48, 0.25);
+  --red-subtle: rgba(217, 72, 72, 0.10);
+  --red-border: rgba(217, 72, 72, 0.25);
+  --orange-subtle: rgba(218, 152, 37, 0.12);
+  --orange-border: rgba(218, 152, 37, 0.25);
 
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -34,20 +48,34 @@
 }
 
 [data-theme="light"] {
-  --bg-primary: #F8FAFC;       /* slate-50 */
-  --bg-secondary: #f1f5f9;     /* slate-100 */
-  --bg-tertiary: #e2e8f0;      /* slate-200 */
-  --border-color: #cbd5e1;     /* slate-300 */
-  --text-primary: #1E293B;     /* slate-800 */
-  --text-secondary: #475569;   /* slate-600 */
-  --text-muted: #94a3b8;       /* slate-400 */
-  --accent-green: #1a7f37;
-  --accent-blue: #0969da;
-  --accent-red: #cf222e;
-  --accent-orange: #bf8700;
-  --accent-purple: #8250df;
+  /* Warm cream/beige palette inspired by Claude.ai light theme */
+  --bg-primary: #FAF9F6;       /* warm white */
+  --bg-secondary: #F3F1EC;     /* warm off-white */
+  --bg-tertiary: #E8E5DE;      /* warm light gray */
+  --border-color: #D6D2C9;     /* warm border */
+  --text-primary: #1A1A17;     /* warm near-black */
+  --text-secondary: #4A4840;   /* warm dark gray */
+  --text-muted: #8F8C83;       /* warm muted */
+  --accent-green: #2D8A4E;
+  --accent-blue: #2B6CB0;
+  --accent-red: #C53030;
+  --accent-orange: #B7791F;
+  --accent-purple: #6B46C1;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06);
-  --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* Warm-tinted soft shadows */
+  --shadow-sm: 0 1px 2px rgba(80, 70, 50, 0.05);
+  --shadow-panel: 0 1px 3px rgba(80, 70, 50, 0.06), 0 4px 12px rgba(80, 70, 50, 0.04);
+  --shadow-modal: 0 8px 24px rgba(80, 70, 50, 0.12), 0 2px 8px rgba(80, 70, 50, 0.06);
+
+  /* Warm semi-transparent accent overlays */
+  --blue-subtle: rgba(43, 108, 176, 0.12);
+  --blue-border: rgba(43, 108, 176, 0.25);
+  --blue-wash: rgba(43, 108, 176, 0.05);
+  --green-subtle: rgba(45, 138, 78, 0.12);
+  --green-border: rgba(45, 138, 78, 0.25);
+  --green-glow: rgba(45, 138, 78, 0.25);
+  --red-subtle: rgba(197, 48, 48, 0.08);
+  --red-border: rgba(197, 48, 48, 0.25);
+  --orange-subtle: rgba(183, 121, 31, 0.12);
+  --orange-border: rgba(183, 121, 31, 0.25);
 }

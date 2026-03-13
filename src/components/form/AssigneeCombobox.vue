@@ -147,7 +147,7 @@ onUnmounted(() => {
 .combobox-input:focus {
   outline: none;
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+  box-shadow: 0 0 0 3px var(--blue-subtle);
 }
 .combobox-input::placeholder {
   color: var(--text-muted);
@@ -178,7 +178,7 @@ onUnmounted(() => {
   max-height: 240px;
   overflow-y: auto;
   z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  box-shadow: var(--shadow-panel);
 }
 .combobox-group-header {
   padding: 8px 14px 4px;
@@ -204,7 +204,7 @@ onUnmounted(() => {
   background-color: var(--bg-tertiary);
 }
 .combobox-option.selected {
-  background-color: rgba(88, 166, 255, 0.15);
+  background-color: var(--blue-subtle);
 }
 .avatar {
   width: 28px;

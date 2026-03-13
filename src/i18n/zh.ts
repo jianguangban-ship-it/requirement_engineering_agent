@@ -66,6 +66,7 @@ export default {
   },
   dev: {
     viewPayload: '查看请求 Payload',
+    viewCoachPayload: '查看 Coach 响应（原始文本）',
     webhookConfig: 'Webhook 配置',
     currentMode: '当前模式',
     production: '生产环境',

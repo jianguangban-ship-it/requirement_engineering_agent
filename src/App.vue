@@ -102,6 +102,7 @@
 
           <DevTools
             :payload="jsonPayload"
+            :coach-messages="coachMessages"
             :active-model="activeModel"
             :coach-skill-modified="coachSkillModified"
             :analyze-skill-modified="analyzeSkillModified"
@@ -513,7 +514,7 @@ onUnmounted(() => {
 .grid-layout {
   display: grid;
   grid-template-columns: 3fr 3fr 2fr;
-  gap: 20px;
+  gap: 10px;
   transition: grid-template-columns 250ms ease-in-out;
 }
 .grid-layout.layout-focus {

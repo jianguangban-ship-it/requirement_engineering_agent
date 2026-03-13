@@ -7,7 +7,7 @@
         <span class="dot blue"></span>
       </div>
       <h1 class="header-title">{{ t('header.title') }}</h1>
-      <span class="header-version">v8.37</span>
+      <span class="header-version">v8.42</span>
     </div>
     <div class="header-right">
       <!-- Language Toggle -->
@@ -174,11 +174,11 @@ defineEmits<{ openSettings: [] }>()
   gap: 6px;
 }
 .status-badge.prod {
-  background-color: rgba(63, 185, 80, 0.15);
+  background-color: var(--green-subtle);
   color: var(--accent-green);
 }
 .status-badge.test {
-  background-color: rgba(210, 153, 34, 0.15);
+  background-color: var(--orange-subtle);
   color: var(--accent-orange);
 }
 .status-pulse {

@@ -163,9 +163,9 @@ function relativeDate(iso: string): string {
   font-size: 10px;
   padding: 1px 5px;
   border-radius: var(--radius-sm);
-  background-color: rgba(88, 166, 255, 0.1);
+  background-color: var(--blue-wash);
   color: var(--accent-blue);
-  border: 1px solid rgba(88, 166, 255, 0.2);
+  border: 1px solid var(--blue-subtle);
 }
 
 .entry-date {

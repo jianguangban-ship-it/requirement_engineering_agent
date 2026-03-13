@@ -66,6 +66,7 @@ export default {
   },
   dev: {
     viewPayload: 'View Request Payload',
+    viewCoachPayload: 'View Coach Response (Raw)',
     webhookConfig: 'Webhook Configuration',
     currentMode: 'Current Mode',
     production: 'Production',

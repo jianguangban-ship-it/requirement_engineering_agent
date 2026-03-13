@@ -75,6 +75,7 @@ const bodyStyle = computed(() => {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 .panel-header {
   padding: 12px 16px;

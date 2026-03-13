@@ -2,6 +2,11 @@
    Used by ChatBubble.vue and any component rendering coach/assistant markdown.
    Applied via the `.coach-response` wrapper class (unscoped so child HTML works). */
 
+.coach-response {
+  line-height: 1.7;
+  word-break: break-word;
+}
+
 .coach-response h1,
 .coach-response h2 { font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 12px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
 .coach-response h3 { font-size: 13px; font-weight: 600; color: var(--text-primary); margin: 10px 0 5px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
@@ -38,44 +43,95 @@
 .coach-response td { padding: 5px 10px; border: 1px solid var(--border-color); color: var(--text-secondary); line-height: 1.4; }
 .coach-response tbody tr:hover { background-color: var(--bg-secondary); }
 
-.coach-response .coach-status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; margin-bottom: 8px; }
-.coach-response .coach-status-pass { background-color: rgba(63,185,80,.15); color: var(--accent-green); border: 1px solid rgba(63,185,80,.3); }
-.coach-response .coach-status-fail { background-color: rgba(248,81,73,.15); color: var(--accent-red); border: 1px solid rgba(248,81,73,.3); }
-.coach-response .coach-status-warn { background-color: rgba(210,153,34,.15); color: var(--accent-orange); border: 1px solid rgba(210,153,34,.3); }
-.coach-response .coach-info-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--border-color); font-size: 12px; }
+.coach-response .coach-status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 0; font-weight: 600; font-size: 12px; margin-bottom: 8px; }
+.coach-response .coach-status-pass { background: transparent; color: var(--accent-green); border: none; }
+.coach-response .coach-status-fail { background: transparent; color: var(--accent-red); border: none; }
+.coach-response .coach-status-warn { background: transparent; color: var(--accent-orange); border: none; }
+.coach-response .coach-info-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 12px; }
 .coach-response .coach-info-label { color: var(--text-muted); }
 .coach-response .coach-info-value { color: var(--text-primary); font-weight: 500; }
-.coach-response .coach-main-message { background-color: var(--bg-tertiary); border-radius: 6px; padding: 8px 10px; margin: 6px 0; border-left: 3px solid var(--accent-blue); }
+.coach-response .coach-main-message { padding: 0; margin: 6px 0; }
 .coach-response .coach-comment-title { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
 .coach-response .coach-issues-list { display: flex; flex-direction: column; gap: 5px; }
-.coach-response .coach-issue-item { display: flex; align-items: flex-start; gap: 8px; padding: 5px 8px; background-color: rgba(248,81,73,.06); border-radius: 6px; border-left: 3px solid var(--accent-red); }
-.coach-response .coach-issue-num { display: flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; background-color: var(--accent-red); color: white; border-radius: 50%; font-size: 10px; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
+.coach-response .coach-issue-item { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; }
+.coach-response .coach-issue-num { display: flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; color: var(--accent-red); font-size: 10px; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
 .coach-response .coach-issue-text { font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
 .coach-response .coach-highlight-error { color: var(--accent-red); font-weight: 600; }
 
-/* ─── KaTeX: match text color ────────────────────────────────────────────────── */
+/* ─── KaTeX: match text color and prevent layout breaking ────────────────────── */
 .coach-response .katex { color: var(--text-primary); }
 .coach-response .katex .mathnormal,
 .coach-response .katex .mathit,
 .coach-response .katex .mathrm { color: inherit; }
 
-/* ─── Light-mode highlight.js overrides (github-light palette) ───────────────── */
-[data-theme="light"] .hljs { background: var(--bg-tertiary); color: #24292e; }
+/* Display math blocks: horizontal scroll instead of breaking bubble width */
+.coach-response .katex-display {
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 0;
+  min-height: 2em;
+  -webkit-overflow-scrolling: touch;
+}
+.coach-response .katex-display > .katex {
+  white-space: nowrap;
+}
+/* Inline math: prevent overflow */
+.coach-response .katex:not(.katex-display .katex) {
+  overflow-wrap: break-word;
+}
+
+/* ─── markdown-it-texmath eq/eqn wrappers ────────────────────────────────────── */
+.coach-response eqn {
+  display: block;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 0;
+  min-height: 2em;
+  text-align: center;
+}
+.coach-response eq {
+  display: inline;
+}
+
+/* ─── Dark-mode highlight.js overrides (warm Claude.ai-inspired palette) ──────── */
+[data-theme="dark"] .hljs { background: var(--bg-tertiary); color: #DEDAD2; }
+[data-theme="dark"] .hljs-keyword,
+[data-theme="dark"] .hljs-selector-tag,
+[data-theme="dark"] .hljs-type { color: #E06C75; }
+[data-theme="dark"] .hljs-string,
+[data-theme="dark"] .hljs-addition { color: #9BE563; }
+[data-theme="dark"] .hljs-comment,
+[data-theme="dark"] .hljs-quote { color: #918D85; font-style: italic; }
+[data-theme="dark"] .hljs-number,
+[data-theme="dark"] .hljs-literal { color: #D19A66; }
+[data-theme="dark"] .hljs-built_in,
+[data-theme="dark"] .hljs-builtin-name { color: #FBAD60; }
+[data-theme="dark"] .hljs-function .hljs-title,
+[data-theme="dark"] .hljs-title.function_ { color: #6BAAE0; }
+[data-theme="dark"] .hljs-variable,
+[data-theme="dark"] .hljs-attr { color: #FBAD60; }
+[data-theme="dark"] .hljs-deletion { color: #E06C75; background-color: rgba(224, 108, 117, 0.1); }
+[data-theme="dark"] .hljs-meta { color: #DA9825; }
+[data-theme="dark"] .hljs-symbol { color: #D19A66; }
+
+/* ─── Light-mode highlight.js overrides (warm editorial palette) ──────────────── */
+[data-theme="light"] .hljs { background: var(--bg-tertiary); color: #2D2D2A; }
 [data-theme="light"] .hljs-keyword,
 [data-theme="light"] .hljs-selector-tag,
-[data-theme="light"] .hljs-type { color: #d73a49; }
+[data-theme="light"] .hljs-type { color: #C53030; }
 [data-theme="light"] .hljs-string,
-[data-theme="light"] .hljs-addition { color: #032f62; }
+[data-theme="light"] .hljs-addition { color: #2B6CB0; }
 [data-theme="light"] .hljs-comment,
-[data-theme="light"] .hljs-quote { color: #6a737d; font-style: italic; }
+[data-theme="light"] .hljs-quote { color: #8F8C83; font-style: italic; }
 [data-theme="light"] .hljs-number,
-[data-theme="light"] .hljs-literal { color: #005cc5; }
+[data-theme="light"] .hljs-literal { color: #2B6CB0; }
 [data-theme="light"] .hljs-built_in,
-[data-theme="light"] .hljs-builtin-name { color: #e36209; }
+[data-theme="light"] .hljs-builtin-name { color: #B7791F; }
 [data-theme="light"] .hljs-function .hljs-title,
-[data-theme="light"] .hljs-title.function_ { color: #6f42c1; }
+[data-theme="light"] .hljs-title.function_ { color: #6B46C1; }
 [data-theme="light"] .hljs-variable,
-[data-theme="light"] .hljs-attr { color: #005cc5; }
-[data-theme="light"] .hljs-deletion { color: #b31d28; background-color: #ffeef0; }
-[data-theme="light"] .hljs-meta { color: #735c0f; }
-[data-theme="light"] .hljs-symbol { color: #e36209; }
+[data-theme="light"] .hljs-attr { color: #2B6CB0; }
+[data-theme="light"] .hljs-deletion { color: #C53030; background-color: #FFF5F5; }
+[data-theme="light"] .hljs-meta { color: #8B6914; }
+[data-theme="light"] .hljs-symbol { color: #B7791F; }

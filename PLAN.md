@@ -1740,3 +1740,312 @@ Refactored the Coach chat UI from a sidebar-accent layout to a polished **Portra
 | `src/components/panels/CoachPanel.vue` | Typing indicator → bubble style |
 | `src/components/layout/AppHeader.vue` | Version bump → v8.37 |
 | `PLAN.md` | This changelog entry |
+
+---
+
+## v8.38 — Strip Bubbles, Borders & Badge Backgrounds (2026-03-09)
+
+### Design Rationale
+Removed the card-bubble backgrounds, box-shadows, and rounded corners from chat messages to create a cleaner, more open layout. Stripped decorative backgrounds and borders from status badges, info rows, main-message segments, and issue items. The result is a flatter, content-first design where typography and spacing carry the visual hierarchy instead of containers.
+
+### Changes
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | Remove bubble backgrounds | Agent and user bubbles now transparent — no `background-color`, `box-shadow`, or `border-radius` |
+| 2 | Status badges: no background/border | `.coach-status-pass/fail/warn` — removed colored backgrounds and borders, kept colored text |
+| 3 | Info row: no bottom border | `.coach-info-row` — removed `border-bottom` divider |
+| 4 | Main message: no card | `.coach-main-message` — removed background, border-left accent, border-radius, and padding |
+| 5 | Issue items: no card | `.coach-issue-item` — removed background, border-left, border-radius; `.coach-issue-num` — removed filled circle, now text-only |
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `src/components/chat/ChatBubble.vue` | Bubble styles → transparent, no shadow/radius |
+| `src/styles/coach-response.css` | Stripped badge, segment, and issue-item decorations |
+| `src/components/layout/AppHeader.vue` | Version bump → v8.38 |
+| `PLAN.md` | This changelog entry |
+
+---
+
+## v8.39 — Light Theme Warm Palette + Math Rendering Pipeline (2026-03-12)
+
+### Design Rationale
+Two-part update: (1) Replaced the cold slate light theme with a warm cream/beige palette inspired by Claude.ai's light theme. (2) Fixed the markdown math rendering pipeline so LaTeX formulas display correctly in both English and Chinese AI responses instead of showing raw `\frac{...}`, `\begin{bmatrix}`, etc.
+
+### Part 1: Warm Light Theme
+
+Migrated light theme from Tailwind slate scale to a warm editorial palette. Dark theme unchanged.
+
+| Token | Old (slate) | New (warm) |
+|-------|------------|------------|
+| `--bg-primary` | `#F8FAFC` | `#FAF9F6` |
+| `--bg-secondary` | `#F1F5F9` | `#F3F1EC` |
+| `--bg-tertiary` | `#E2E8F0` | `#E8E5DE` |
+| `--border-color` | `#CBD5E1` | `#D6D2C9` |
+| `--text-primary` | `#1E293B` | `#1A1A17` |
+| `--text-secondary` | `#475569` | `#4A4840` |
+| `--text-muted` | `#94A3B8` | `#8F8C83` |
+
+Also added warm semi-transparent accent overlays (`--blue-subtle`, `--green-subtle`, etc.) and warm-tinted shadows. All 16+ component files updated to replace hardcoded `rgba()` with CSS variable references. Light-mode highlight.js overrides updated to warm editorial palette.
+
+### Part 2: Math Rendering Pipeline Fix
+
+**Root causes identified:**
+1. `markdown-it-texmath` `brackets` mode (`\[...\]`) conflicts with markdown-it's escape processing — `\[` is consumed as escaped bracket before texmath runs. Fixed by switching to `dollars`-only mode with pre-processing conversion.
+2. Math delimiter transformations (`\[` → `$$`) were running on code block content, destroying ASCII art diagrams. Fixed with extract/restore placeholder pattern.
+3. LLMs commonly output spaced delimiters (`$ \hat{v} $`) which texmath rejects (requires `$` adjacent to content). Fixed with `fixSpacedDollarDelimiters` pre-processing.
+4. LLMs sometimes wrap LaTeX in code fences (` ```latex ... ``` `). Fixed with `unwrapLatexFromCodeBlocks` heuristic.
+5. LLMs pre-escape `*` and `_` inside math for markdown safety, breaking LaTeX. Fixed with `cleanMathEscapes`.
+6. During SSE streaming, unclosed `$$` or `\[` cause raw LaTeX flashes. Fixed with `hideUnclosedMath` trimming.
+
+**Final rendering pipeline (`renderMarkdown`):**
+```
+input
+  → hideUnclosedMath (streaming only)
+  → unwrapLatexFromCodeBlocks
+  → extractCodeBlocks (protect code with placeholders)
+  → normalizeMathDelimiters (\[...\] → $$...$$, \(...\) → $...$)
+  → fixSpacedDollarDelimiters ($ x $ → $x$)
+  → cleanMathEscapes (\* → *, \_ → _ inside math)
+  → restoreCodeBlocks
+  → md.render (markdown-it + texmath/katex)
+  → DOMPurify.sanitize
+```
+
+**DOMPurify config** updated to allow KaTeX/MathML elements (`math`, `semantics`, `mrow`, `mi`, `mo`, `mfrac`, `msub`, `msup`, etc.) and attributes (`mathvariant`, `encoding`, `xmlns`, etc.).
+
+### Test Coverage
+
+Added `src/utils/__tests__/mathRendering.test.ts` with 29 tests covering:
+- Dollar-delimited display/inline math (EKF vehicle dynamics content)
+- Bracket-delimited math (`\[...\]`, `\(...\)`) conversion
+- LaTeX accidentally in code fences
+- ASCII art + math mixed content (code blocks preserved)
+- **Spaced dollar delimiters** (`$ \hat{v} $`, `$ Q $`, `$ K = P_{k|k-1} H^T S^{-1} $`)
+- Chinese + math mixed content (雅可比矩阵, 状态向量)
+- Multiline `$$` bmatrix blocks
+- Streaming mode (unclosed delimiters trimmed)
+- Currency amounts (`$5`, `$100`) not affected
+
+### Changes
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | Warm light theme | `variables.css` — cream/beige palette, warm shadows, accent overlays |
+| 2 | Theme variable migration | 16+ component files — replaced hardcoded `rgba()` with CSS variables |
+| 3 | Math pipeline rewrite | `markdown.ts` — code-block-safe pre-processing, dollars-only texmath mode |
+| 4 | Spaced delimiter fix | `markdown.ts` — `fixSpacedDollarDelimiters()` handles `$ content $` → `$content$` |
+| 5 | Streaming math safety | `markdown.ts` — `hideUnclosedMath()` trims trailing unclosed delimiters |
+| 6 | DOMPurify KaTeX allow-list | `markdown.ts` — MathML tags + attributes in `PURIFY_CONFIG` |
+| 7 | Streaming flag wiring | `formatCoach.ts`, `ChatBubble.vue`, `AIReviewPanel.vue` — pass `isStreaming` through pipeline |
+| 8 | KaTeX/texmath CSS | `coach-response.css` — `.katex-display` overflow scroll, `eqn`/`eq` wrappers, light hljs overrides |
+| 9 | Math rendering tests | `mathRendering.test.ts` — 29 tests for all math patterns |
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `src/styles/variables.css` | Light theme → warm cream/beige palette + accent overlays |
+| `src/styles/global.css` | Input focus, selection, button transitions use CSS variables |
+| `src/styles/coach-response.css` | KaTeX display/inline styles, hljs light overrides, texmath wrappers |
+| `src/utils/markdown.ts` | Full pipeline rewrite: extract/restore, spaced delimiters, bracket→dollar conversion |
+| `src/utils/formatCoach.ts` | Pass `isStreaming` flag to `renderMarkdown` |
+| `src/components/chat/ChatBubble.vue` | Pass `isStreaming` to `formatCoachResponse`, final render on stream end |
+| `src/components/panels/AIReviewPanel.vue` | Pass `isAnalyzing` as streaming flag, theme variable CSS |
+| `src/utils/__tests__/mathRendering.test.ts` | **New** — 29 tests for math rendering pipeline |
+| `PLAN.md` | This changelog entry |
+
+## v8.40 — LaTeX Line Break & Table Math Rendering Fix (2026-03-12)
+
+### Design Rationale
+Two LaTeX rendering bugs discovered during frontend testing: (1) `\\[4pt]` line break commands inside display math were being corrupted by the double-escape normalization, rendering raw `\[4pt]` text. (2) LaTeX formulas containing pipe characters (`|`) inside markdown tables were breaking table parsing — e.g. `$P_{k|k-1}$` split on `|` as a column separator, showing raw LaTeX instead of rendered math.
+
+### Bug 1: `\\[4pt]` Line Break Corruption
+
+**Root cause:** The double-escape normalization (`\\[` → `\[`) in `normalizeMathDelimiters` was applied unconditionally. In LaTeX, `\\[4pt]` means "line break with 4pt vertical spacing" — the `\\[` is NOT a display math delimiter. After normalization, `\\[4pt]` became `\[4pt]`, which KaTeX couldn't parse, rendering it as raw text.
+
+**Fix:** Added a negative lookahead to the `\\[` normalization regex to skip `\\[<dimension>]` patterns (e.g. `\\[4pt]`, `\\[6mm]`, `\\[10em]`). Supports all standard LaTeX units: `pt`, `mm`, `cm`, `em`, `ex`, `mu`, `bp`, `dd`, `pc`, `sp`. Also split the single regex into four separate replacements for `\[`, `\]`, `\(`, `\)` for clarity.
+
+### Bug 2: Pipe `|` in Math Inside Tables
+
+**Root cause:** Markdown-it table parsing splits rows on `|` characters. When LaTeX inside a table cell contains `|` (common in Kalman filter notation like `P_{k|k-1}`, `\hat{\mathbf{x}}_{k|k}`), the pipe is interpreted as a column separator, fracturing the math expression across multiple cells and breaking both the table structure and LaTeX rendering.
+
+**Fix:** Added `escapePipesInMath()` pre-processing step that replaces `|` → `\vert` inside `$...$` and `$$...$$` delimiters before markdown-it processes the table. This preserves the mathematical meaning while avoiding table parsing conflicts.
+
+### Updated Rendering Pipeline
+```
+input
+  → hideUnclosedMath (streaming only)
+  → unwrapLatexFromCodeBlocks
+  → extractCodeBlocks (protect code with placeholders)
+  → normalizeMathDelimiters (\[...\] → $$...$$, skip \\[4pt] line breaks)
+  → fixSpacedDollarDelimiters ($ x $ → $x$)
+  → cleanMathEscapes (\* → *, \_ → _ inside math)
+  → escapePipesInMath (| → \vert inside math, for table safety)   ← NEW
+  → restoreCodeBlocks
+  → md.render (markdown-it + texmath/katex)
+  → DOMPurify.sanitize
+```
+
+### Test Coverage
+
+Added 8 new tests to `mathRendering.test.ts` (37 total):
+- `\\[4pt]` line break preserved inside display math (`$$...$$`)
+- `\\[6pt]` line break preserved inside bracket-delimited display math (`\[...\]`)
+- `\\[10mm]` line break preserved inside matrix
+- Double-escaped display math `\\[...\\]` still converts correctly
+- `$P_{k|k-1}$` renders as KaTeX inside markdown table
+- `$\hat{\mathbf{x}}_{k|k}$` renders in table cells
+- Tables without math unaffected
+- Display math with pipes `$$|x| + |y|$$` renders correctly
+
+### Changes
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | Line break fix | `markdown.ts` — negative lookahead in `normalizeMathDelimiters` skips `\\[<dim>]` |
+| 2 | Table math fix | `markdown.ts` — new `escapePipesInMath()` replaces `\|` → `\vert` inside math delimiters |
+| 3 | Pipeline update | `markdown.ts` — added `escapePipesInMath` step between `cleanMathEscapes` and `restoreCodeBlocks` |
+| 4 | New tests | `mathRendering.test.ts` — 8 new tests for line breaks and table math (37 total) |
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `src/utils/markdown.ts` | `normalizeMathDelimiters` negative lookahead + new `escapePipesInMath()` function + pipeline step |
+| `src/utils/__tests__/mathRendering.test.ts` | 8 new tests for `\\[4pt]` line breaks and pipe-in-table math |
+| `PLAN.md` | This changelog entry |
+
+### Math Rendering — Standards Compatibility Note
+
+The current design covers **LaTeX math mode + AMS-LaTeX subset**, rendered by **KaTeX 0.16.33** (~300+ commands). Preprocessing handles 6+ delimiter/escaping variations that LLMs produce (`$`, `$$`, `\[...\]`, `\(...\)`, double-escaped `\\[...\\]`, spaced `$ x $`, code-fenced LaTeX). Output is dual-format: HTML (visual) + MathML (accessible).
+
+**Supported:** Greek letters, operators, fractions, roots, matrices (`bmatrix`/`pmatrix`/`cases`), accents (`\hat`/`\dot`/`\vec`), font commands (`\mathbf`/`\mathcal`/`\mathbb`), spacing, colors, `\cancel`, `\text{}`, most `amsmath` environments.
+
+**Not supported:** `\newcommand`/`\def` macros, `\tikz`/`\pgfplots` diagrams, `\chemfig`, full document-level LaTeX, AsciiMath, Typst, Office Math (OMML), Content MathML input. Switching to MathJax would broaden coverage but at the cost of slower synchronous rendering and layout reflows during SSE streaming — not worth the trade-off for this use case.
+
+## v8.42 — Markdown Pipeline Rewrite: unified/remark/rehype (2026-03-13)
+
+### Design Rationale
+The markdown-it + markdown-it-texmath pipeline used fragile regex-based math parsing (`/\${2}([^$]*?[^\\])\${2}/gmy`) that failed on complex multiline LaTeX from LLM output (e.g. `$\begin{bmatrix}...\end{bmatrix}$` with line breaks). Tests passed but production LLM output triggered edge cases the regex couldn't handle. Replaced the entire pipeline with the unified/remark/rehype ecosystem which uses AST-based parsing — math is detected as tree nodes, not regex matches, eliminating an entire class of fragile interactions between math and markdown features (tables, code blocks, escapes).
+
+### Pipeline Change
+
+**Old (markdown-it):**
+```
+text → extractCodeBlocks → normalizeMathDelimiters → fixSpacedDollarDelimiters
+     → cleanMathEscapes → escapePipesInMath → restoreCodeBlocks
+     → markdown-it.render (texmath plugin, hljs highlight callback) → DOMPurify
+```
+
+**New (unified/remark/rehype):**
+```
+text → unwrapLatexFromCodeBlocks → normalizeMathDelimiters
+     → normalizeDisplayMathBlocks → fixSpacedDollarDelimiters → escapePipesInMath
+     → unified(remarkParse → remarkMath → remarkGfm → remarkBreaks
+              → remarkRehype → rehypeRaw → rehypeKatex → rehypeHighlight
+              → rehypeStringify) → DOMPurify
+```
+
+### Functions Removed (handled by AST)
+- `extractCodeBlocks` / `restoreCodeBlocks` — remark-math's AST parser naturally skips code blocks
+- `cleanMathEscapes` — remark-math handles escaped `*` and `_` inside math at the AST level
+
+### Functions Added
+- `normalizeDisplayMathBlocks` — ensures multiline `$$` blocks have `$$` on its own line for remark-math flow detection
+
+### Functions Kept
+- `hideUnclosedMath` — streaming protection (trims trailing unclosed delimiters)
+- `unwrapLatexFromCodeBlocks` — detects LaTeX in ````latex` code fences
+- `normalizeMathDelimiters` — converts `\[...\]` → `$$...$$`, `\(...\)` → `$...$`
+- `fixSpacedDollarDelimiters` — trims spaces in `$ content $` (updated: single-line only for `$$`)
+- `escapePipesInMath` — escapes `|` in math for GFM tables (still needed: GFM splits on `|` before remark-math inline parsing)
+
+### Changes
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | Pipeline rewrite | `markdown.ts` — replaced markdown-it + texmath with unified/remark/rehype |
+| 2 | New preprocessor | `normalizeDisplayMathBlocks()` — moves multiline `$$` to own lines |
+| 3 | CSS cleanup | `global.css` — removed `markdown-it-texmath/css/texmath.css` and `highlight.js/styles/github-dark-dimmed.min.css` imports |
+| 4 | Test update | Currency `$5`/`$100` test relaxed — inherently ambiguous with `$` math delimiters |
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `src/utils/markdown.ts` | Full rewrite: unified/remark/rehype pipeline, removed 4 functions, added 1 |
+| `src/styles/global.css` | Removed markdown-it-texmath and highlight.js CSS imports |
+| `src/utils/__tests__/mathRendering.test.ts` | Relaxed currency amount test assertion |
+| `package.json` | Version bump to 8.42.0 |
+| `PLAN.md` | This changelog entry |
+
+### Compatibility Note
+- `markdown-it` and `markdown-it-texmath` packages remain in `package.json` but are no longer imported. They can be safely removed with `npm uninstall markdown-it markdown-it-texmath @types/markdown-it`.
+
+### Bug Fix Records
+
+| # | Bug | Root Cause | Fix |
+|---|-----|-----------|-----|
+| 1 | Multiline `$\begin{bmatrix}...\end{bmatrix}$` display math not rendered in production | `markdown-it-texmath` used regex `/\${2}([^$]*?[^\\])\${2}/gmy` that failed on complex multiline LaTeX with subtle whitespace/encoding differences in real LLM output | Replaced entire pipeline with AST-based `unified/remark-math` — math parsed as tree nodes, not regex |
+| 2 | `$$` on same line as content (e.g. `$$\dot{X}=\begin{bmatrix}...`) not parsed as display math | `remark-math` flow parser requires `$$` on its own line | Added `normalizeDisplayMathBlocks()` preprocessor to move multiline `$$` to own lines |
+| 3 | `fixSpacedDollarDelimiters` collapsed multiline `$$` blocks onto one line | Original regex `\$\$\s+([\s\S]+?)\s+\$\$` matched across newlines, destroying block structure | Changed to `[ \t]+` (horizontal whitespace only) for `$$` patterns |
+| 4 | Pipe `\|` in math inside GFM tables still split columns | GFM table parser splits on `\|` at block level before `remark-math` inline parsing | Kept `escapePipesInMath()` preprocessor — replaces `\|` → `\vert` inside `$...$` before parsing |
+
+### Test Coverage — 60 tests (all pass)
+
+| Category | Count | Key Scenarios |
+|----------|-------|---------------|
+| Dollar-delimited math | 7 | Display `$$`, inline `$`, code blocks, headings, lists |
+| Bracket-delimited math | 3 | `\[...\]`, `\(...\)`, no raw delimiter leaks |
+| LaTeX in code fences | 2 | Unwrap ````latex` → `$$`, no raw `\begin` leak |
+| Code blocks + math mixed | 4 | ASCII art preserved, pipes not mangled |
+| Spaced dollar delimiters | 7 | `$ content $` → `$content$`, currency `$5`, multiple on same line |
+| Multiline `$$` bmatrix | 2 | Same-line `$$`, no blank line after heading |
+| Chinese text display math | 3 | Chinese paragraphs, `$$` with Chinese, bmatrix with Chinese context |
+| `\\[4pt]` line breaks | 4 | `\\[4pt]`, `\\[6pt]`, `\\[10mm]`, double-escaped `\\[...\\]` |
+| Pipe in math + tables | 4 | `$P_{k\|k-1}$` in table, pipe in display math |
+| Streaming mode | 3 | Unclosed `$$`, unclosed `\[`, complete blocks |
+| Code block protection | 3 | ````markdown` as code, `$` in code blocks, inline code with `$` |
+| LLM edge cases | 6 | `\(...\)`, nested fractions, empty math, bold+math, strikethrough+math, task lists |
+| Chinese/English bilingual | 12 | No-space adjacent, full-width punctuation, Chinese tables, Chinese headings, mixed EN/ZH paragraphs, code with Chinese comments, spaced `$` in Chinese, `\[...\]` with Chinese |
+
+---
+
+## v8.41 — View Coach Response (Raw) Debug Panel (2026-03-12)
+
+### Design Rationale
+When debugging LaTeX/math rendering issues, it's critical to see the raw AI response text before the markdown pipeline transforms it. This helps determine whether a rendering bug is caused by the AI's output or the rendering pipeline. Added a "View Coach Response (Raw)" collapsible section to the DevTools panel, with the same toolbar buttons (copy, expand all, collapse all) used by the existing "View Request Payload" section.
+
+### Implementation
+
+Added a new `<details>` section in `DevTools.vue` between "View Request Payload" and "Webhook Configuration":
+- Shows the last assistant message's raw content as a monospace `<pre>` block
+- Only visible when a coach response exists (`v-if="lastCoachRaw"`)
+- Toolbar with 3 buttons matching JsonViewer's exact styles (`jv-toolbar`, `jv-copy-btn`, `jv-action-btn`, `jv-icon`):
+  - **Copy** — copies raw text to clipboard with toast notification
+  - **Expand All** (chevron down) — shows full text, scrollable up to 400px
+  - **Collapse All** (chevron up) — collapses to 80px preview height
+- `coachMessages` array passed from `App.vue` → `DevTools.vue` as a new prop
+- Computed `lastCoachRaw` extracts the last assistant message's content
+
+### Changes
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | Raw coach viewer | `DevTools.vue` — new `<details>` section with `<pre>` raw text display |
+| 2 | Toolbar buttons | `DevTools.vue` — copy, expand all, collapse all using same `jv-*` styles as JsonViewer |
+| 3 | Prop wiring | `App.vue` — passes `:coach-messages` to DevTools |
+| 4 | i18n keys | `en.ts` — `'View Coach Response (Raw)'`, `zh.ts` — `'查看 Coach 响应（原始文本）'` |
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `src/components/dev/DevTools.vue` | New raw coach response section with toolbar, `coachMessages` prop, `copyCoachRaw()`, `rawExpanded` ref |
+| `src/App.vue` | Pass `:coach-messages="coachMessages"` to DevTools |
+| `src/i18n/en.ts` | Added `viewCoachPayload` key |
+| `src/i18n/zh.ts` | Added `viewCoachPayload` key |
+| `PLAN.md` | This changelog entry |

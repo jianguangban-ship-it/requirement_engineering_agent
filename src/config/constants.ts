@@ -18,7 +18,7 @@ export const PRODUCT_OPTIONS = [
   'IBC1.2', 'IBC2.0', 'EMB', 'ERC', 'MC01', 'HEM', 'EDC'
 ]
 
-export const LAYER_OPTIONS = ['SYS', 'SW', 'HW', 'ME']
+export const LAYER_OPTIONS = ['SYS', 'SW', 'APP','HW', 'ME', 'TEST','SWF']
 
 export const DEFAULT_COMPONENT_HISTORY = [
   'CAN_Driver', 'LIN_Stack', 'Diag_Module', 'PWM_Controller',

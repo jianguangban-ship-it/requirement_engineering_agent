@@ -7,6 +7,31 @@
       </div>
     </details>
 
+    <details v-if="lastCoachRaw">
+      <summary class="dev-summary">{{ t('dev.viewCoachPayload') }}</summary>
+      <div class="dev-content raw-coach">
+        <div class="jv-toolbar">
+          <button class="jv-copy-btn" @click="copyCoachRaw" :title="t('toast.copied')">
+            <svg class="jv-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+          </button>
+          <button class="jv-action-btn" @click="rawExpanded = true" :title="t('dev.expandAll')">
+            <svg class="jv-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <button class="jv-action-btn" @click="rawExpanded = false" :title="t('dev.collapseAll')">
+            <svg class="jv-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="18 15 12 9 6 15"/>
+            </svg>
+          </button>
+        </div>
+        <pre class="raw-pre" :class="{ 'raw-collapsed': !rawExpanded }">{{ lastCoachRaw }}</pre>
+      </div>
+    </details>
+
     <details>
       <summary class="dev-summary">⚡ {{ t('dev.webhookConfig') }}</summary>
       <div class="dev-config">
@@ -93,11 +118,14 @@
 <script setup lang="ts">
 import { useI18n } from '@/i18n'
 import { WEBHOOK_CONFIG, useProductionMode } from '@/config/webhook'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import type { ChatMessage } from '@/types/api'
+import { useToast } from '@/composables/useToast'
 import JsonViewer from '@/components/shared/JsonViewer.vue'
 
-defineProps<{
+const props = defineProps<{
   payload: string
+  coachMessages: ChatMessage[]
   activeModel: string
   coachSkillModified: boolean
   analyzeSkillModified: boolean
@@ -115,6 +143,25 @@ defineProps<{
 }>()
 
 const { t } = useI18n()
+const { addToast } = useToast()
+
+// Last assistant message raw content (for debugging LaTeX/rendering)
+const lastCoachRaw = computed(() => {
+  const msgs = props.coachMessages
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    if (msgs[i].role === 'assistant' && msgs[i].content) return msgs[i].content
+  }
+  return ''
+})
+
+const rawExpanded = ref(true)
+
+function copyCoachRaw() {
+  navigator.clipboard.writeText(lastCoachRaw.value).then(() => {
+    addToast('success', t('toast.copied'))
+  })
+}
+
 const isProd = useProductionMode
 
 const activeUrl = computed(() =>
@@ -190,19 +237,68 @@ const activeUrl = computed(() =>
   border-radius: var(--radius-sm);
 }
 .badge-llm {
-  background-color: rgba(88, 166, 255, 0.15);
+  background-color: var(--blue-subtle);
   color: var(--accent-blue);
-  border: 1px solid rgba(88, 166, 255, 0.3);
+  border: 1px solid var(--blue-border);
 }
 .badge-n8n {
-  background-color: rgba(210, 153, 34, 0.15);
+  background-color: var(--orange-subtle);
   color: var(--accent-orange);
-  border: 1px solid rgba(210, 153, 34, 0.3);
+  border: 1px solid var(--orange-border);
 }
 .speed-badge {
   font-family: var(--font-mono);
   font-size: 10px;
   margin-left: 6px;
   opacity: 0.8;
+}
+.raw-coach {
+  position: relative;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.raw-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  margin: 0;
+}
+.raw-collapsed {
+  max-height: 80px;
+  overflow: hidden;
+}
+/* Toolbar — same styles as JsonViewer .jv-toolbar */
+.jv-toolbar {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 1;
+  display: flex;
+  gap: 2px;
+}
+.jv-copy-btn,
+.jv-action-btn {
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.jv-copy-btn:hover,
+.jv-action-btn:hover {
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+.jv-icon {
+  width: 13px;
+  height: 13px;
 }
 </style>

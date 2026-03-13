@@ -328,7 +328,7 @@ const chips = computed(() =>
 }
 .chips.drag-over {
   border-color: var(--accent-blue);
-  background-color: rgba(88, 166, 255, 0.06);
+  background-color: var(--blue-wash);
 }
 .drag-hint {
   position: absolute;
@@ -363,8 +363,8 @@ const chips = computed(() =>
   animation: breathe 2s ease-in-out infinite;
 }
 @keyframes breathe {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.3); }
-  50% { box-shadow: 0 0 8px 4px rgba(63, 185, 80, 0.15); }
+  0%, 100% { box-shadow: 0 0 0 0 var(--green-glow); }
+  50% { box-shadow: 0 0 8px 4px var(--green-subtle); }
 }
 .typing-bubble {
   background-color: var(--bg-secondary);
@@ -421,9 +421,9 @@ const chips = computed(() =>
   white-space: nowrap;
 }
 .badge-llm {
-  background-color: rgba(88, 166, 255, 0.15);
+  background-color: var(--blue-subtle);
   color: var(--accent-blue);
-  border: 1px solid rgba(88, 166, 255, 0.3);
+  border: 1px solid var(--blue-border);
 }
 
 /* Skill toggle */
@@ -439,12 +439,12 @@ const chips = computed(() =>
   border: 1px solid;
 }
 .skill-on {
-  background-color: rgba(63, 185, 80, 0.15);
+  background-color: var(--green-subtle);
   color: var(--accent-green);
-  border-color: rgba(63, 185, 80, 0.3);
+  border-color: var(--green-border);
 }
 .skill-on:hover {
-  background-color: rgba(63, 185, 80, 0.25);
+  background-color: var(--green-glow);
 }
 .skill-off {
   background-color: var(--bg-tertiary);
@@ -494,13 +494,13 @@ const chips = computed(() =>
   border-radius: var(--radius-md);
   font-size: 12px;
   font-weight: 500;
-  background-color: rgba(248, 81, 73, 0.1);
+  background-color: var(--red-subtle);
   color: var(--accent-red);
-  border: 1px solid rgba(248, 81, 73, 0.3);
+  border: 1px solid var(--red-border);
   cursor: pointer;
   transition: background-color 0.15s;
 }
-.cancel-btn:hover { background-color: rgba(248, 81, 73, 0.2); }
+.cancel-btn:hover { background-color: var(--red-border); }
 .cancel-icon { width: 12px; height: 12px; }
 .retry-row {
   display: flex;

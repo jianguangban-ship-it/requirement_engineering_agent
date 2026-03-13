@@ -184,7 +184,7 @@ const displayValue = computed(() => {
   line-height: 1.6;
 }
 .jv-row:hover {
-  background-color: rgba(88, 166, 255, 0.04);
+  background-color: var(--blue-wash);
   border-radius: 2px;
 }
 .jv-indent {

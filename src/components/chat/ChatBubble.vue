@@ -57,12 +57,12 @@ watch(
   () => props.message.content,
   (val) => {
     if (!props.message.isStreaming) {
-      formattedContent.value = formatCoachResponse({ message: val })
+      formattedContent.value = formatCoachResponse({ message: val }, false)
       return
     }
     if (_rafId !== null) return
     _rafId = requestAnimationFrame(() => {
-      formattedContent.value = formatCoachResponse({ message: props.message.content })
+      formattedContent.value = formatCoachResponse({ message: props.message.content }, true)
       _rafId = null
     })
   },
@@ -73,7 +73,8 @@ watch(
   () => props.message.isStreaming,
   (streaming) => {
     if (!streaming && props.message.content) {
-      formattedContent.value = formatCoachResponse({ message: props.message.content })
+      // Final render with streaming=false to ensure complete math is shown
+      formattedContent.value = formatCoachResponse({ message: props.message.content }, false)
     }
   }
 )
@@ -132,8 +133,8 @@ const timeLabel = computed(() => {
   animation: breathe 2s ease-in-out infinite;
 }
 @keyframes breathe {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.3); }
-  50% { box-shadow: 0 0 8px 4px rgba(63, 185, 80, 0.15); }
+  0%, 100% { box-shadow: 0 0 0 0 var(--green-glow); }
+  50% { box-shadow: 0 0 8px 4px var(--green-subtle); }
 }
 
 /* Bubble */
@@ -141,21 +142,17 @@ const timeLabel = computed(() => {
   max-width: 85%;
   min-width: 60px;
   padding: 10px 14px;
-  border-radius: 12px;
   position: relative;
 }
 
-/* Agent bubble: white/dark card with subtle shadow */
+/* Agent bubble: transparent, no card */
 .bubble-assistant {
-  background-color: var(--bg-secondary);
-  box-shadow: var(--shadow-sm);
-  border-radius: 12px 12px 12px 4px;
+  background: transparent;
 }
 
-/* User bubble: blue-tinted */
+/* User bubble: transparent */
 .bubble-user {
-  background-color: rgba(88, 166, 255, 0.1);
-  border-radius: 12px 12px 4px 12px;
+  background: transparent;
 }
 
 /* Role label */

@@ -1,6 +1,4 @@
 @import 'katex/dist/katex.min.css';
-@import 'markdown-it-texmath/css/texmath.css';
-@import 'highlight.js/styles/github-dark-dimmed.min.css';
 @import './coach-response.css';
 
 * {
@@ -83,7 +81,7 @@ body {
 .input-base:focus {
   outline: none;
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+  box-shadow: 0 0 0 3px var(--blue-subtle);
 }
 .input-base:focus-visible {
   outline: none; /* already has box-shadow ring */
@@ -94,7 +92,7 @@ body {
 
 /* Highlight match (combobox search) */
 .highlight-match {
-  background-color: rgba(88, 166, 255, 0.3);
+  background-color: var(--blue-subtle);
   color: var(--accent-blue);
   border-radius: 2px;
 }
@@ -104,6 +102,7 @@ button {
   font-family: var(--font-sans);
   border: none;
   cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.165, 0.85, 0.45, 1);
 }
 button:disabled {
   cursor: not-allowed;
@@ -120,7 +119,7 @@ button:active:not(:disabled) {
 
 /* Selection */
 ::selection {
-  background-color: rgba(88, 166, 255, 0.3);
+  background-color: var(--blue-subtle);
 }
 
 /* Utility */
