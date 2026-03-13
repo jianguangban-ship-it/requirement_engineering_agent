@@ -107,7 +107,9 @@ function unwrapLatexFromCodeBlocks(text: string): string {
  * handles it as inline mathText.
  */
 function normalizeDisplayMathBlocks(text: string): string {
-  return text.replace(/\$\$([^\n]+\n[\s\S]*?)\$\$/g, (_m, inner) => `$$\n${inner.trim()}\n$$`)
+  // (?:(?!\$\$)[^\n])+ ensures [^\n]+ stops BEFORE any $$ on the same line,
+  // so single-line $$content$$ patterns are NOT consumed as "multiline".
+  return text.replace(/\$\$((?:(?!\$\$)[^\n])+\n[\s\S]*?)\$\$/g, (_m, inner) => `$$\n${inner.trim()}\n$$`)
 }
 
 /**

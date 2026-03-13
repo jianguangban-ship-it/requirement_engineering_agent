@@ -736,6 +736,78 @@ class LateralEstimator:
       expect(html).not.toContain('$H$')
     })
   })
+
+  describe('Consecutive single-line $$ blocks (production LLM pattern)', () => {
+    it('renders consecutive $$...$$ blocks separated by text', () => {
+      // Exact pattern from production: LLM outputs single-line $$...$$ blocks
+      // with Chinese text between them — normalizeDisplayMathBlocks must NOT
+      // merge them by eating through closing $$ on the same line.
+      const input = `**加法**：同型矩阵对应元素相加
+$$(A + B)_{ij} = a_{ij} + b_{ij}$$
+
+**数乘**：标量与矩阵每个元素相乘
+$$(kA)_{ij} = k \\cdot a_{ij}$$`
+      const html = renderMarkdown(input)
+      expect(html).toContain('katex')
+      expect(html).toContain('加法')
+      expect(html).toContain('数乘')
+      // Both $$ blocks should be rendered, not merged
+      const noAnnot = html.replace(/<annotation[\s\S]*?<\/annotation>/g, '')
+      expect(noAnnot).not.toContain('$$(A + B)')
+      expect(noAnnot).not.toContain('$$(kA)')
+    })
+
+    it('renders multiple consecutive single-line $$ formulas', () => {
+      const input = `**运算规律**：
+$$A + B = B + A \\quad \\text{（交换律）}$$
+$$(A + B) + C = A + (B + C) \\quad \\text{（结合律）}$$
+$$k(lA) = (kl)A \\quad \\text{（结合律）}$$
+$$k(A + B) = kA + kB \\quad \\text{（分配律）}$$`
+      const html = renderMarkdown(input)
+      expect(html).toContain('katex')
+      // Should not leak raw LaTeX
+      const noAnnot = html.replace(/<annotation[\s\S]*?<\/annotation>/g, '')
+      expect(noAnnot).not.toContain('\\quad')
+      expect(noAnnot).not.toContain('\\text')
+    })
+
+    it('renders single-line $$ with Chinese inline math between', () => {
+      const input = `**定义**：$A \\in \\mathbb{R}^{m \\times n}$，$B \\in \\mathbb{R}^{n \\times p}$，则 $C = AB \\in \\mathbb{R}^{m \\times p}$
+$$c_{ij} = \\sum_{k=1}^{n} a_{ik} \\cdot b_{kj}$$`
+      const html = renderMarkdown(input)
+      expect(html).toContain('katex')
+      const noAnnot = html.replace(/<annotation[\s\S]*?<\/annotation>/g, '')
+      expect(noAnnot).not.toContain('\\sum_')
+    })
+
+    it('renders matrix formula tables in Chinese summary', () => {
+      const input = `| 主题 | 核心公式 |
+|------|----------|
+| 乘法 | $c_{ij} = \\sum_k a_{ik}b_{kj}$ |
+| 行列式 | $\\det(AB) = \\det(A)\\det(B)$ |
+| 逆矩阵 | $A^{-1} = \\frac{1}{\\det(A)}A^*$ |`
+      const html = renderMarkdown(input)
+      expect(html).toContain('<table')
+      expect(html).toContain('katex')
+      expect(html).toContain('乘法')
+    })
+
+    it('renders vmatrix determinant notation', () => {
+      const input = `$$\\begin{vmatrix} a & b \\\\ c & d \\end{vmatrix} = ad - bc$$`
+      const html = renderMarkdown(input)
+      expect(html).toContain('katex')
+      const noAnnot = html.replace(/<annotation[\s\S]*?<\/annotation>/g, '')
+      expect(noAnnot).not.toContain('\\begin{vmatrix}')
+    })
+
+    it('renders bmatrix with multiline block-style $$', () => {
+      const input = `$$A^* = \\begin{bmatrix} C_{11} & C_{21} & \\cdots & C_{n1} \\\\ C_{12} & C_{22} & \\cdots & C_{n2} \\\\ \\vdots & \\vdots & & \\vdots \\\\ C_{1n} & C_{2n} & \\cdots & C_{nn} \\end{bmatrix}$$`
+      const html = renderMarkdown(input)
+      expect(html).toContain('katex')
+      const noAnnot = html.replace(/<annotation[\s\S]*?<\/annotation>/g, '')
+      expect(noAnnot).not.toContain('\\begin{bmatrix}')
+    })
+  })
 })
 
 import { beforeAll } from 'vitest'
