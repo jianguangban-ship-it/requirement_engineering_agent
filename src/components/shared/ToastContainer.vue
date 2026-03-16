@@ -38,8 +38,8 @@ const { toasts, removeToast } = useToast()
 <style scoped>
 .toast-container {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: var(--space-6);
+  right: var(--space-6);
   z-index: 9999;
   display: flex;
   flex-direction: column-reverse;
@@ -57,8 +57,8 @@ const { toasts, removeToast } = useToast()
   background-color: var(--bg-secondary);
   box-shadow: 0 8px 24px rgba(0,0,0,0.4);
   cursor: pointer;
-  min-width: 280px;
-  max-width: 420px;
+  min-width: clamp(220px, 18vw, 350px);
+  max-width: clamp(320px, 25vw, 500px);
 }
 .toast-icon {
   width: 18px;
