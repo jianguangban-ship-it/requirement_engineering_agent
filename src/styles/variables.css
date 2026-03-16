@@ -1,3 +1,34 @@
+/* ── Adaptive sizing (theme-independent) ──
+   Each variable scales linearly with viewport width using clamp(min, calc(A + Bvw), max).
+   Calibrated so 1920px viewport = current baseline values.
+   Math: slope = (baseline - min) / 5.54;  intercept = min - slope * 13.66
+*/
+:root {
+  /* Fluid spacing scale */
+  --space-1: clamp(3px,  calc(0.53px  + 0.181vw), 6px);
+  --space-2: clamp(6px,  calc(1.07px  + 0.361vw), 11px);
+  --space-3: clamp(9px,  calc(1.60px  + 0.542vw), 16px);
+  --space-4: clamp(12px, calc(2.14px  + 0.722vw), 22px);
+  --space-5: clamp(15px, calc(2.67px  + 0.903vw), 27px);
+  --space-6: clamp(18px, calc(3.21px  + 1.083vw), 32px);
+
+  /* Fluid typography scale */
+  --font-xs:   clamp(9px,  calc(6.53px  + 0.181vw), 14px);
+  --font-sm:   clamp(10px, calc(7.53px  + 0.181vw), 15px);
+  --font-base: clamp(11px, calc(8.53px  + 0.181vw), 16px);
+  --font-md:   clamp(12px, calc(9.53px  + 0.181vw), 18px);
+  --font-lg:   clamp(13px, calc(10.53px + 0.181vw), 19px);
+  --font-xl:   clamp(14px, calc(9.07px  + 0.361vw), 22px);
+
+  /* Fluid icon sizes */
+  --icon-sm: clamp(14px, calc(4.14px  + 0.722vw), 24px);
+  --icon-md: clamp(16px, calc(6.14px  + 0.722vw), 27px);
+
+  /* Fluid element sizing */
+  --avatar-size:   clamp(26px, calc(6.28px  + 1.444vw), 46px);
+  --sidebar-width: clamp(48px, calc(8.55px  + 2.888vw), 86px);
+}
+
 :root,
 [data-theme="dark"] {
   /* Warm dark palette inspired by Claude.ai dark theme */
@@ -35,13 +66,6 @@
   --radius-md: 6px;
   --radius-lg: 12px;
   --radius-full: 9999px;
-
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
 
   --font-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
