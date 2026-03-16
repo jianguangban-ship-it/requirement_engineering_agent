@@ -78,7 +78,7 @@ const bodyStyle = computed(() => {
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 .panel-header {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
@@ -89,28 +89,28 @@ const bodyStyle = computed(() => {
 .panel-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .title-text {
-  font-size: 14px;
+  font-size: var(--font-lg);
   font-weight: 500;
   color: var(--text-primary);
 }
 .panel-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 .panel-status {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .status-label {
-  font-size: 12px;
+  font-size: var(--font-base);
 }
 .panel-body {
-  padding: 12px;
+  padding: var(--space-3);
   flex: 1;
   overflow-y: auto;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
@@ -130,7 +130,7 @@ const bodyStyle = computed(() => {
   border-radius: 0 0 8px 0;
 }
 .panel-footer {
-  padding: 12px;
+  padding: var(--space-3);
   border-top: 1px solid var(--border-color);
 }
 </style>
