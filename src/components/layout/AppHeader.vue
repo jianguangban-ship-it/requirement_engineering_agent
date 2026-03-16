@@ -7,7 +7,7 @@
         <span class="dot blue"></span>
       </div>
       <h1 class="header-title">{{ t('header.title') }}</h1>
-      <span class="header-version">v8.44</span>
+      <span class="header-version">v8.47</span>
     </div>
     <div class="header-right">
       <!-- Language Toggle -->
@@ -90,7 +90,7 @@ defineEmits<{ openSettings: [] }>()
 .app-header {
   border-bottom: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
-  padding: 12px 24px;
+  padding: var(--space-3) var(--space-6);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -98,56 +98,56 @@ defineEmits<{ openSettings: [] }>()
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 .traffic-lights {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .dot {
-  width: 12px;
-  height: 12px;
+  width: var(--space-3);
+  height: var(--space-3);
   border-radius: 50%;
 }
 .dot.red { background-color: #f85149; }
 .dot.orange { background-color: #d29922; }
 .dot.blue { background-color: #58a6ff; }
 .header-title {
-  font-size: 14px;
+  font-size: var(--font-lg);
   font-weight: 600;
   color: var(--text-primary);
 }
 .header-version {
-  font-size: 12px;
+  font-size: var(--font-base);
   color: var(--text-muted);
 }
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 /* Toggle group */
 .toggle-group {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px;
+  gap: var(--space-1);
+  padding: var(--space-1);
   border-radius: var(--radius-md);
   background-color: var(--bg-tertiary);
   border: 1px solid var(--border-color);
 }
 .toggle-btn {
-  padding: 4px 8px;
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 500;
   background: transparent;
   color: var(--text-muted);
   transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 .toggle-btn.active {
   background-color: var(--accent-blue);
@@ -157,8 +157,8 @@ defineEmits<{ openSettings: [] }>()
   color: var(--text-primary);
 }
 .mode-dot {
-  width: 6px;
-  height: 6px;
+  width: calc(var(--space-1) * 1.5);
+  height: calc(var(--space-1) * 1.5);
   border-radius: 50%;
 }
 .mode-dot.orange { background-color: var(--accent-orange); }
@@ -166,12 +166,12 @@ defineEmits<{ openSettings: [] }>()
 
 /* Status badge */
 .status-badge {
-  font-size: 12px;
-  padding: 4px 8px;
+  font-size: var(--font-base);
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(var(--space-1) * 1.5);
 }
 .status-badge.prod {
   background-color: var(--green-subtle);
@@ -182,8 +182,8 @@ defineEmits<{ openSettings: [] }>()
   color: var(--accent-orange);
 }
 .status-pulse {
-  width: 6px;
-  height: 6px;
+  width: calc(var(--space-1) * 1.5);
+  height: calc(var(--space-1) * 1.5);
   border-radius: 50%;
   animation: pulse 2s ease-in-out infinite;
 }
@@ -200,8 +200,8 @@ defineEmits<{ openSettings: [] }>()
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   color: var(--text-muted);
-  width: 30px;
-  height: 30px;
+  width: clamp(24px, calc(2.14px + 1.444vw), 40px);
+  height: clamp(24px, calc(2.14px + 1.444vw), 40px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -209,8 +209,8 @@ defineEmits<{ openSettings: [] }>()
   transition: all 0.2s;
 }
 .theme-btn svg {
-  width: 14px;
-  height: 14px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 .theme-btn:hover {
   color: var(--accent-orange);
@@ -221,9 +221,9 @@ defineEmits<{ openSettings: [] }>()
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   color: var(--text-muted);
-  font-size: 15px;
-  width: 30px;
-  height: 30px;
+  font-size: var(--icon-sm);
+  width: clamp(24px, calc(2.14px + 1.444vw), 40px);
+  height: clamp(24px, calc(2.14px + 1.444vw), 40px);
   display: flex;
   align-items: center;
   justify-content: center;
