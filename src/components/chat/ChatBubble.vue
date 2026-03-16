@@ -95,8 +95,8 @@ const timeLabel = computed(() => {
 .chat-msg {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 
 /* User messages: avatar on the right */
@@ -109,15 +109,15 @@ const timeLabel = computed(() => {
   flex-shrink: 0;
 }
 .msg-avatar {
-  width: 34px;
-  height: 34px;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
   border-radius: 50%;
   object-fit: cover;
   background-color: var(--bg-tertiary);
 }
 .msg-avatar-user {
-  width: 34px;
-  height: 34px;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -126,8 +126,8 @@ const timeLabel = computed(() => {
   color: white;
 }
 .msg-avatar-user svg {
-  width: 20px;
-  height: 20px;
+  width: var(--icon-md);
+  height: var(--icon-md);
 }
 
 /* Breathing halo for streaming */
@@ -143,7 +143,7 @@ const timeLabel = computed(() => {
 .msg-bubble {
   max-width: 85%;
   min-width: 60px;
-  padding: 10px 14px;
+  padding: var(--space-2) var(--space-3);
   position: relative;
 }
 
@@ -161,12 +161,12 @@ const timeLabel = computed(() => {
 .msg-role-label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
+  gap: var(--space-2);
+  font-size: var(--font-sm);
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 .role-assistant {
   color: var(--accent-blue);
@@ -175,14 +175,14 @@ const timeLabel = computed(() => {
   color: var(--text-muted);
 }
 .msg-time {
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
   opacity: 0.6;
 }
 .msg-hash {
-  font-size: 9px;
+  font-size: var(--font-xs);
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
@@ -195,7 +195,7 @@ const timeLabel = computed(() => {
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: var(--font-md);
   line-height: 1.55;
   max-height: 200px;
   overflow-y: auto;
