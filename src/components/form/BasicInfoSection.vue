@@ -98,56 +98,56 @@ const selectedAssigneeName = computed(() => {
 
 <style scoped>
 .basic-info {
-  padding: 20px;
+  padding: var(--space-5);
   border-bottom: 1px solid var(--border-color);
 }
 .section-title {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 .row-2col {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-3);
 }
 .mt {
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 .field-label {
   display: block;
-  font-size: 12px;
+  font-size: var(--font-base);
   color: var(--text-secondary);
-  margin-bottom: 6px;
+  margin-bottom: calc(var(--space-1) * 1.5);
 }
 .field-hint {
   color: var(--text-muted);
-  margin-left: 4px;
+  margin-left: var(--space-1);
 }
 .field-select {
-  font-size: 14px;
+  font-size: var(--font-lg);
   cursor: pointer;
 }
 .type-buttons {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .type-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: calc(var(--space-1) * 1.5);
+  padding: calc(var(--space-1) * 1.5) var(--space-3);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
-  font-size: 14px;
+  font-size: var(--font-lg);
   transition: all 0.2s;
 }
 .type-dot {
-  width: 6px;
-  height: 6px;
+  width: calc(var(--space-1) * 1.5);
+  height: calc(var(--space-1) * 1.5);
   border-radius: 50%;
 }
 

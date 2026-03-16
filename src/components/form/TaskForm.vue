@@ -154,10 +154,10 @@ const { t } = useI18n()
 .task-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 .error-banner {
-  padding: 12px;
+  padding: var(--space-3);
   border-radius: var(--radius-lg);
   border: 1px solid var(--accent-red);
   background-color: var(--red-subtle);
@@ -168,20 +168,20 @@ const { t } = useI18n()
 .error-content {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .error-icon {
-  width: 16px;
-  height: 16px;
+  width: var(--font-xl);
+  height: var(--font-xl);
   color: var(--accent-red);
   flex-shrink: 0;
 }
 .error-text {
-  font-size: 14px;
+  font-size: var(--font-lg);
   color: var(--accent-red);
 }
 .error-close {
-  padding: 4px;
+  padding: var(--space-1);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
@@ -191,8 +191,8 @@ const { t } = useI18n()
   background-color: rgba(255,255,255,0.1);
 }
 .close-icon {
-  width: 16px;
-  height: 16px;
+  width: var(--font-xl);
+  height: var(--font-xl);
 }
 .form-card {
   border-radius: var(--radius-lg);
@@ -204,7 +204,7 @@ const { t } = useI18n()
   flex-direction: column;
 }
 .form-actions {
-  padding: 16px 20px;
+  padding: var(--space-4) var(--space-5);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -212,7 +212,7 @@ const { t } = useI18n()
 .action-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 /* Icon-only action buttons */
@@ -220,8 +220,8 @@ const { t } = useI18n()
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: clamp(28px, calc(4.28px + 1.651vw), 48px);
+  height: clamp(28px, calc(4.28px + 1.651vw), 48px);
   border-radius: var(--radius-md);
   border: 1px solid transparent;
   cursor: pointer;
@@ -233,8 +233,8 @@ const { t } = useI18n()
   cursor: not-allowed;
 }
 .action-icon {
-  width: 18px;
-  height: 18px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 /* Reset — red */
