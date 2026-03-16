@@ -8,54 +8,54 @@
 }
 
 .coach-response h1,
-.coach-response h2 { font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 12px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
-.coach-response h3 { font-size: 13px; font-weight: 600; color: var(--text-primary); margin: 10px 0 5px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
+.coach-response h2 { font-size: var(--font-lg); font-weight: 600; color: var(--text-primary); margin: var(--space-3) 0 calc(var(--space-1) * 1.5); padding-bottom: var(--space-1); border-bottom: 1px solid var(--border-color); }
+.coach-response h3 { font-size: var(--font-md); font-weight: 600; color: var(--text-primary); margin: var(--space-2) 0 var(--space-1); padding-bottom: var(--space-1); border-bottom: 1px solid var(--border-color); }
 .coach-response h4,
 .coach-response h5,
-.coach-response h6 { font-size: 12px; font-weight: 600; color: var(--accent-blue); margin: 8px 0 4px; }
+.coach-response h6 { font-size: var(--font-base); font-weight: 600; color: var(--accent-blue); margin: var(--space-2) 0 var(--space-1); }
 
-.coach-response p { margin: 0 0 6px; }
+.coach-response p { margin: 0 0 calc(var(--space-1) * 1.5); }
 .coach-response strong { color: var(--accent-green); font-weight: 600; }
 .coach-response em { font-style: italic; }
 
-.coach-response code { background-color: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: var(--font-mono); color: var(--accent-blue); }
-.coach-response pre { border-radius: 6px; padding: 10px 12px; margin: 6px 0; overflow-x: auto; border: 1px solid var(--border-color); background-color: var(--bg-tertiary); }
-.coach-response pre code { padding: 0; background: transparent; font-size: 12px; font-family: var(--font-mono); }
+.coach-response code { background-color: var(--bg-tertiary); padding: 2px calc(var(--space-1) * 1.5); border-radius: 4px; font-size: var(--font-base); font-family: var(--font-mono); color: var(--accent-blue); }
+.coach-response pre { border-radius: 6px; padding: var(--space-2) var(--space-3); margin: calc(var(--space-1) * 1.5) 0; overflow-x: auto; border: 1px solid var(--border-color); background-color: var(--bg-tertiary); }
+.coach-response pre code { padding: 0; background: transparent; font-size: var(--font-base); font-family: var(--font-mono); }
 .coach-response pre code.hljs { background: transparent; padding: 0; }
 
-.coach-response hr { border: none; border-top: 1px dashed var(--border-color); margin: 10px 0; }
+.coach-response hr { border: none; border-top: 1px dashed var(--border-color); margin: var(--space-2) 0; }
 
 .coach-response ul,
-.coach-response ol { margin: 4px 0; padding-left: 20px; }
+.coach-response ol { margin: var(--space-1) 0; padding-left: var(--space-5); }
 .coach-response li { margin: 2px 0; }
 .coach-response li::marker { color: var(--text-muted); }
 .coach-response ol li::marker { color: var(--accent-blue); font-weight: 600; }
 
-.coach-response blockquote { border-left: 3px solid var(--accent-blue); margin: 6px 0; padding: 4px 10px; background-color: var(--bg-tertiary); border-radius: 0 6px 6px 0; color: var(--text-secondary); }
+.coach-response blockquote { border-left: 3px solid var(--accent-blue); margin: calc(var(--space-1) * 1.5) 0; padding: var(--space-1) var(--space-2); background-color: var(--bg-tertiary); border-radius: 0 6px 6px 0; color: var(--text-secondary); }
 .coach-response blockquote p { margin: 0; }
 
 .coach-response a { color: var(--accent-blue); text-decoration: none; }
 .coach-response a:hover { text-decoration: underline; }
 
-.coach-response table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; display: block; overflow-x: auto; }
+.coach-response table { width: 100%; border-collapse: collapse; font-size: var(--font-base); margin: var(--space-2) 0; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; display: block; overflow-x: auto; }
 .coach-response thead { background-color: var(--bg-tertiary); }
-.coach-response th { color: var(--text-primary); font-weight: 600; padding: 6px 10px; border: 1px solid var(--border-color); white-space: nowrap; text-align: left; }
-.coach-response td { padding: 5px 10px; border: 1px solid var(--border-color); color: var(--text-secondary); line-height: 1.4; }
+.coach-response th { color: var(--text-primary); font-weight: 600; padding: calc(var(--space-1) * 1.5) var(--space-2); border: 1px solid var(--border-color); white-space: nowrap; text-align: left; }
+.coach-response td { padding: var(--space-1) var(--space-2); border: 1px solid var(--border-color); color: var(--text-secondary); line-height: 1.4; }
 .coach-response tbody tr:hover { background-color: var(--bg-secondary); }
 
-.coach-response .coach-status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 0; font-weight: 600; font-size: 12px; margin-bottom: 8px; }
+.coach-response .coach-status-badge { display: inline-flex; align-items: center; gap: var(--space-1); padding: 3px 0; font-weight: 600; font-size: var(--font-base); margin-bottom: var(--space-2); }
 .coach-response .coach-status-pass { background: transparent; color: var(--accent-green); border: none; }
 .coach-response .coach-status-fail { background: transparent; color: var(--accent-red); border: none; }
 .coach-response .coach-status-warn { background: transparent; color: var(--accent-orange); border: none; }
-.coach-response .coach-info-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 12px; }
+.coach-response .coach-info-row { display: flex; align-items: center; gap: var(--space-2); padding: 3px 0; font-size: var(--font-base); }
 .coach-response .coach-info-label { color: var(--text-muted); }
 .coach-response .coach-info-value { color: var(--text-primary); font-weight: 500; }
-.coach-response .coach-main-message { padding: 0; margin: 6px 0; }
-.coach-response .coach-comment-title { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
-.coach-response .coach-issues-list { display: flex; flex-direction: column; gap: 5px; }
-.coach-response .coach-issue-item { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; }
-.coach-response .coach-issue-num { display: flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; color: var(--accent-red); font-size: 10px; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
-.coach-response .coach-issue-text { font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
+.coach-response .coach-main-message { padding: 0; margin: calc(var(--space-1) * 1.5) 0; }
+.coach-response .coach-comment-title { font-size: var(--font-base); font-weight: 600; color: var(--text-primary); margin-bottom: calc(var(--space-1) * 1.5); padding-bottom: var(--space-1); border-bottom: 1px solid var(--border-color); }
+.coach-response .coach-issues-list { display: flex; flex-direction: column; gap: var(--space-1); }
+.coach-response .coach-issue-item { display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-1) 0; }
+.coach-response .coach-issue-num { display: flex; align-items: center; justify-content: center; min-width: var(--icon-sm); height: var(--icon-sm); color: var(--accent-red); font-size: var(--font-xs); font-weight: 600; flex-shrink: 0; margin-top: 1px; }
+.coach-response .coach-issue-text { font-size: var(--font-base); line-height: 1.5; color: var(--text-secondary); }
 .coach-response .coach-highlight-error { color: var(--accent-red); font-weight: 600; }
 
 /* ─── KaTeX: match text color and prevent layout breaking ────────────────────── */
