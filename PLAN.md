@@ -2143,3 +2143,118 @@ The "View Coach Response (Raw)" panel was previously hidden (`v-if="lastCoachRaw
 | `src/i18n/zh.ts` | Coach history i18n keys (Chinese), confirm dialog keys |
 | `src/App.vue` | Replay handler, setCoachSkillEnabled import |
 | `PLAN.md` | This section |
+
+---
+
+## v8.45 — Fix projects.ts data errors & assignee font color
+
+**Date:** 2026-03-16
+
+### Design Rationale
+User manually edited `projects.ts` and introduced minor data issues. Additionally, the assignee combobox displayed the selected name as a placeholder styled with `--text-muted`, making it visually dimmer than the project `<select>` which uses `--text-primary`. The fix adds a conditional `.has-selection` CSS class to override placeholder color when an assignee is selected.
+
+### Changes
+1. **projects.ts** — Removed leading space in `Suspension Feature Team` team name
+2. **projects.ts** — Flagged duplicate ID `GW00285392` (used for both Wan Fei and Li Ziyue in DKKFT)
+3. **AssigneeCombobox.vue** — Added `.has-selection` class + CSS rule so selected assignee name renders in `--text-primary` (matching project select color)
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `src/config/projects.ts` | Fixed leading space in SWSU team name |
+| `src/components/form/AssigneeCombobox.vue` | Added `has-selection` class toggle + placeholder color override |
+| `src/components/layout/AppHeader.vue` | Version bump to v8.45 |
+| `PLAN.md` | This section |
+
+---
+
+## v8.46 — Draggable column resize handles for 3-panel layout
+
+**Date:** 2026-03-16
+
+### Design Rationale
+The three-column layout (Coach / Task Form / AI Review) used fixed CSS grid ratios (`3fr 3fr 2fr`) with no way to resize. Added drag handles between columns so users can adjust column widths by dragging. Column sizes persist to localStorage. Also fixed the `ProjectKey` type which was missing the 5 new team keys (SWSS, SWBS, SWVV, SWCD, SWSU) added to `projects.ts`.
+
+### Changes
+1. **App.vue** — Added two drag handle elements between columns with `mousedown/mousemove/mouseup` drag logic
+2. **App.vue** — Grid now uses dynamic `gridTemplateColumns` style bound to reactive `colFractions` ref
+3. **App.vue** — Column sizes saved to / restored from localStorage (`grid-col-sizes`)
+4. **App.vue** — Drag handles hidden on mobile (`max-width: 1024px`) and when right column is collapsed
+5. **team.ts** — Extended `ProjectKey` union type with 5 new keys (SWSS, SWBS, SWVV, SWCD, SWSU)
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `src/App.vue` | Drag handles, resize logic, dynamic grid columns, localStorage persistence |
+| `src/types/team.ts` | Extended `ProjectKey` type with new team keys |
+| `src/components/layout/AppHeader.vue` | Version bump to v8.46 |
+| `PLAN.md` | This section |
+
+---
+
+## v8.47 — Remove misleading panel vertical resize handle
+
+**Date:** 2026-03-16
+
+### Design Rationale
+The AIReviewPanel had `resizable` (CSS `resize: vertical`) which showed a drag cursor at the bottom-right corner. With the new column drag handles (v8.46) this was confusing — users saw a resize cursor and tried to drag the panel, misleading them. Removed the vertical resize and let the panel auto-size with a generous `max-height` instead.
+
+### Changes
+1. **AIReviewPanel.vue** — Replaced `resizable` prop with `max-height="2500px"` so panel body auto-sizes to content without showing a resize grip
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `src/components/panels/AIReviewPanel.vue` | Removed `resizable`, added `max-height="2500px"` |
+| `src/components/layout/AppHeader.vue` | Version bump to v8.47 |
+| `PLAN.md` | This section |
+
+---
+
+## v8.48 — Adaptive Screen Sizing (2026-03-16)
+
+**CSS-only proportional scaling for all screen sizes (1366px–3840px)**
+
+### Design Rationale
+- Different users have different display screen sizes — from 1366x768 laptops to 3840x2160 4K monitors
+- On small screens the 3-column layout felt cramped; on large screens there was too much wasted space
+- All 3 columns (Coach + Task Form + AI Review) must remain visible at every size — no collapsing or hiding
+- Solution: CSS `clamp()` with linear interpolation `calc(Apx + Bvw)` for fluid sizing
+- Each variable calibrated so **1920px viewport = exact current baseline values** (zero visual regression)
+- No JavaScript screen detection needed — pure CSS handles everything
+- Existing drag-resize column system and `fr`-based grid preserved
+
+### Scaling Behavior
+| Screen Size | --space-4 | --font-base | --font-lg | Sidebar Width |
+|-------------|-----------|-------------|-----------|---------------|
+| 1366x768    | 12px      | 11px        | 13px      | 48px          |
+| 1920x1080   | 16px      | 12px        | 14px      | 64px          |
+| 2560x1440   | 21px      | 13px        | 15px      | 82px          |
+| 3840x2160   | 22px (max)| 16px (max)  | 19px (max)| 86px (max)    |
+
+### Changes
+1. **Fluid CSS variables** — Added theme-independent `:root` block with `clamp()` variables for spacing (--space-1 to --space-6), typography (--font-xs to --font-xl), icons (--icon-sm, --icon-md), and element sizing (--avatar-size, --sidebar-width)
+2. **Grid constraints** — Added proportional `min-width: clamp(...)` to grid columns; `.app-main` max-width expanded from 2000px to `clamp(1200px, 95vw, 3600px)` for 4K displays
+3. **Focus mode fix** — Override `.col-right` min-width to 0 in focus mode to prevent overflow when right panel is hidden
+4. **Component updates** — Replaced 100+ hardcoded px values across 14 files with CSS variable references
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `src/styles/variables.css` | Added fluid `:root` block with clamp() variables; removed static --space-* from theme blocks |
+| `src/App.vue` | Adaptive padding, modal sizing, grid column min-widths, focus mode override |
+| `src/components/layout/AppHeader.vue` | All px replaced with CSS variables; version bump to v8.48 |
+| `src/components/layout/AppSidebar.vue` | Sidebar width, icon sizes, spacing all use CSS variables |
+| `src/components/layout/PanelShell.vue` | Panel header/body/footer padding and font sizes |
+| `src/styles/coach-response.css` | All typography and spacing in markdown rendering |
+| `src/components/chat/ChatBubble.vue` | Avatar sizes, message padding, font sizes |
+| `src/styles/global.css` | Input base and scrollbar sizing |
+| `src/components/settings/LLMSettings.vue` | Modal, field, button, chip editor sizing |
+| `src/components/shared/HotkeyModal.vue` | Modal and key display sizing |
+| `src/components/shared/ConfirmDialog.vue` | Modal and button sizing |
+| `src/components/form/TaskForm.vue` | Form gap, error banner, action buttons |
+| `src/components/form/BasicInfoSection.vue` | Section padding, field labels, type buttons |
+| `src/components/defects/DefectDetail.vue` | Drawer width: `clamp(360px, 30vw, 620px)` |
+| `src/components/shared/ToastContainer.vue` | Toast position and min/max width |
+| `package.json` | Version bump to 8.48.0 |
+| `PLAN.md` | This section |
