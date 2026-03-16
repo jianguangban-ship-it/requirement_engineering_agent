@@ -84,6 +84,24 @@
           </div>
         </div>
 
+        <!-- Response Format Instructions -->
+        <div class="field-group">
+          <div class="skill-header">
+            <div class="skill-label-row">
+              <label class="field-label">{{ t('settings.responseFormat') }}</label>
+              <span v-if="responseFormatModified" class="skill-modified-badge">● {{ t('settings.skillModified') }}</span>
+            </div>
+            <div class="skill-actions">
+              <button class="btn-reset" @click="handleResetResponseFormat">{{ t('settings.skillReset') }}</button>
+            </div>
+          </div>
+          <textarea v-model="localResponseFormat" class="skill-textarea" style="height: 160px;" />
+          <div class="skill-footer">
+            <p class="skill-hint">{{ t('settings.responseFormatHint') }}</p>
+            <span class="skill-counter">{{ localResponseFormat.length }} chars · ~{{ Math.floor(localResponseFormat.length / 4) }} tokens</span>
+          </div>
+        </div>
+
         <!-- Template Chip Editor -->
         <details class="field-group template-details">
           <summary class="template-summary">
@@ -154,9 +172,10 @@ import {
   GLM_BASE_URL, GLM_DEFAULT_MODEL, LLM_MODEL_PRESETS
 } from '@/config/llm'
 import {
-  getCoachSkill, setCoachSkill, resetCoachSkill, coachSkillModified,
-  getAnalyzeSkill, setAnalyzeSkill, resetAnalyzeSkill, analyzeSkillModified,
-  getCoachSkillDefault, getAnalyzeSkillDefault
+  getCoachSkillRaw, setCoachSkill, resetCoachSkill, coachSkillModified,
+  getAnalyzeSkillRaw, setAnalyzeSkill, resetAnalyzeSkill, analyzeSkillModified,
+  getCoachSkillDefault, getAnalyzeSkillDefault,
+  getResponseFormat, getResponseFormatDefault, setResponseFormat, resetResponseFormat, responseFormatModified
 } from '@/config/skills/index'
 import {
   TEMPLATES, setCustomTemplates, resetCustomTemplates, customTemplatesModified, effectiveTemplates
@@ -180,8 +199,9 @@ const localProviderUrl = ref(localStorage.getItem('provider-url') ?? '')
 
 function currentLang(): 'zh' | 'en' { return isZh.value ? 'zh' : 'en' }
 
-const localCoachSkill = ref(getCoachSkill(currentLang()))
-const localAnalyzeSkill = ref(getAnalyzeSkill(currentLang()))
+const localCoachSkill = ref(getCoachSkillRaw(currentLang()))
+const localAnalyzeSkill = ref(getAnalyzeSkillRaw(currentLang()))
+const localResponseFormat = ref(getResponseFormat())
 
 /** Flat list of all preset model names for the datalist */
 const allModelPresets = computed(() => LLM_MODEL_PRESETS.flatMap(g => g.models))
@@ -204,8 +224,9 @@ watch(() => props.modelValue, (open) => {
     localModel.value = getModel()
     localProviderUrl.value = localStorage.getItem('provider-url') ?? ''
     const lang = currentLang()
-    localCoachSkill.value = getCoachSkill(lang)
-    localAnalyzeSkill.value = getAnalyzeSkill(lang)
+    localCoachSkill.value = getCoachSkillRaw(lang)
+    localAnalyzeSkill.value = getAnalyzeSkillRaw(lang)
+    localResponseFormat.value = getResponseFormat()
     localTemplates.value = cloneTemplates(effectiveTemplates.value)
     editingChipIndex.value = -1
     validationState.value = 'idle'
@@ -250,6 +271,11 @@ function handleResetCoach() {
 function handleResetAnalyze() {
   localAnalyzeSkill.value = getAnalyzeSkillDefault(currentLang())
   resetAnalyzeSkill()
+}
+
+function handleResetResponseFormat() {
+  localResponseFormat.value = getResponseFormatDefault()
+  resetResponseFormat()
 }
 
 // ─── Skill MD Import / Export ──────────────────────────────────────────────
@@ -386,6 +412,7 @@ function handleSave() {
   setModel(localModel.value.trim() || GLM_DEFAULT_MODEL)
   setCoachSkill(localCoachSkill.value)
   setAnalyzeSkill(localAnalyzeSkill.value)
+  setResponseFormat(localResponseFormat.value)
   const builtinJson = JSON.stringify(TEMPLATES)
   const localJson = JSON.stringify(localTemplates.value)
   if (localJson === builtinJson) resetCustomTemplates()
@@ -399,23 +426,23 @@ function handleSave() {
 .modal-overlay {
   position: fixed; inset: 0; background-color: rgba(0,0,0,0.6);
   display: flex; align-items: center; justify-content: center;
-  z-index: 5000; padding: 24px;
+  z-index: 5000; padding: var(--space-6);
 }
 .modal-content {
   background-color: var(--bg-secondary); border: 1px solid var(--border-color);
   border-radius: var(--radius-lg); box-shadow: var(--shadow-modal);
-  padding: 24px; max-width: 800px; width: 100%;
-  max-height: 88vh; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
+  padding: var(--space-6); max-width: clamp(500px, 45vw, 900px); width: 100%;
+  max-height: 88vh; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-5);
   animation: scaleIn 0.2s ease-out;
 }
-.modal-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.field-group { display: flex; flex-direction: column; gap: 8px; transition: opacity 0.2s; }
+.modal-title { font-size: var(--font-xl); font-weight: 600; color: var(--text-primary); }
+.field-group { display: flex; flex-direction: column; gap: var(--space-2); transition: opacity 0.2s; }
 .field-group.dimmed { opacity: 0.4; }
-.field-label { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+.field-label { font-size: var(--font-md); font-weight: 500; color: var(--text-secondary); }
 .field-input {
-  width: 100%; padding: 8px 12px; border-radius: var(--radius-md);
+  width: 100%; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
   border: 1px solid var(--border-color); background-color: var(--bg-tertiary);
-  color: var(--text-primary); font-size: 13px; outline: none; box-sizing: border-box;
+  color: var(--text-primary); font-size: var(--font-md); outline: none; box-sizing: border-box;
 }
 .field-input:focus { border-color: var(--accent-blue); }
 .field-input:disabled { cursor: not-allowed; }
@@ -431,8 +458,8 @@ function handleSave() {
 .toggle-btn.active { background-color: var(--accent-blue); color: white; }
 .toggle-btn:hover:not(.active) { color: var(--text-primary); }
 
-.modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
-.btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; transition: all 0.2s; border: none; cursor: pointer; }
+.modal-actions { display: flex; justify-content: flex-end; gap: var(--space-3); }
+.btn { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-5); border-radius: var(--radius-md); font-size: var(--font-lg); font-weight: 500; transition: all 0.2s; border: none; cursor: pointer; }
 .btn-ghost { background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); }
 .btn-ghost:hover { background-color: var(--bg-tertiary); }
 .btn-primary { background-color: var(--accent-blue); color: white; }
@@ -441,13 +468,13 @@ function handleSave() {
 .key-row { display: flex; gap: 8px; align-items: center; }
 .key-row .field-input { flex: 1; }
 .btn-test {
-  flex-shrink: 0; padding: 8px 12px; border-radius: var(--radius-md);
+  flex-shrink: 0; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
   border: 1px solid var(--border-color); background: transparent; color: var(--text-secondary);
-  font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  font-size: var(--font-base); font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap;
 }
 .btn-test:hover:not(:disabled) { border-color: var(--accent-blue); color: var(--accent-blue); }
 .btn-test:disabled { opacity: 0.4; cursor: not-allowed; }
-.key-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; }
+.key-badge { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--font-sm); font-weight: 500; }
 .key-badge--valid { color: var(--accent-green); }
 .key-badge--invalid { color: var(--accent-red, #f87171); }
 
@@ -473,16 +500,16 @@ function handleSave() {
 .btn-skill-md:disabled, .btn-skill-md.disabled { cursor: not-allowed; opacity: 0.4; }
 
 .skill-textarea {
-  width: 100%; height: 200px; padding: 8px 12px; resize: vertical;
+  width: 100%; height: 200px; padding: var(--space-2) var(--space-3); resize: vertical;
   border-radius: var(--radius-md); border: 1px solid var(--border-color);
   background-color: var(--bg-tertiary); color: var(--text-primary);
-  font-size: 12px; font-family: var(--font-mono); line-height: 1.6; outline: none; box-sizing: border-box;
+  font-size: var(--font-base); font-family: var(--font-mono); line-height: 1.6; outline: none; box-sizing: border-box;
 }
 .skill-textarea:focus { border-color: var(--accent-blue); }
 .skill-textarea:disabled { cursor: not-allowed; opacity: 0.5; }
 .skill-footer { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-.skill-hint { font-size: 11px; color: var(--text-muted); }
-.skill-counter { font-size: 11px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+.skill-hint { font-size: var(--font-sm); color: var(--text-muted); }
+.skill-counter { font-size: var(--font-sm); color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
 
 /* Template chip editor */
 .template-details { list-style: none; }
@@ -500,8 +527,8 @@ function handleSave() {
   cursor: pointer; user-select: none;
 }
 .chip-row-header:hover { background-color: rgba(255,255,255,0.03); }
-.chip-icon-preview { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
-.chip-label-preview { flex: 1; font-size: 12px; color: var(--text-secondary); }
+.chip-icon-preview { font-size: var(--font-xl); width: 22px; text-align: center; flex-shrink: 0; }
+.chip-label-preview { flex: 1; font-size: var(--font-base); color: var(--text-secondary); }
 .chip-row-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .chip-act-btn {
   width: 22px; height: 22px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);
@@ -518,13 +545,13 @@ function handleSave() {
   width: 100%; height: 80px; padding: 6px 10px; resize: vertical;
   border-radius: var(--radius-md); border: 1px solid var(--border-color);
   background-color: var(--bg-secondary); color: var(--text-primary);
-  font-size: 11px; font-family: var(--font-mono); line-height: 1.5; outline: none; box-sizing: border-box;
+  font-size: var(--font-sm); font-family: var(--font-mono); line-height: 1.5; outline: none; box-sizing: border-box;
 }
 .chip-content-area:focus { border-color: var(--accent-blue); }
 .chip-list-actions { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
 .btn-add-chip {
-  flex: 1; padding: 7px 12px; border-radius: var(--radius-md); border: 1px dashed var(--border-color);
-  background: transparent; color: var(--text-muted); font-size: 12px; cursor: pointer; transition: all 0.15s;
+  flex: 1; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); border: 1px dashed var(--border-color);
+  background: transparent; color: var(--text-muted); font-size: var(--font-base); cursor: pointer; transition: all 0.15s;
   display: flex; align-items: center; justify-content: center; white-space: nowrap; min-width: fit-content;
 }
 .btn-add-chip:hover { color: var(--accent-blue); border-color: var(--accent-blue); }
@@ -533,8 +560,8 @@ function handleSave() {
 /* Export / Import */
 .export-row { display: flex; gap: 8px; }
 .btn-export {
-  flex: 1; padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color);
-  background: transparent; color: var(--text-secondary); font-size: 12px; font-weight: 500;
+  flex: 1; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--border-color);
+  background: transparent; color: var(--text-secondary); font-size: var(--font-base); font-weight: 500;
   cursor: pointer; transition: all 0.15s; text-align: center;
 }
 .btn-export:hover { border-color: var(--accent-blue); color: var(--accent-blue); }

@@ -57,19 +57,19 @@ const hotkeys = computed(() => [
   align-items: center;
   justify-content: center;
   z-index: 5000;
-  padding: 24px;
+  padding: var(--space-6);
 }
 .modal-content {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-modal);
-  padding: 24px;
-  max-width: 420px;
+  padding: var(--space-6);
+  max-width: clamp(300px, 25vw, 500px);
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   animation: scaleIn 0.2s ease-out;
 }
 .modal-header {
@@ -78,19 +78,19 @@ const hotkeys = computed(() => [
   justify-content: space-between;
 }
 .modal-title {
-  font-size: 16px;
+  font-size: var(--font-xl);
   font-weight: 600;
   color: var(--text-primary);
 }
 .close-btn {
-  width: 28px;
-  height: 28px;
+  width: clamp(22px, calc(0.42px + 1.444vw), 38px);
+  height: clamp(22px, calc(0.42px + 1.444vw), 38px);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-base);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -111,24 +111,24 @@ const hotkeys = computed(() => [
   border-bottom: none;
 }
 .key-cell {
-  padding: 10px 12px 10px 0;
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
   white-space: nowrap;
   width: 1%;
 }
 .desc-cell {
-  padding: 10px 0;
-  font-size: 13px;
+  padding: var(--space-2) 0;
+  font-size: var(--font-md);
   color: var(--text-secondary);
 }
 .key {
   display: inline-flex;
   align-items: center;
-  padding: 3px 8px;
+  padding: 3px var(--space-2);
   border-radius: var(--radius-sm);
   background-color: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
