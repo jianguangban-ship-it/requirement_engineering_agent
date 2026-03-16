@@ -30,7 +30,12 @@
     </Transition>
 
     <main class="app-main">
-      <div class="grid-layout" :class="{ 'layout-focus': !coachSkillEnabled }">
+      <div
+        class="grid-layout"
+        :class="{ 'layout-focus': !coachSkillEnabled }"
+        ref="gridRef"
+        :style="gridStyle"
+      >
         <!-- LEFT: AI Coach -->
         <div class="col-left">
           <CoachPanel
@@ -46,6 +51,14 @@
             @import-templates="handleTemplateImport"
             @replay="handleReplay"
           />
+        </div>
+
+        <!-- Drag handle: left | center -->
+        <div
+          class="col-drag-handle"
+          @mousedown="startDrag('left', $event)"
+        >
+          <div class="drag-grip"></div>
         </div>
 
         <!-- CENTER: Task Form -->
@@ -73,6 +86,15 @@
             @project-change="onProjectChange"
             @clear-error="errorMessage = ''"
           />
+        </div>
+
+        <!-- Drag handle: center | right -->
+        <div
+          v-show="coachSkillEnabled"
+          class="col-drag-handle"
+          @mousedown="startDrag('right', $event)"
+        >
+          <div class="drag-grip"></div>
         </div>
 
         <!-- RIGHT: AI Review + JIRA -->
@@ -159,6 +181,78 @@ import JsonViewer from '@/components/shared/JsonViewer.vue'
 
 const { t, isZh } = useI18n()
 const { addToast } = useToast()
+
+// ─── Column drag-resize ─────────────────────────────────────────────────────
+const gridRef = ref<HTMLElement>()
+const LS_COL_SIZES = 'grid-col-sizes'
+
+// Default fractions: left 3, center 3, right 2  (total 8)
+const colFractions = ref<[number, number, number]>([3, 3, 2])
+
+// Restore saved sizes
+try {
+  const saved = localStorage.getItem(LS_COL_SIZES)
+  if (saved) {
+    const parsed = JSON.parse(saved)
+    if (Array.isArray(parsed) && parsed.length === 3) colFractions.value = parsed as [number, number, number]
+  }
+} catch { /* ignore */ }
+
+const gridStyle = computed(() => {
+  if (!coachSkillEnabled.value) return undefined
+  const [l, c, r] = colFractions.value
+  return {
+    gridTemplateColumns: `${l}fr 6px ${c}fr 6px ${r}fr`
+  }
+})
+
+let dragSide: 'left' | 'right' | null = null
+let dragStartX = 0
+let dragStartFractions: [number, number, number] = [3, 3, 2]
+
+function startDrag(side: 'left' | 'right', e: MouseEvent) {
+  e.preventDefault()
+  dragSide = side
+  dragStartX = e.clientX
+  dragStartFractions = [...colFractions.value] as [number, number, number]
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', stopDrag)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+function onDrag(e: MouseEvent) {
+  if (!gridRef.value || !dragSide) return
+  const gridWidth = gridRef.value.offsetWidth - 12 // subtract 2 handle widths (6px each)
+  const totalFr = dragStartFractions[0] + dragStartFractions[1] + dragStartFractions[2]
+  const dx = e.clientX - dragStartX
+  const dFr = (dx / gridWidth) * totalFr
+  const minFr = 1 // minimum column fraction
+
+  const [l, c, r] = dragStartFractions
+  if (dragSide === 'left') {
+    let newL = l + dFr
+    let newC = c - dFr
+    if (newL < minFr) { newC += newL - minFr; newL = minFr }
+    if (newC < minFr) { newL += newC - minFr; newC = minFr }
+    colFractions.value = [+newL.toFixed(3), +newC.toFixed(3), r]
+  } else {
+    let newC = c + dFr
+    let newR = r - dFr
+    if (newC < minFr) { newR += newC - minFr; newC = minFr }
+    if (newR < minFr) { newC += newR - minFr; newR = minFr }
+    colFractions.value = [l, +newC.toFixed(3), +newR.toFixed(3)]
+  }
+}
+
+function stopDrag() {
+  dragSide = null
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  localStorage.setItem(LS_COL_SIZES, JSON.stringify(colFractions.value))
+}
 
 const {
   form, summary, componentHistory, computedSummary,
@@ -515,30 +609,36 @@ onUnmounted(() => {
   flex-direction: column;
 }
 .app-main {
-  max-width: 2000px;
+  max-width: clamp(1200px, 95vw, 3600px);
   margin: 0 auto;
-  padding: 24px;
+  padding: var(--space-6);
   flex: 1;
   width: 100%;
 }
 .grid-layout {
   display: grid;
-  grid-template-columns: 3fr 3fr 2fr;
-  gap: 10px;
+  grid-template-columns: 3fr 6px 3fr 6px 2fr;
+  gap: 0;
   transition: grid-template-columns 250ms ease-in-out;
 }
 .grid-layout.layout-focus {
-  grid-template-columns: 5fr 3fr 0fr;
+  grid-template-columns: 5fr 6px 3fr 0px 0fr !important;
 }
 .layout-focus .col-right {
   overflow: hidden;
   pointer-events: none;
 }
-.col-left,
-.col-center {
-  min-width: 0;
+.col-left {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  min-width: clamp(200px, 15vw, 400px);
+}
+.col-center {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: clamp(250px, 20vw, 500px);
 }
 .col-left > :deep(*),
 .col-center > :deep(*) {
@@ -546,10 +646,42 @@ onUnmounted(() => {
   min-height: 0;
 }
 .col-right {
-  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  overflow: hidden;
+  min-width: clamp(150px, 12vw, 350px);
+  gap: var(--space-4);
+}
+.grid-layout.layout-focus .col-right {
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Drag handles between columns */
+.col-drag-handle {
+  width: 6px;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
+  /* Wider hit area via padding without affecting layout */
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+.col-drag-handle:hover .drag-grip,
+.col-drag-handle:active .drag-grip {
+  background-color: var(--accent-blue);
+  opacity: 1;
+}
+.drag-grip {
+  width: 3px;
+  height: 48px;
+  border-radius: 2px;
+  background-color: var(--border-color);
+  opacity: 0.5;
+  transition: background-color 0.2s, opacity 0.2s;
 }
 
 /* Confirmation Modal */
@@ -561,33 +693,33 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   z-index: 5000;
-  padding: 24px;
+  padding: var(--space-6);
 }
 .modal-content {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-modal);
-  padding: 24px;
-  max-width: 600px;
+  padding: var(--space-6);
+  max-width: clamp(400px, 35vw, 700px);
   width: 100%;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   animation: scaleIn 0.2s ease-out;
 }
 .modal-title {
-  font-size: 16px;
+  font-size: var(--font-xl);
   font-weight: 600;
   color: var(--text-primary);
 }
 .modal-hint {
-  font-size: 13px;
+  font-size: var(--font-md);
   color: var(--text-muted);
 }
 .modal-payload {
-  padding: 12px;
+  padding: var(--space-3);
   border-radius: var(--radius-md);
   background-color: var(--bg-tertiary);
   max-height: 400px;
@@ -596,17 +728,17 @@ onUnmounted(() => {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 /* Shared button styles */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 20px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: var(--font-lg);
   font-weight: 500;
   transition: all 0.2s;
   border: none;
@@ -634,7 +766,10 @@ onUnmounted(() => {
 
 @media (max-width: 1024px) {
   .grid-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+  }
+  .col-drag-handle {
+    display: none;
   }
 }
 </style>
