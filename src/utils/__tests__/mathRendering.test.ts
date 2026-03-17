@@ -807,6 +807,17 @@ $$c_{ij} = \\sum_{k=1}^{n} a_{ik} \\cdot b_{kj}$$`
       const noAnnot = html.replace(/<annotation[\s\S]*?<\/annotation>/g, '')
       expect(noAnnot).not.toContain('\\begin{bmatrix}')
     })
+
+    it('renders inline math with \\left[ and \\right] brackets', () => {
+      const input = '其中 $\\mathbf{c} = \\left[-\\frac{C_f + C_r}{m v_x}, \\frac{C_f L_f - C_r L_r}{m v_x} + v_x, 0\\right]^T$'
+      const html = renderMarkdown(input)
+      expect(html).toContain('katex')
+      expect(html).toContain('其中')
+      const noAnnot = html.replace(/<annotation[\s\S]*?<\/annotation>/g, '')
+      expect(noAnnot).not.toContain('$\\mathbf')
+      expect(noAnnot).not.toContain('\\left[')
+      expect(noAnnot).not.toContain('\\right]')
+    })
   })
 })
 

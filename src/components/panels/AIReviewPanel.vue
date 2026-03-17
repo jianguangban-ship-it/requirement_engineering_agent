@@ -3,7 +3,7 @@
     :title="t('panel.aiAgentResponse')"
     :status="statusInfo.status"
     :status-label="t('status.' + statusInfo.key)"
-    resizable
+    max-height="2500px"
   >
     <template #header-actions>
       <span class="mode-badge badge-llm" :title="currentModel">{{ currentModel }}</span>

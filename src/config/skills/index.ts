@@ -5,13 +5,16 @@ import coachSkillEn from './coach-skill-en.md?raw'
 import analyzeSkillDefault from './analyze-skill.md?raw'
 import analyzeSkillZh from './analyze-skill-zh.md?raw'
 import analyzeSkillEn from './analyze-skill-en.md?raw'
+import responseFormatDefault from './response-format.md?raw'
 
 const LS_KEY_COACH_SKILL = 'coach-skill'
 const LS_KEY_ANALYZE_SKILL = 'analyze-skill'
+const LS_KEY_RESPONSE_FORMAT = 'response-format'
 
 /** Reactive flags — true when a localStorage override is active */
 export const coachSkillModified = ref(localStorage.getItem(LS_KEY_COACH_SKILL) !== null)
 export const analyzeSkillModified = ref(localStorage.getItem(LS_KEY_ANALYZE_SKILL) !== null)
+export const responseFormatModified = ref(localStorage.getItem(LS_KEY_RESPONSE_FORMAT) !== null)
 
 /** Get lang-specific bundled default (no {lang} substitution needed) */
 export function getCoachSkillDefault(lang: 'zh' | 'en'): string {
@@ -22,12 +25,33 @@ export function getAnalyzeSkillDefault(lang: 'zh' | 'en'): string {
   return lang === 'zh' ? analyzeSkillZh : analyzeSkillEn
 }
 
-/** Get effective skill — localStorage override first, then lang-specific bundled default */
+/** Get the response format instructions (appended to all system prompts) */
+export function getResponseFormatDefault(): string {
+  return responseFormatDefault
+}
+
+export function getResponseFormat(): string {
+  return localStorage.getItem(LS_KEY_RESPONSE_FORMAT) ?? responseFormatDefault
+}
+
+/** Get effective skill — localStorage override first, then lang-specific bundled default.
+ *  Response format instructions are automatically appended. */
 export function getCoachSkill(lang: 'zh' | 'en'): string {
-  return localStorage.getItem(LS_KEY_COACH_SKILL) ?? getCoachSkillDefault(lang)
+  const skill = localStorage.getItem(LS_KEY_COACH_SKILL) ?? getCoachSkillDefault(lang)
+  return skill + '\n\n' + getResponseFormat()
 }
 
 export function getAnalyzeSkill(lang: 'zh' | 'en'): string {
+  const skill = localStorage.getItem(LS_KEY_ANALYZE_SKILL) ?? getAnalyzeSkillDefault(lang)
+  return skill + '\n\n' + getResponseFormat()
+}
+
+/** Get raw skill content WITHOUT response format (for editing in settings UI) */
+export function getCoachSkillRaw(lang: 'zh' | 'en'): string {
+  return localStorage.getItem(LS_KEY_COACH_SKILL) ?? getCoachSkillDefault(lang)
+}
+
+export function getAnalyzeSkillRaw(lang: 'zh' | 'en'): string {
   return localStorage.getItem(LS_KEY_ANALYZE_SKILL) ?? getAnalyzeSkillDefault(lang)
 }
 
@@ -49,6 +73,16 @@ export function resetCoachSkill(): void {
 export function resetAnalyzeSkill(): void {
   localStorage.removeItem(LS_KEY_ANALYZE_SKILL)
   analyzeSkillModified.value = false
+}
+
+export function setResponseFormat(content: string): void {
+  localStorage.setItem(LS_KEY_RESPONSE_FORMAT, content)
+  responseFormatModified.value = true
+}
+
+export function resetResponseFormat(): void {
+  localStorage.removeItem(LS_KEY_RESPONSE_FORMAT)
+  responseFormatModified.value = false
 }
 
 // Legacy exports kept for backward compatibility

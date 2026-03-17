@@ -10,6 +10,6 @@ export interface ProjectConfig {
   teamName: string
 }
 
-export type ProjectKey = 'HW' | 'DKKF' | 'DKKG' | 'DKKFT'
+export type ProjectKey = 'HW' | 'DKKF' | 'DKKG' | 'DKKFT' | 'SWSS' | 'SWBS' | 'SWVV' | 'SWCD' | 'SWSU'
 
 export type TeamMembersMap = Record<ProjectKey, TeamMember[]>

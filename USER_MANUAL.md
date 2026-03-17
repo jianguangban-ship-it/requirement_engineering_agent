@@ -1,7 +1,7 @@
 # Agentic Engineering Platform — User Manual
 # 智能工程平台 — 用户手册
 
-> Version / 版本: v8.36 | Language / 语言: English · 中文
+> Version / 版本: v8.44 | Language / 语言: English · 中文
 
 ---
 
@@ -229,6 +229,81 @@ When **Skill OFF** is active, the interface automatically enters **Free-Chat Mod
 When you send multiple coach requests in a session, each complete AI answer is separated by a **solid blue divider line**. This visual anchor makes it easy to distinguish between sequential AI responses. Section breaks within a single response use a subtle dashed line.
 
 在同一会话中发送多次 Coach 请求时，每条完整 AI 回复之间以**蓝色实线**分隔，方便区分不同轮次的回复；单条回复内部的分节线为淡色虚线。
+
+### Chat / History Tabs / 对话/历史标签页
+
+Starting from v8.44, the Coach panel header includes two tabs:
+
+| Tab | Description |
+|-----|-------------|
+| **Chat** | The default live conversation view (same as before) |
+| **History** | A searchable archive of all coach conversations saved locally |
+
+点击面板顶部的 **Chat** / **History** 标签页切换实时对话与历史存档视图。
+
+#### Hash ID Badges / 哈希标识
+
+Every message (user and assistant) is automatically assigned a unique **8-character hex ID** (e.g., `#a3f7c021`). This ID appears as a small badge next to the timestamp in each chat bubble, making it easy to reference specific messages.
+
+每条消息（用户和 AI）自动分配唯一的 **8 位十六进制 ID**（如 `#a3f7c021`），显示在时间戳旁边，方便引用特定消息。
+
+#### History Tab Features / 历史标签页功能
+
+The History tab provides a full archive of coach conversations:
+
+**Search & Filter / 搜索与筛选:**
+- Type in the search box to find messages by content (debounced, 150ms delay)
+- Use the **Role** dropdown to filter by `All`, `User`, or `Assistant` messages
+
+**搜索与筛选：**输入关键词按内容搜索（150ms 防抖），使用角色下拉框筛选所有/用户/助手消息。
+
+**Record List / 记录列表:**
+Each record shows:
+- **Role badge** — blue for assistant, gray for user
+- **Hash ID** — the unique 8-char hex identifier
+- **Timestamp** — date and time (YYYY-MM-DD HH:mm:ss)
+- **Content preview** — truncated message text
+- **Replay button** — re-send the message to the coach (user messages only)
+
+每条记录显示角色徽标、哈希 ID、时间戳、内容预览及重播按钮（仅用户消息）。
+
+**Multi-Select & Bulk Actions / 多选与批量操作:**
+- Check individual records or click **Select All / 全选** to select all visible records
+- **Delete Selected / 删除选中** — removes checked records (with confirmation dialog)
+- **Download Raw / 下载原始数据** — exports selected records in your choice of format
+- **Clear All / 清空全部** — removes the entire history (with confirmation dialog)
+
+勾选记录后可批量删除或下载，也可一键清空全部历史（均需确认）。
+
+**Download Modal / 下载格式选择:**
+When downloading records, a modal offers three format options:
+
+| Format | Description |
+|--------|-------------|
+| **JSON** | Machine-readable structured data |
+| **Markdown** | Human-readable formatted text |
+| **Both** | Downloads both JSON and Markdown files |
+
+下载时弹出格式选择窗口，可选 JSON、Markdown 或同时下载两种格式。
+
+**Replay / 重播:**
+Click the **Replay** button on any user message to re-send it to the coach. This automatically:
+1. Copies the message content to the description field
+2. Switches to **Skill OFF** mode (to bypass form validation)
+3. Sends the message immediately
+
+点击用户消息的**重播**按钮可重新发送该消息，系统自动填入描述、切换为技能关闭模式并立即发送。
+
+**Storage Limit / 存储限制:**
+- Maximum **200 records** with FIFO eviction (oldest removed first when full)
+- A **warning badge** appears on the History tab when approaching the limit (180+ records)
+
+最多存储 **200 条**记录，超出后自动移除最早的记录。接近上限（180+ 条）时历史标签页显示警告徽标。
+
+> **Note:** Records are saved to `localStorage` and persist across browser sessions. Only messages from **normal completion** are saved — cancelled, errored, or rate-limited responses are not recorded.
+> **注意：**记录保存在 `localStorage` 中，跨会话保留。仅正常完成的消息会被保存，取消、出错或限速的回复不会记录。
+
+---
 
 ### Template Chips / 快捷模板
 

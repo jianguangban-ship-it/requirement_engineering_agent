@@ -1,0 +1,35 @@
+Smart Agent — Release Notes (v8.44 – v8.49)
+=============================================
+
+v8.44 — Coach History
+  - Persistent Q&A history with 200-record cap (localStorage)
+  - Chat/History tab switch in CoachPanel
+  - Hash ID badges + timestamps on every chat bubble
+  - Search, filter, multi-select delete, replay past messages
+  - Export to JSON / Markdown
+
+v8.45 — Data & UI Fix
+  - Fixed leading space in projects.ts team name
+  - Flagged duplicate ID in DKKFT team roster
+  - Assignee combobox: selected name now renders in primary color
+
+v8.46 — Draggable Column Resize
+  - Drag handles between 3 columns (Coach / Form / Review)
+  - Column widths persist to localStorage
+  - Extended ProjectKey type with 5 new team keys
+
+v8.47 — Panel Resize Cleanup
+  - Removed misleading vertical resize grip from AIReviewPanel
+  - Panel auto-sizes with max-height instead
+
+v8.48 — Adaptive Screen Sizing
+  - CSS clamp() fluid scaling for 1366px–3840px viewports
+  - Proportional spacing, typography, icons, and sidebar width
+  - 1920px = baseline (zero visual regression)
+  - 100+ hardcoded px values replaced across 14 files
+
+v8.49 — Config Cleanup & Defect Module Removal
+  - Deduplicated VEHICLE_OPTIONS (6 duplicates removed)
+  - Normalized GWM_ prefix on 6 vehicle entries
+  - Removed duplicate EDC in PRODUCT_OPTIONS
+  - Deleted unused defect management module (server/, 16 files)

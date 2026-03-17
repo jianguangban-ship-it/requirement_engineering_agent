@@ -2258,3 +2258,34 @@ The AIReviewPanel had `resizable` (CSS `resize: vertical`) which showed a drag c
 | `src/components/shared/ToastContainer.vue` | Toast position and min/max width |
 | `package.json` | Version bump to 8.48.0 |
 | `PLAN.md` | This section |
+
+---
+
+## v8.49 — Cleanup: remove defect management & fix constants data (2026-03-17)
+
+**Housekeeping release — remove unused defect-tracking module, fix data duplicates in config.**
+
+### Changes
+
+1. **constants.ts** — Removed duplicate entries in `VEHICLE_OPTIONS` (`GWM_DE07-CH`, `GWM_DE06`, `GWM_EC15G` ×3, `GWM_H01`); normalized missing `GWM_` prefix on 6 entries; removed duplicate `EDC` in `PRODUCT_OPTIONS`; fixed spacing in `LAYER_OPTIONS`; reorganized vehicle list by series
+2. **Removed defect management module** — Deleted `server/` backend (Fastify + LibSQL), `src/components/defects/` (7 files), `src/components/dashboard/` (3 files), `src/components/shared/EmptyState.vue` & `Pagination.vue`, `src/composables/useDefects.ts`, `useApi.ts`, `useFilters.ts`, and unused `AppSidebar.vue` — none were wired into the main app
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `src/config/constants.ts` | Deduplicated vehicles/products, normalized `GWM_` prefix, fixed spacing |
+| `src/components/layout/AppHeader.vue` | Version bump to v8.49 |
+| `PLAN.md` | This section |
+
+### Deleted Files
+| File / Folder | Reason |
+|---------------|--------|
+| `server/` | Backend for defect tracking — not part of smart_agent |
+| `src/components/defects/` | 7 defect UI components — unused |
+| `src/components/dashboard/` | 3 stats/chart components — only served defects |
+| `src/components/shared/EmptyState.vue` | Only used by defect table |
+| `src/components/shared/Pagination.vue` | Only used by defect table |
+| `src/components/layout/AppSidebar.vue` | Defect/dashboard nav — not imported anywhere |
+| `src/composables/useDefects.ts` | Defect CRUD composable |
+| `src/composables/useApi.ts` | HTTP client — only used by useDefects |
+| `src/composables/useFilters.ts` | Filter composable — only used by defects |

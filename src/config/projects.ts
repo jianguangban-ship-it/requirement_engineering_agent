@@ -9,7 +9,7 @@ export const PROJECT_CONFIG: ProjectConfig[] = [
   { name: 'IDC_SWBS', key: 'SWBS', teamName: 'IBC Feature Team'},
   { name: 'IDC_SWVV', key: 'SWVV', teamName: 'V&V Feature Team'},
   { name: 'IDC_SWCD', key: 'SWCD', teamName: 'Com&Diag Team'},
-  { name: 'IDC_SWSU', key: 'SWSU', teamName: ' Suspension Feature Team'},
+  { name: 'IDC_SWSU', key: 'SWSU', teamName: 'Suspension Feature Team'},
 ]
 
 export const TEAM_MEMBERS: TeamMembersMap = {
@@ -70,7 +70,7 @@ export const TEAM_MEMBERS: TeamMembersMap = {
     { id: 'GW00376500', name: '王威 (Wang Wei)', role: 'Sr. Engineer' },
     { id: 'GW00371274', name: '唐紫姗 (Tang Zishan)', role: 'Jr. Engineer' },
     { id: 'GW00368026', name: '阮云冲 (Ruan Yunchong)', role: 'Jr. Engineer' },
-    { id: 'GW00285392', name: '万飞 (Wan Fei)', role: 'Engineer' },
+    { id: 'GW00376504', name: '万飞 (Wan Fei)', role: 'Engineer' },
     { id: 'GW00086162', name: '李云龙 (Li Yunlong)', role: 'Engineer' },
     { id: 'GW00285392', name: '李子越 (Li Ziyue)', role: 'Jr. Engineer' },
     { id: 'GW00333343', name: '耿国涛 (Geng Guotao)', role: 'Engineer' },
@@ -78,9 +78,9 @@ export const TEAM_MEMBERS: TeamMembersMap = {
     { id: 'GW00324035', name: '刘建设 (Liu Jianshe)', role: 'VV Manager' },
   ],
   SWSS: [
-    { id: 'GW00223611', name: '李文成 (Li Wencheng)', role: 'Engineer' },
+    { id: 'GW00223611', name: '李文成 (Li Wencheng)', role: 'Minister' },
     { id: 'GW00288668', name: '梅学书 (Mei Xueshu)', role: 'Engineer' },
-    { id: 'GW00300142', name: '于凯 (Yu Kai)', role: 'Engineer' },
+    { id: 'GW00300142', name: '于凯 (Yu Kai)', role: 'Manager' },
     { id: 'GW00306089', name: '张亚 (Zhang Ya)', role: 'Engineer' },
     { id: 'GW00309517', name: '秦思超 (Qin Sichao)', role: 'Engineer' },
     { id: 'GW00322172', name: '赵晓松 (Zhao Xiaosong)', role: 'Engineer' },
@@ -95,8 +95,8 @@ export const TEAM_MEMBERS: TeamMembersMap = {
     { id: 'GW00395306', name: '姜镇煜 (Jiang Zhenyu)', role: 'Engineer' },
   ],
   SWBS: [
-    { id: 'GW00022739', name: '赵辉 (Zhao Hui)', role: 'Engineer' },
-    { id: 'GW00065751', name: '盛杰 (Sheng Jie)', role: 'Engineer' },
+    { id: 'GW00022739', name: '赵辉 (Zhao Hui)', role: 'Minister' },
+    { id: 'GW00065751', name: '盛杰 (Sheng Jie)', role: 'Manager' },
     { id: 'GW00069664', name: '史克 (Shi Ke)', role: 'Engineer' },
     { id: 'GW00129780', name: '高阳 (Gao Yang)', role: 'Engineer' },
     { id: 'GW00129784', name: '高三星 (Gao Sanxing)', role: 'Engineer' },
@@ -136,7 +136,7 @@ export const TEAM_MEMBERS: TeamMembersMap = {
     { id: 'GW00397135', name: '李庆望 (Li Qingwang)', role: 'Engineer' },
   ],
   SWVV: [
-    { id: 'GW00307827', name: '葛坚 (Ge Jian)', role: 'Engineer' },
+    { id: 'GW00307827', name: '葛坚 (Ge Jian)', role: 'Manager' },
     { id: 'GW00390157', name: '石泽海 (Shi Zehai)', role: 'Engineer' },
     { id: 'GW00311980', name: '林斌 (Lin Bin)', role: 'Engineer' },
     { id: 'GW00330110', name: '谢朱庆 (Xie Zhuqing)', role: 'Engineer' },
@@ -152,7 +152,7 @@ export const TEAM_MEMBERS: TeamMembersMap = {
     { id: 'GW00366672', name: '陈嘉祺 (Chen Jiaqi)', role: 'Engineer' },
   ],
   SWSU: [
-    { id: 'GW00049639', name: '吴天玉 (Wu Tianyu)', role: 'Engineer' },
+    { id: 'GW00049639', name: '吴天玉 (Wu Tianyu)', role: 'Manager' },
     { id: 'GW00306280', name: '孙新龙 (Sun Xinlong)', role: 'Engineer' },
     { id: 'GW00337070', name: '谢志远 (Xie Zhiyuan)', role: 'Engineer' },
     { id: 'GW00250240', name: '李雨航 (Li Yuhang)', role: 'Engineer' },
@@ -168,5 +168,20 @@ export const TEAM_MEMBERS: TeamMembersMap = {
     { id: 'GW00358062', name: '危志颖 (Wei Zhiying)', role: 'Engineer' },
     { id: 'GW00386045', name: '宋德才 (Song Decai)', role: 'Engineer' },
     { id: 'GW00306301', name: '慈苗 (Ci Miao)', role: 'Engineer' },
+  ],
+  SWCD: [
+    { id: 'GW00312510', name: '张春强 (Zhang Chunqiang)', role: 'Manager' },
+    { id: 'GW00340978', name: '毛宇航 (Mao Yuhang)', role: 'Engineer' },
+    { id: 'GW00380945', name: '牟家利 (Mou Jiali)', role: 'Engineer' },
+    { id: 'GW00337742', name: 'Mohan', role: 'Engineer' },
+    { id: 'GW00321660', name: '吕悦 (Lyu Yue)', role: 'Engineer' },
+    { id: 'GW00385164', name: '张炳坤 (Zhang Bingkun)', role: 'Engineer' },
+    { id: 'GW00335774', name: '苗教伟 (Miao Jiaowei)', role: 'Engineer' },
+    { id: 'GW00366591', name: '殷松 (Yin Song)', role: 'Engineer' },
+    { id: 'GW00336809', name: '张朋辉 (Zhang Penghui)', role: 'Engineer' },
+    { id: 'GW00351352', name: '章安艺 (Zhang Anyi)', role: 'Engineer' },
+    { id: 'GW00387128', name: '邵珠满 (Shao Zhuman)', role: 'Engineer' },
+    { id: 'GW00337809', name: '杨羊 (Yang Yang)', role: 'Engineer' },
+    { id: 'GW00305772', name: '赵刚 (Zhao Gang)', role: 'Engineer' },
   ]
 }

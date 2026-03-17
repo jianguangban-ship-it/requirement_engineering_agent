@@ -8,6 +8,7 @@
       @input="onInput"
       @keydown="handleKeydown"
       class="combobox-input"
+      :class="{ 'has-selection': selectedName && !searchTerm }"
       :placeholder="selectedName || placeholder"
       role="combobox"
       :aria-expanded="isOpen"
@@ -151,6 +152,9 @@ onUnmounted(() => {
 }
 .combobox-input::placeholder {
   color: var(--text-muted);
+}
+.combobox-input.has-selection::placeholder {
+  color: var(--text-primary);
 }
 .combobox-arrow {
   position: absolute;

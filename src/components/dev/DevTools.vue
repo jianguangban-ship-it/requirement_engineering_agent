@@ -7,28 +7,31 @@
       </div>
     </details>
 
-    <details v-if="lastCoachRaw">
+    <details>
       <summary class="dev-summary">{{ t('dev.viewCoachPayload') }}</summary>
       <div class="dev-content raw-coach">
-        <div class="jv-toolbar">
-          <button class="jv-copy-btn" @click="copyCoachRaw" :title="t('toast.copied')">
-            <svg class="jv-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-            </svg>
-          </button>
-          <button class="jv-action-btn" @click="rawExpanded = true" :title="t('dev.expandAll')">
-            <svg class="jv-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
-          <button class="jv-action-btn" @click="rawExpanded = false" :title="t('dev.collapseAll')">
-            <svg class="jv-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="18 15 12 9 6 15"/>
-            </svg>
-          </button>
-        </div>
-        <pre class="raw-pre" :class="{ 'raw-collapsed': !rawExpanded }">{{ lastCoachRaw }}</pre>
+        <template v-if="lastCoachRaw">
+          <div class="jv-toolbar">
+            <button class="jv-copy-btn" @click="copyCoachRaw" :title="t('toast.copied')">
+              <svg class="jv-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+            </button>
+            <button class="jv-action-btn" @click="rawExpanded = true" :title="t('dev.expandAll')">
+              <svg class="jv-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            <button class="jv-action-btn" @click="rawExpanded = false" :title="t('dev.collapseAll')">
+              <svg class="jv-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="18 15 12 9 6 15"/>
+              </svg>
+            </button>
+          </div>
+          <pre class="raw-pre" :class="{ 'raw-collapsed': !rawExpanded }">{{ lastCoachRaw }}</pre>
+        </template>
+        <p v-else class="raw-empty">{{ t('dev.noCoachResponse') }}</p>
       </div>
     </details>
 
@@ -269,6 +272,12 @@ const activeUrl = computed(() =>
 .raw-collapsed {
   max-height: 80px;
   overflow: hidden;
+}
+.raw-empty {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-style: italic;
+  margin: 0;
 }
 /* Toolbar — same styles as JsonViewer .jv-toolbar */
 .jv-toolbar {
