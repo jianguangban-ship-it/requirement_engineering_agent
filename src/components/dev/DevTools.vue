@@ -1,14 +1,14 @@
 <template>
   <div class="dev-tools">
     <details>
-      <summary class="dev-summary">{{ t('dev.viewPayload') }}</summary>
+      <summary class="dev-summary"><strong>{{ t('dev.viewPayload') }}</strong></summary>
       <div class="dev-content">
         <JsonViewer :data="payload" />
       </div>
     </details>
 
     <details>
-      <summary class="dev-summary">{{ t('dev.viewCoachPayload') }}</summary>
+      <summary class="dev-summary"><strong>{{ t('dev.viewCoachPayload') }}</strong></summary>
       <div class="dev-content raw-coach">
         <template v-if="lastCoachRaw">
           <div class="jv-toolbar">
@@ -36,7 +36,7 @@
     </details>
 
     <details>
-      <summary class="dev-summary">⚡ {{ t('dev.webhookConfig') }}</summary>
+      <summary class="dev-summary"><strong>{{ ICONS.devWebhook }} {{ t('dev.activeWebhook') }}</strong></summary>
       <div class="dev-config">
         <div class="config-row">
           <span class="config-label">{{ t('dev.currentMode') }}:</span>
@@ -49,13 +49,13 @@
           <code class="config-url">{{ activeUrl }}</code>
         </div>
         <div class="config-hint">
-          💡 {{ t('dev.configHint') }} <code class="config-code">WEBHOOK_CONFIG</code>
+          {{ ICONS.devHint }} {{ t('dev.configHint') }} <code class="config-code">WEBHOOK_CONFIG</code>
         </div>
       </div>
     </details>
 
     <details>
-      <summary class="dev-summary">🤖 {{ t('dev.agentState') }}</summary>
+      <summary class="dev-summary"><strong>{{ ICONS.devAgent }} {{ t('dev.agentState') }}</strong></summary>
       <div class="dev-config">
         <div class="config-row">
           <span class="config-label">{{ t('dev.model') }}:</span>
@@ -121,6 +121,7 @@
 <script setup lang="ts">
 import { useI18n } from '@/i18n'
 import { WEBHOOK_CONFIG, useProductionMode } from '@/config/webhook'
+import { ICONS } from '@/config/icons'
 import { computed, ref } from 'vue'
 import type { ChatMessage } from '@/types/api'
 import { useToast } from '@/composables/useToast'

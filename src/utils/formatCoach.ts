@@ -1,5 +1,6 @@
 import { useI18n } from '@/i18n'
 import { renderMarkdown } from '@/utils/markdown'
+import { ICONS } from '@/config/icons'
 
 const { t } = useI18n()
 
@@ -80,27 +81,27 @@ export function formatCoachResponse(data: unknown, isStreaming = false): string 
     const status = item.status as string
     const cls = status === 'PASS' ? 'coach-status-pass' :
                 status === 'FAIL' ? 'coach-status-fail' : 'coach-status-warn'
-    const icon = status === 'PASS' ? '✅' : status === 'FAIL' ? '❌' : '⚠️'
+    const icon = status === 'PASS' ? ICONS.statusPass : status === 'FAIL' ? ICONS.statusFail : ICONS.statusWarn
     html += `<div class="coach-status-badge ${cls}">${icon} ${escapeHtml(status)}</div>`
   }
 
   if (item.team) {
     html += `<div class="coach-info-row">
-      <span class="coach-info-label">📂 ${t('coach.team')}:</span>
+      <span class="coach-info-label">${ICONS.team} ${t('coach.team')}:</span>
       <span class="coach-info-value">${escapeHtml(item.team as string)}</span>
     </div>`
   }
 
   if (item.assignee) {
     html += `<div class="coach-info-row">
-      <span class="coach-info-label">👤 ${t('coach.assignee')}:</span>
+      <span class="coach-info-label">${ICONS.assignee} ${t('coach.assignee')}:</span>
       <span class="coach-info-value">${escapeHtml(item.assignee as string)}</span>
     </div>`
   }
 
   if (item.jira_id) {
     html += `<div class="coach-info-row">
-      <span class="coach-info-label">🎫 JIRA ID:</span>
+      <span class="coach-info-label">${ICONS.jiraId} JIRA ID:</span>
       <span class="coach-info-value">${escapeHtml(item.jira_id as string)}</span>
     </div>`
   }
@@ -111,7 +112,7 @@ export function formatCoachResponse(data: unknown, isStreaming = false): string 
 
   if (item.comment) {
     html += `<div class="coach-comment-section">
-      <div class="coach-comment-title">📋 ${t('coach.reviewDetails')}</div>
+      <div class="coach-comment-title">${ICONS.reviewDetails} ${t('coach.reviewDetails')}</div>
       <div class="coach-comment-content">${formatCommentList(item.comment as string)}</div>
     </div>`
   }

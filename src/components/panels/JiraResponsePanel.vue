@@ -1,6 +1,6 @@
 <template>
   <PanelShell
-    :title="t('panel.jiraResponse')"
+    :title="ICONS.jiraPanel + ' ' + t('panel.jiraResponse')"
     :status="statusInfo.status"
     :status-label="t('status.' + statusInfo.key)"
     max-height="280px"
@@ -38,6 +38,7 @@ import { computed } from 'vue'
 import { useI18n } from '@/i18n'
 import PanelShell from '@/components/layout/PanelShell.vue'
 import JsonViewer from '@/components/shared/JsonViewer.vue'
+import { ICONS } from '@/config/icons'
 
 const props = defineProps<{
   response: unknown

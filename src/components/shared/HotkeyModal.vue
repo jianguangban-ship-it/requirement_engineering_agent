@@ -3,7 +3,7 @@
     <div v-if="modelValue" class="modal-overlay" ref="hotkeyModalRef" role="dialog" aria-modal="true" aria-labelledby="hotkey-modal-title" @click.self="$emit('update:modelValue', false)">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 id="hotkey-modal-title" class="modal-title">⌨️ {{ t('hotkeys.title') }}</h3>
+          <h3 id="hotkey-modal-title" class="modal-title">{{ ICONS.hotkeys }} {{ t('hotkeys.title') }}</h3>
           <button class="close-btn" :aria-label="t('modal.cancel')" @click="$emit('update:modelValue', false)">✕</button>
         </div>
 
@@ -24,6 +24,7 @@
 import { computed, ref, watch, nextTick } from 'vue'
 import { useI18n } from '@/i18n'
 import { useFocusTrap } from '@/composables/useFocusTrap'
+import { ICONS } from '@/config/icons'
 
 const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [value: boolean] }>()

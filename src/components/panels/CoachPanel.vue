@@ -1,6 +1,6 @@
 <template>
   <PanelShell
-    :title="t('coach.title')"
+    :title="ICONS.coachPanel + ' ' + t('coach.title')"
     :status="statusInfo.status"
     :status-label="t('status.' + statusInfo.key)"
     max-height="2500px"
@@ -174,6 +174,7 @@ import QuickChip from '@/components/shared/QuickChip.vue'
 import ChatBubble from '@/components/chat/ChatBubble.vue'
 import CoachHistoryTab from '@/components/coach/CoachHistoryTab.vue'
 import { isNearCap, recordCount } from '@/composables/useCoachHistory'
+import { ICONS } from '@/config/icons'
 
 const props = defineProps<{
   messages: ChatMessage[]
