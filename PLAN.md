@@ -2289,3 +2289,90 @@ The AIReviewPanel had `resizable` (CSS `resize: vertical`) which showed a drag c
 | `src/composables/useDefects.ts` | Defect CRUD composable |
 | `src/composables/useApi.ts` | HTTP client — only used by useDefects |
 | `src/composables/useFilters.ts` | Filter composable — only used by defects |
+
+---
+
+## v8.50 — Help button linking to user manual wiki (2026-03-20)
+
+**Added a help icon button in the header that opens the Confluence user manual in a new tab.**
+
+### Design Rationale
+
+The user manual is hosted on the corporate Confluence wiki. Rather than embedding markdown rendering inline (which would duplicate content and go stale), a simple external link keeps the manual as the single source of truth. The help button uses a `?` circle SVG icon, placed between the theme toggle and settings gear — consistent with the existing header button styling. On hover it highlights in accent-blue to differentiate it from the settings gear.
+
+### Changes
+
+1. **Help button** — New `<button class="help-btn">` with a question-mark-circle SVG icon, opens `https://wiki.gwm.cn/pages/viewpage.action?pageId=506263489#` in a new tab via `window.open` with `noopener`
+2. **Consistent styling** — Button dimensions, border, radius, and transitions match `theme-btn` and `settings-btn`; hover color is `--accent-blue` to visually distinguish help from settings
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `src/components/layout/AppHeader.vue` | Added help button + `openHelp()` function + CSS; version bump to v8.50 |
+| `PLAN.md` | This section |
+
+---
+
+## v8.51 — Centralized emoji config (2026-03-20)
+
+**Extracted all hardcoded emojis from components into a single config file `src/config/icons.ts`.**
+
+### Design Rationale
+
+Emojis were scattered across 8+ files (formatCoach.ts, DevTools.vue, HotkeyModal.vue, LLMSettings.vue, TicketHistoryPanel.vue, AppHeader.vue, useLLM.ts, i18n files). Changing a single emoji meant hunting through multiple components. A centralized `ICONS` object makes every emoji visible and editable in one place — just open `src/config/icons.ts`.
+
+### Changes
+
+1. **New file `src/config/icons.ts`** — typed `ICONS` constant with semantic keys (`statusPass`, `team`, `settings`, `coachPanel`, `reviewPanel`, `jiraPanel`, `devAgent`, `importArrow`, etc.)
+2. **Updated 10 consumer files** — all replaced inline emojis with `ICONS.xxx` references
+3. **Added panel title emojis** — Coach (`💬`), AI Review (`🔍`), JIRA Response (`📝`) panels now show emoji prefixes in their titles, all configurable from `icons.ts`
+4. **Template JSON files unchanged** — these are user-editable data (exported/imported), so their emoji values stay as plain strings
+5. **i18n files cleaned** — removed the inline `⚙` from error messages (the icon is now sourced from `ICONS.settings` at the call site in `useLLM.ts`)
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `src/config/icons.ts` | **New** — centralized emoji registry |
+| `src/utils/formatCoach.ts` | Replaced 5 inline emojis with ICONS refs |
+| `src/components/shared/HotkeyModal.vue` | `⌨️` → `ICONS.hotkeys` |
+| `src/components/panels/TicketHistoryPanel.vue` | `🎫` → `ICONS.ticketHistory` |
+| `src/components/dev/DevTools.vue` | `⚡`, `💡`, `🤖` → ICONS refs |
+| `src/components/settings/LLMSettings.vue` | `⬆`/`⬇`/`✏️` → ICONS refs |
+| `src/components/panels/CoachPanel.vue` | Added `ICONS.coachPanel` emoji to title |
+| `src/components/panels/AIReviewPanel.vue` | Added `ICONS.reviewPanel` emoji to title |
+| `src/components/panels/JiraResponsePanel.vue` | Added `ICONS.jiraPanel` emoji to title |
+| `src/components/layout/AppHeader.vue` | `⚙` → `ICONS.settings`; version bump to v8.51 |
+| `src/composables/useLLM.ts` | `⚙` in error strings → `ICONS.settings` |
+| `src/i18n/en.ts` | Removed inline `⚙` from glm401 message |
+| `src/i18n/zh.ts` | Removed inline `⚙` from glm401 message |
+| `PLAN.md` | This section |
+
+---
+
+## v8.52 — UI text & style polish (2026-03-20)
+
+**Batch of UI text refinements, header branding update, and scrollbar sizing.**
+
+### Design Rationale
+
+Shortened verbose labels, added bold emphasis to DevTools summary labels for visual hierarchy, renamed panels to match their actual function, and introduced a colored logo wordmark for EN mode. Scrollbar thumb was too thin for comfortable gripping in long coach conversations.
+
+### Changes
+
+1. **Header branding** — EN title changed from "Agentic Engineering Platform" to colored **AGec** logo (A=red, G=yellow, ec=blue); ZH title "智能工程平台" unchanged
+2. **Test/Prod toggle** — labels uppercased to **TEST** / **PROD** with bold styling
+3. **Status badge** — removed "Production" / "Test Mode" text, now shows only the breathing pulse dot
+4. **Left panel** — "Writing Coach Message" → **Design Coach** / 设计教练; "Task Coach ON/OFF" → **Task Skill ON/OFF** / 任务技能 开/关
+5. **Right panel** — "Task Review Message" → **Task Analysis** / 任务分析; "JIRA System Response" → **JIRA Response** / JIRA 响应
+6. **DevTools labels** — "View Request Payload" → **Request Payload**; "View Coach Response (Raw)" → **Coach Response**; "Webhook Configuration" → **Active Webhook**; all four summaries wrapped in `<strong>`
+7. **Scrollbar** — thumb width increased from `1.5×` to `2.0×` base unit for easier gripping
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `src/components/layout/AppHeader.vue` | Colored AGec logo, TEST/PROD bold uppercase, pulse-only status badge, version bump to v8.52 |
+| `src/components/dev/DevTools.vue` | Shortened labels, bold summaries, renamed webhook key |
+| `src/i18n/en.ts` | Renamed 6 labels (coach title, task coach toggle, panel titles, dev labels) |
+| `src/i18n/zh.ts` | Corresponding ZH label updates |
+| `src/styles/global.css` | Scrollbar width `1.5` → `2.0` multiplier |
+| `PLAN.md` | This section |

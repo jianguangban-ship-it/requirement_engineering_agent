@@ -1,6 +1,6 @@
 <template>
   <PanelShell
-    :title="t('panel.aiAgentResponse')"
+    :title="ICONS.reviewPanel + ' ' + t('panel.aiAgentResponse')"
     :status="statusInfo.status"
     :status-label="t('status.' + statusInfo.key)"
     max-height="2500px"
@@ -113,6 +113,7 @@ import { useToast } from '@/composables/useToast'
 import { currentModel } from '@/config/llm'
 import PanelShell from '@/components/layout/PanelShell.vue'
 import JsonViewer from '@/components/shared/JsonViewer.vue'
+import { ICONS } from '@/config/icons'
 
 const props = defineProps<{
   response: unknown

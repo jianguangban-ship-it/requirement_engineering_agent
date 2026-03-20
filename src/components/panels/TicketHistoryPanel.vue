@@ -2,7 +2,7 @@
   <div class="history-panel">
     <details>
       <summary class="history-summary">
-        <span class="summary-title">🎫 {{ t('history.title') }}</span>
+        <span class="summary-title">{{ ICONS.ticketHistory }} {{ t('history.title') }}</span>
         <button
           v-if="ticketHistory.length > 0"
           class="clear-btn"
@@ -42,6 +42,7 @@
 <script setup lang="ts">
 import { useI18n } from '@/i18n'
 import { ticketHistory, clearHistory } from '@/composables/useTicketHistory'
+import { ICONS } from '@/config/icons'
 
 const { t } = useI18n()
 

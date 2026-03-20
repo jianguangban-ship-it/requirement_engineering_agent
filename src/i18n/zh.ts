@@ -44,8 +44,8 @@ export default {
     select: '选择'
   },
   panel: {
-    aiAgentResponse: '任务审核消息',
-    jiraResponse: 'JIRA 系统响应',
+    aiAgentResponse: '任务分析',
+    jiraResponse: 'JIRA 响应',
     waitingAI: '等待 AI Agent 响应...',
     aiAnalyzing: 'AI 正在分析...',
     retryBtn: '重试',
@@ -69,10 +69,10 @@ export default {
     created: '已创建'
   },
   dev: {
-    viewPayload: '查看请求 Payload',
-    viewCoachPayload: '查看 Coach 响应（原始文本）',
+    viewPayload: '请求 Payload',
+    viewCoachPayload: 'Coach 响应',
     noCoachResponse: '暂无 Coach 响应 — 请先发送消息。',
-    webhookConfig: 'Webhook 配置',
+    activeWebhook: '活跃 Webhook',
     currentMode: '当前模式',
     production: '生产环境',
     testing: '测试环境',
@@ -104,7 +104,7 @@ export default {
     connectionFailed: '无法连接到 n8n 服务',
     requestFailed: '请求失败',
     emptyResponse: '服务器返回空响应，请检查 n8n 工作流中 Respond_to_Webhook 节点配置',
-    glm401: 'API Key 无效，请点击 ⚙ 设置进行更新。',
+    glm401: 'API Key 无效，请点击设置进行更新。',
     glm429: '请求频率超限，请稍候后重试。',
     glm5xx: 'LLM 服务暂时不可用，请稍后重试。',
     maxRetries: '连续 3 次重试后仍被限流，请稍后再试。'
@@ -114,7 +114,7 @@ export default {
     prodTooltip: '生产模式：需要 n8n 工作流处于 Active 状态（绿色）'
   },
   coach: {
-    title: '写作辅导消息',
+    title: '设计教练',
     emptyHint: '获取 AI 辅导，写出更优质的任务描述',
     emptySubHint: '填写基本信息和描述后，点击下方按钮',
     analyzing: 'AI Coach 正在分析...',
@@ -129,8 +129,8 @@ export default {
     backoffCancel: '取消自动重试',
     skillOn: '技能 开',
     skillOff: '技能 关',
-    taskCoachOn: '任务辅导 开',
-    taskCoachOff: '任务辅导 关',
+    taskCoachOn: '任务技能 开',
+    taskCoachOff: '任务技能 关',
     userLabel: '你',
     agentLabel: '教练',
     typing: '思考中...',

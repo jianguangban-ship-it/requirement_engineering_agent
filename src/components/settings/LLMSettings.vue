@@ -47,10 +47,10 @@
             </div>
             <div class="skill-actions">
               <label class="btn-skill-md">
-                ⬆ {{ t('settings.importSkillMd') }}
+                {{ ICONS.importArrow }}{{ t('settings.importSkillMd') }}
                 <input type="file" accept=".md,.txt" @change="handleImportCoachMd" style="display:none" />
               </label>
-              <button class="btn-skill-md" @click="handleExportCoachMd">⬇ {{ t('settings.exportSkillMd') }}</button>
+              <button class="btn-skill-md" @click="handleExportCoachMd">{{ ICONS.exportArrow }}{{ t('settings.exportSkillMd') }}</button>
               <button class="btn-reset" @click="handleResetCoach">{{ t('settings.skillReset') }}</button>
             </div>
           </div>
@@ -70,10 +70,10 @@
             </div>
             <div class="skill-actions">
               <label class="btn-skill-md">
-                ⬆ {{ t('settings.importSkillMd') }}
+                {{ ICONS.importArrow }}{{ t('settings.importSkillMd') }}
                 <input type="file" accept=".md,.txt" @change="handleImportAnalyzeMd" style="display:none" />
               </label>
-              <button class="btn-skill-md" @click="handleExportAnalyzeMd">⬇ {{ t('settings.exportSkillMd') }}</button>
+              <button class="btn-skill-md" @click="handleExportAnalyzeMd">{{ ICONS.exportArrow }}{{ t('settings.exportSkillMd') }}</button>
               <button class="btn-reset" @click="handleResetAnalyze">{{ t('settings.skillReset') }}</button>
             </div>
           </div>
@@ -132,10 +132,10 @@
             <div class="chip-list-actions">
               <button class="btn-add-chip" @click="addChip">+ {{ t('settings.addChip') }}</button>
               <label class="btn-add-chip btn-import-chip">
-                ⬆ {{ t('settings.importTemplates') }}
+                {{ ICONS.importArrow }}{{ t('settings.importTemplates') }}
                 <input type="file" accept=".json" @change="handleImportTemplates" style="display:none" />
               </label>
-              <button class="btn-add-chip" @click="handleExportTemplatesJson">⬇ {{ t('settings.exportTemplatesJson') }}</button>
+              <button class="btn-add-chip" @click="handleExportTemplatesJson">{{ ICONS.exportArrow }}{{ t('settings.exportTemplatesJson') }}</button>
               <button class="btn-reset" @click="handleResetTemplates">{{ t('settings.templateReset') }}</button>
             </div>
           </div>
@@ -145,9 +145,9 @@
         <div class="field-group">
           <label class="field-label">{{ t('settings.exportImport') }}</label>
           <div class="export-row">
-            <button class="btn-export" @click="handleExport">⬇ {{ t('settings.exportSettings') }}</button>
+            <button class="btn-export" @click="handleExport">{{ ICONS.exportArrow }}{{ t('settings.exportSettings') }}</button>
             <label class="btn-export btn-import">
-              ⬆ {{ t('settings.importSettings') }}
+              {{ ICONS.importArrow }}{{ t('settings.importSettings') }}
               <input type="file" accept=".json" @change="handleImport" style="display:none" />
             </label>
           </div>
@@ -165,6 +165,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue' // computed kept for allModelPresets
 import { useI18n } from '@/i18n'
+import { ICONS } from '@/config/icons'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 import {
   getApiKey, setApiKey, getModel, setModel,
@@ -338,7 +339,7 @@ function deleteChip(idx: number) {
 }
 
 function addChip() {
-  localTemplates.value.push({ key: `custom-${Date.now()}`, icon: '✏️', label: { zh: '新模板', en: 'New Template' }, content: { zh: '', en: '' } })
+  localTemplates.value.push({ key: `custom-${Date.now()}`, icon: ICONS.templateNewChip, label: { zh: '新模板', en: 'New Template' }, content: { zh: '', en: '' } })
   editingChipIndex.value = localTemplates.value.length - 1
 }
 

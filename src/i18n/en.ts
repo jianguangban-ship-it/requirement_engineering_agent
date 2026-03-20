@@ -44,8 +44,8 @@ export default {
     select: 'Select'
   },
   panel: {
-    aiAgentResponse: 'Task Review Message',
-    jiraResponse: 'JIRA System Response',
+    aiAgentResponse: 'Task Analysis',
+    jiraResponse: 'JIRA Response',
     waitingAI: 'Waiting for AI Agent response...',
     aiAnalyzing: 'AI is analyzing...',
     retryBtn: 'Retry',
@@ -69,10 +69,10 @@ export default {
     created: 'Created'
   },
   dev: {
-    viewPayload: 'View Request Payload',
-    viewCoachPayload: 'View Coach Response (Raw)',
+    viewPayload: 'Request Payload',
+    viewCoachPayload: 'Coach Response',
     noCoachResponse: 'No coach response yet — send a message first.',
-    webhookConfig: 'Webhook Configuration',
+    activeWebhook: 'Active Webhook',
     currentMode: 'Current Mode',
     production: 'Production',
     testing: 'Testing',
@@ -104,7 +104,7 @@ export default {
     connectionFailed: 'Cannot connect to n8n service',
     requestFailed: 'Request failed',
     emptyResponse: 'Server returned empty response, please check n8n workflow configuration',
-    glm401: 'Invalid API key. Click ⚙ Settings to update it.',
+    glm401: 'Invalid API key. Click Settings to update it.',
     glm429: 'Rate limit exceeded. Please wait a moment and retry.',
     glm5xx: 'LLM service is temporarily unavailable. Please retry shortly.',
     maxRetries: 'Rate limit exceeded after 3 retries. Please try again later.'
@@ -114,7 +114,7 @@ export default {
     prodTooltip: 'Production Mode: Requires n8n workflow to be Active (green)'
   },
   coach: {
-    title: 'Writing Coach Message',
+    title: 'Design Coach',
     emptyHint: 'Get AI guidance to write better task descriptions',
     emptySubHint: 'Fill in basic info and description, then click the button below',
     analyzing: 'AI Coach is analyzing...',
@@ -129,8 +129,8 @@ export default {
     backoffCancel: 'Cancel auto-retry',
     skillOn: 'Skill ON',
     skillOff: 'Skill OFF',
-    taskCoachOn: 'Task Coach ON',
-    taskCoachOff: 'Task Coach OFF',
+    taskCoachOn: 'Task Skill ON',
+    taskCoachOff: 'Task Skill OFF',
     userLabel: 'You',
     agentLabel: 'Coach',
     typing: 'Thinking...',

@@ -1,7 +1,7 @@
-# Agentic Engineering Platform — User Manual
+# AGec — User Manual
 # 智能工程平台 — 用户手册
 
-> Version / 版本: v8.44 | Language / 语言: English · 中文
+> Version / 版本: v8.52 | Language / 语言: English · 中文
 
 ---
 
@@ -12,7 +12,7 @@
 3. [First-Time Setup / 初次配置](#3-first-time-setup--初次配置)
 4. [Step-by-Step Workflow / 标准操作流程](#4-step-by-step-workflow--标准操作流程)
 5. [Header Controls / 顶栏控件](#5-header-controls--顶栏控件)
-6. [AI Coach Panel / 写作辅导面板](#6-ai-coach-panel--写作辅导面板)
+6. [AI Coach Panel / 设计教练面板](#6-ai-coach-panel--设计教练面板)
 7. [Task Form / 任务表单](#7-task-form--任务表单)
 8. [Analyze Task / 分析任务](#8-analyze-task--分析任务)
 9. [Creating a JIRA Ticket / 创建 JIRA 工单](#9-creating-a-jira-ticket--创建-jira-工单)
@@ -45,12 +45,12 @@ The app is divided into three columns plus a top header bar.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Header: Title | Language | Mode | Status | Theme | Settings │
+│ Header: AGec | Language | TEST/PROD | Pulse | Theme | Help | Settings │
 ├──────────────────┬──────────────────┬───────────────────────┤
 │                  │                  │                       │
 │  LEFT COLUMN     │  CENTER COLUMN   │  RIGHT COLUMN         │
-│  Writing Coach   │  Task Form       │  Task Review Panel    │
-│  Panel           │  · Basic Info    │  JIRA Response Panel  │
+│  Design Coach    │  Task Form       │  Task Analysis        │
+│  Panel           │  · Basic Info    │  JIRA Response        │
 │                  │  · Story Points  │  Ticket History       │
 │                  │  · Summary       │  Dev Tools            │
 │                  │  · Description   │                       │
@@ -60,7 +60,7 @@ The app is divided into three columns plus a top header bar.
 
 | Column | Purpose |
 |--------|---------|
-| **Left / 左列** | AI Writing Coach provides guidance before you analyze |
+| **Left / 左列** | AI Design Coach provides guidance before you analyze |
 | **Center / 中列** | Main task form where you fill in all task details |
 | **Right / 右列** | AI review results, JIRA creation response, and history |
 
@@ -133,12 +133,15 @@ The header bar sits at the top of every page and contains global controls.
 Click **EN** or **中文** to switch the entire interface language.
 点击 **EN** 或 **中文** 切换界面语言，即时生效。
 
-### Test / Prod Mode Toggle / 测试/生产模式切换
+### TEST / PROD Mode Toggle / 测试/生产模式切换
 
 | Mode | Color | Description |
 |------|-------|-------------|
-| **Test** | 🟠 Orange | Requires clicking "Listen" in the n8n editor to activate the JIRA creation webhook |
-| **Prod** | 🟢 Green | Requires the n8n workflow to be in **Active** state |
+| **TEST** | 🟠 Orange | Requires clicking "Listen" in the n8n editor to activate the JIRA creation webhook |
+| **PROD** | 🟢 Green | Requires the n8n workflow to be in **Active** state |
+
+A **breathing pulse dot** next to the toggle shows the current mode at a glance (orange = test, green = prod).
+切换按钮旁的**呼吸脉冲点**实时指示当前模式（橙色 = 测试，绿色 = 生产）。
 
 > This toggle only affects the webhook URL used for **JIRA ticket creation**. It has no effect on LLM Direct API calls.
 > 该切换仅影响 **JIRA 工单创建**所用的 Webhook URL，对 LLM 直连 API 调用无影响。
@@ -148,17 +151,22 @@ Click **EN** or **中文** to switch the entire interface language.
 Click the ☀️ / 🌙 button to switch between **Light** and **Dark** themes. Your preference is saved automatically.
 点击 ☀️ / 🌙 按钮切换**浅色**和**深色**主题，偏好自动保存。
 
+### Help / 帮助
+
+Click the **?** icon to open the user manual wiki page in a new browser tab.
+点击 **?** 图标在新标签页中打开用户手册 wiki 页面。
+
 ### Settings / 设置
 
 Click **⚙** to open the LLM Settings modal. See [Section 11](#11-settings--设置) for details.
 
 ---
 
-## 6. AI Coach Panel / 写作辅导面板
+## 6. AI Coach Panel / 设计教练面板
 
-The **Writing Coach Message** panel is on the **left column**. It provides writing guidance *before* you run the full AI analysis, helping you improve your task description quality upfront.
+The **Design Coach** panel is on the **left column**. It provides writing guidance *before* you run the full AI analysis, helping you improve your task description quality upfront.
 
-**写作辅导消息**面板位于**左列**。在运行完整 AI 分析之前，Coach 提供写作指导，帮助你提前优化任务描述质量。
+**设计教练**面板位于**左列**。在运行完整 AI 分析之前，Coach 提供写作指导，帮助你提前优化任务描述质量。
 
 ### Chat-Style Conversation / 对话式交互
 
@@ -203,18 +211,18 @@ In the panel header, you will see a **Skill ON / Skill OFF** toggle button.
 
 点击切换按钮可随时开启或关闭技能提示词，**关闭**后 AI 将自由回答，适合头脑风暴或非 JIRA 相关问题。
 
-### Task Coach Toggle / 任务辅导开关
+### Task Skill Toggle / 任务技能开关
 
-Next to the Skill toggle, a **Task Coach ON / Task Coach OFF** button controls whether full task fields (project, type, summary, assignee, points) are sent to the Coach alongside the description.
+Next to the Skill toggle, a **Task Skill ON / Task Skill OFF** button controls whether full task fields (project, type, summary, assignee, points) are sent to the Coach alongside the description.
 
 | State | Behavior |
 |-------|----------|
-| **Task Coach ON** | Full task context (all form fields) is included in the Coach prompt |
-| **Task Coach OFF** | Only the description text is sent — lighter, free-form coaching |
+| **Task Skill ON** | Full task context (all form fields) is included in the Coach prompt |
+| **Task Skill OFF** | Only the description text is sent — lighter, free-form coaching |
 
-**Dependency on Skill toggle:** Task Coach is only effective when **Skill is ON**. When Skill is switched OFF, the Task Coach button automatically shows **"Task Coach OFF"**, is visually grayed out, and is disabled. Toggling Skill back ON restores the Task Coach to its previous state.
+**Dependency on Skill toggle:** Task Skill is only effective when **Skill is ON**. When Skill is switched OFF, the Task Skill button automatically shows **"Task Skill OFF"**, is visually grayed out, and is disabled. Toggling Skill back ON restores the Task Skill to its previous state.
 
-**与技能开关的依赖关系：**任务辅导仅在**技能开启**时生效。技能关闭后，任务辅导按钮自动显示为 **"Task Coach OFF"**（灰色禁用状态）。重新开启技能后恢复此前状态。
+**与技能开关的依赖关系：**任务技能仅在**技能开启**时生效。技能关闭后，任务技能按钮自动显示为 **"Task Skill OFF"**（灰色禁用状态）。重新开启技能后恢复此前状态。
 
 **Dynamic Focus Layout / 动态聚焦布局:**
 When **Skill OFF** is active, the interface automatically enters **Free-Chat Mode**:
@@ -429,9 +437,9 @@ Click **Analyze Task** (or press `Ctrl+Shift+Enter`) to send your task to the AI
 - **Subtask decomposition** — if the task is large, AI may propose splitting it into subtasks
 - **Field consistency** — checks that summary and description are aligned
 
-### Reading the Task Review Panel / 阅读任务审核面板
+### Reading the Task Analysis Panel / 阅读任务分析面板
 
-The **Task Review Message** panel (right column, top) shows the analysis result.
+The **Task Analysis** panel (right column, top) shows the analysis result.
 
 | Element | Description |
 |---------|-------------|
@@ -482,8 +490,8 @@ A modal opens showing the **full request payload** that will be sent to JIRA. Re
 
 ### Step 3 — JIRA Response / JIRA 响应
 
-After creation, the **JIRA System Response** panel (right column, middle) shows:
-创建后，右列中部的 **JIRA 系统响应**面板显示：
+After creation, the **JIRA Response** panel (right column, middle) shows:
+创建后，右列中部的 **JIRA 响应**面板显示：
 
 - **Success:** The response JSON including the new ticket key (e.g., `PROJ-1234`)
 - **In progress:** A spinner in JIRA blue while the request is processing
@@ -614,8 +622,8 @@ Press **`?`** anywhere (outside a text input) to open the shortcuts reference mo
 - **Be specific in the description.** Vague descriptions get low scores. Include who, what, why, and how to verify.
   **描述要具体。**模糊的描述会得到低分，建议包含：执行者、任务内容、原因以及验收方法。
 
-- **Use the Coach first.** Running the Writing Coach before the main analysis helps you improve the description quality upfront and reduces the need for rework.
-  **先用写作辅导。**在主分析前先请 Coach 审阅，可以提前优化描述质量，减少返工。
+- **Use the Coach first.** Running the Design Coach before the main analysis helps you improve the description quality upfront and reduces the need for rework.
+  **先用设计教练。**在主分析前先请 Coach 审阅，可以提前优化描述质量，减少返工。
 
 - **Match the description to the summary.** If your 5-part summary says "NvM driver configuration" but the description discusses a completely different topic, the AI will flag the inconsistency.
   **保持摘要与描述一致。**五段式摘要与描述内容不匹配会被 AI 标记为不一致。
@@ -623,8 +631,8 @@ Press **`?`** anywhere (outside a text input) to open the shortcuts reference mo
 - **Draft saved automatically.** Your form content is auto-saved to the browser as a draft. If you accidentally close the tab, reopen the app and your draft will be restored with a toast notification.
   **草稿自动保存。**表单内容会自动保存到浏览器，意外关闭标签页后重新打开可恢复草稿。
 
-- **Check the model badge.** The active model name is shown as a badge in both the Writing Coach and Task Review panel headers, so you always know which model is being used.
-  **查看模型标识。**写作辅导和任务审核面板标题均显示当前模型名称，方便随时确认。
+- **Check the model badge.** The active model name is shown as a badge in both the Design Coach and Task Analysis panel headers, so you always know which model is being used.
+  **查看模型标识。**设计教练和任务分析面板标题均显示当前模型名称，方便随时确认。
 
 - **LaTeX math is supported.** AI responses can include mathematical formulas using `$...$` (inline) and `$$...$$` (display) delimiters. The app renders them with KaTeX. Markdown escape conflicts (e.g. `\*` inside formulas) are handled automatically.
   **支持 LaTeX 数学公式。**AI 回复中可使用 `$...$`（行内）和 `$$...$$`（独立行）公式，由 KaTeX 渲染。Markdown 转义冲突（如公式内的 `\*`）已自动处理。
@@ -655,7 +663,7 @@ This is normal — the app found a previously unsaved draft and restored it. Cli
 
 #### Story points were changed by AI / AI 修改了故事点
 
-The AI verifies your estimate. The corrected value is shown in the **Processing Summary** section of the Task Review panel. The JIRA ticket will use the AI-recommended value. If you disagree, note it in the task description before creating.
+The AI verifies your estimate. The corrected value is shown in the **Processing Summary** section of the Task Analysis panel. The JIRA ticket will use the AI-recommended value. If you disagree, note it in the task description before creating.
 
 #### JIRA creation fails but LLM analysis works / LLM 分析正常但 JIRA 创建失败
 

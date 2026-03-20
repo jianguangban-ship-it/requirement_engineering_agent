@@ -6,8 +6,9 @@
         <span class="dot orange"></span>
         <span class="dot blue"></span>
       </div>
-      <h1 class="header-title">{{ t('header.title') }}</h1>
-      <span class="header-version">v8.49</span>
+      <h1 v-if="currentLang === 'en'" class="header-title"><span class="logo-a">A</span><span class="logo-g">G</span><span class="logo-ec">ec</span></h1>
+      <h1 v-else class="header-title">{{ t('header.title') }}</h1>
+      <span class="header-version">v8.52</span>
     </div>
     <div class="header-right">
       <!-- Language Toggle -->
@@ -33,7 +34,7 @@
           :title="t('urlMode.testTooltip')"
         >
           <span class="mode-dot orange"></span>
-          Test
+          <strong>TEST</strong>
         </button>
         <button
           class="toggle-btn"
@@ -42,14 +43,13 @@
           :title="t('urlMode.prodTooltip')"
         >
           <span class="mode-dot green"></span>
-          Prod
+          <strong>PROD</strong>
         </button>
       </div>
 
-      <!-- Status Badge -->
+      <!-- Status Badge (pulse only) -->
       <span class="status-badge" :class="isProd ? 'prod' : 'test'">
         <span class="status-pulse" :class="isProd ? 'green' : 'orange'"></span>
-        {{ isProd ? 'Production' : 'Test Mode' }}
       </span>
 
       <!-- Theme Toggle -->
@@ -66,9 +66,18 @@
         </svg>
       </button>
 
+      <!-- Help Button -->
+      <button class="help-btn" @click="openHelp" title="User Manual" aria-label="User Manual">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </button>
+
       <!-- Settings Gear -->
       <button class="settings-btn" @click="$emit('openSettings')" :title="t('settings.title')" :aria-label="t('settings.title')">
-        ⚙
+        {{ ICONS.settings }}
       </button>
     </div>
   </header>
@@ -78,12 +87,18 @@
 import { useI18n } from '@/i18n'
 import { useProductionMode, setUrlMode } from '@/config/webhook'
 import { useTheme } from '@/composables/useTheme'
+import { ICONS } from '@/config/icons'
 
 const { t, setLang, currentLang } = useI18n()
 const isProd = useProductionMode
 const { isDark, toggleTheme } = useTheme()
 
 defineEmits<{ openSettings: [] }>()
+
+function openHelp() {
+  window.open('https://wiki.gwm.cn/pages/viewpage.action?pageId=506263489#', '_blank', 'noopener')
+}
+
 </script>
 
 <style scoped>
@@ -114,9 +129,12 @@ defineEmits<{ openSettings: [] }>()
 .dot.blue { background-color: #58a6ff; }
 .header-title {
   font-size: var(--font-lg);
-  font-weight: 600;
-  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
+.logo-a { color: #f85149; }
+.logo-g { color: #d29922; }
+.logo-ec { color: #58a6ff; }
 .header-version {
   font-size: var(--font-base);
   color: var(--text-muted);
@@ -166,24 +184,21 @@ defineEmits<{ openSettings: [] }>()
 
 /* Status badge */
 .status-badge {
-  font-size: var(--font-base);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
+  padding: var(--space-1);
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: calc(var(--space-1) * 1.5);
+  justify-content: center;
 }
 .status-badge.prod {
   background-color: var(--green-subtle);
-  color: var(--accent-green);
 }
 .status-badge.test {
   background-color: var(--orange-subtle);
-  color: var(--accent-orange);
 }
 .status-pulse {
-  width: calc(var(--space-1) * 1.5);
-  height: calc(var(--space-1) * 1.5);
+  width: calc(var(--space-1) * 2.5);
+  height: calc(var(--space-1) * 2.5);
   border-radius: 50%;
   animation: pulse 2s ease-in-out infinite;
 }
@@ -214,6 +229,27 @@ defineEmits<{ openSettings: [] }>()
 }
 .theme-btn:hover {
   color: var(--accent-orange);
+  background-color: var(--bg-tertiary);
+}
+.help-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  width: clamp(24px, calc(2.14px + 1.444vw), 40px);
+  height: clamp(24px, calc(2.14px + 1.444vw), 40px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.help-btn svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+.help-btn:hover {
+  color: var(--accent-blue);
   background-color: var(--bg-tertiary);
 }
 .settings-btn {

@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import type { LLMRequestBody, LLMStreamChunk, LLMChatMessage, WebhookPayload, ChatMessage } from '@/types/api'
 import { getProviderUrl, getApiKey, getModel } from '@/config/llm'
+import { ICONS } from '@/config/icons'
 import { getCoachSkill, getAnalyzeSkill } from '@/config/skills/index'
 import { useI18n } from '@/i18n'
 import { addRecord } from '@/composables/useCoachHistory'
@@ -309,8 +310,8 @@ export function useLLM() {
     if (!apiKey) {
       throw new Error(
         isZh.value
-          ? 'GLM API Key 未配置，请点击右上角 ⚙ 进行设置。'
-          : 'GLM API Key not set. Please click ⚙ in the header to configure it.'
+          ? `GLM API Key 未配置，请点击右上角 ${ICONS.settings} 进行设置。`
+          : `GLM API Key not set. Please click ${ICONS.settings} in the header to configure it.`
       )
     }
 
