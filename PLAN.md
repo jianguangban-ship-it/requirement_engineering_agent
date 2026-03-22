@@ -2376,3 +2376,738 @@ Shortened verbose labels, added bold emphasis to DevTools summary labels for vis
 | `src/i18n/zh.ts` | Corresponding ZH label updates |
 | `src/styles/global.css` | Scrollbar width `1.5` → `2.0` multiplier |
 | `PLAN.md` | This section |
+
+---
+
+# Domain Agent Roadmap — Cross-Team Intelligent Workstation
+
+> Prioritized development roadmap to transform AGec from a task-creation tool into a qualified, domain-aware engineering agent for automotive/embedded cross-team workflows.
+
+## Phase 0 — Skill Auto-Detection (v8.53) — COMPLETED (2026-03-21)
+
+**Goal**: Auto-select the right AI skill (system prompt) based on user message content.
+
+**Priority**: Prerequisite — provides the routing infrastructure that all subsequent phases plug into.
+
+**Spec**: `docs/superpowers/specs/2026-03-20-skill-auto-detection-design.md`
+
+### Design Rationale
+
+When a user types a message in the Coach panel, the app now automatically selects the best matching skill (system prompt) from an open registry using keyword scoring. This replaces the need for manual skill switching and provides the routing layer that role-aware and domain-aware skills (Phases 1–2) will plug into. The matcher uses pure substring scanning (no tokenization), which works correctly for both English and Chinese without special handling.
+
+### Changes
+
+1. **Skill registry** — `SkillEntry` interface with `id`, `name`, `keywords[]`, `systemPrompt`, optional `getRawPrompt()` for built-in skills with localStorage overrides. Two built-in skills registered: `coach` and `analyze`
+2. **Keyword scoring engine** — `matchSkill()` scores each skill by counting keyword substring hits; threshold >= 2 prevents single-word false positives; highest score wins, first-in-registry breaks ties
+3. **useLLM.ts integration** — Coach flow runs matcher on raw user input before each request; `activeSkill` and `ignoredSkillId` as module-level refs; `clearCoachResponse()` resets both
+4. **Skill chip UI** — dismissible chip above chat area in CoachPanel.vue with per-skill color (green=coach, blue=analyze, purple=ui-ux-pro-max); fade transition; dismiss sets `ignoredSkillId` (sticky until different skill matches or chat cleared)
+5. **Unit tests** — 11 test cases covering: multi-keyword match, threshold enforcement, tie-break, Chinese substring matching, lang filtering, case insensitivity, empty input
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `src/config/skills/registry.ts` | **New** — SkillEntry interface, SKILL_REGISTRY array, resolveSystemPrompt() |
+| `src/utils/skillMatcher.ts` | **New** — matchSkill() keyword scoring engine |
+| `src/utils/__tests__/skillMatcher.test.ts` | **New** — 11 unit tests |
+| `src/composables/useLLM.ts` | Import registry + matcher; add activeSkill/ignoredSkillId refs; matcher integration in Coach getSystemPrompt; clearCoachResponse resets skill state |
+| `src/components/panels/CoachPanel.vue` | Import activeSkill/ignoredSkillId; add skill chip template + dismissSkill(); chip CSS with per-skill colors + fade transition |
+| `src/components/layout/AppHeader.vue` | Version bump to v8.53 |
+| `PLAN.md` | This section |
+
+## Phase 1 — Role Awareness (v9.0–v9.2)
+
+**Goal**: The agent behaves differently based on who is using it.
+
+**Priority**: Highest — this is the foundation for all subsequent features. Depends on Phase 0 (skill registry provides the routing layer).
+
+### v9.0 — Role Selector & Role Context — COMPLETED (2026-03-21)
+
+#### Design Rationale
+
+Different engineering roles need different AI guidance. A system architect cares about requirement decomposition and ASIL allocation, while a V&V engineer cares about testability and verification methods. By injecting role context into every LLM prompt, the AI adapts its language, focus areas, and suggestions without requiring separate skill definitions per role.
+
+The role selector uses compact short labels (SYS/SWE/HWE/V&V) in the header to minimize space usage while remaining recognizable. Role definitions are centralized in `useRole.ts` with bilingual context strings and placeholder text.
+
+#### Changes
+
+1. **Role composable** — `useRole.ts` with 5 roles: System Architect (SYS), SW Developer (SWE), HW Designer (HWE), Mechanics Designer (ME), V&V Engineer (V&V). Each role has: bilingual labels, LLM context string, and description placeholder. Persisted to localStorage (`user-role`), defaults to `sw-developer`
+2. **Role selector in AppHeader** — toggle group with bold short labels, placed between language and URL mode toggles. Each role has a domain-specific active color: SYS=teal, SWE=green, HWE=amber, ME=slate, V&V=violet
+3. **Language toggle colors** — EN=royal blue (`#2563eb`), 中文=Chinese red (`#dc2626`)
+4. **Role context injection** — prepended to both Coach and Analyze system prompts, so the AI adapts focus areas per role
+5. **Role-specific placeholders** — description textarea shows guidance tailored to each role (e.g., "Include: signal definitions, pin assignments..." for HW Designer)
+6. **DevTools visibility** — Active Role and Active Skill displayed in Agent State section for debugging transparency
+
+#### Modified Files
+| File | Change |
+|------|--------|
+| `src/composables/useRole.ts` | **New** — UserRole type, 5 roles (SYS/SWE/HWE/ME/V&V), currentRole ref, setRole(), getRoleContext(), getRolePlaceholder() |
+| `src/components/layout/AppHeader.vue` | Role selector with domain-specific active colors (teal/green/amber/slate/violet); language toggle colors (EN=royal blue, 中文=Chinese red); version bump to v9.0 |
+| `src/composables/useLLM.ts` | Import getRoleContext; prepend role context to Coach and Analyze system prompts |
+| `src/components/form/DescriptionEditor.vue` | Import getRolePlaceholder; replace static i18n placeholder with role-aware computed |
+| `src/components/dev/DevTools.vue` | Added Active Role and Active Skill rows in Agent State section |
+| `src/i18n/en.ts` | Added `dev.activeRole`, `dev.activeSkill` keys |
+| `src/i18n/zh.ts` | Added `dev.activeRole`, `dev.activeSkill` keys |
+| `PLAN.md` | This section |
+
+### v9.1 — Role-Specific Coach Templates — COMPLETED (2026-03-21)
+
+#### Design Rationale
+
+Different roles need different structured templates when writing JIRA tickets. A system architect needs requirement decomposition and interface spec templates, while a V&V engineer needs test case and coverage analysis templates. By adding an optional `roles` field to `TemplateDefinition`, templates can be filtered per role while keeping common templates (AC, Bug, Change Request, Optimize) visible to all.
+
+#### Changes
+
+1. **TemplateDefinition extended** — added optional `roles?: UserRole[]` field; omit = shown for all roles
+2. **10 role-specific templates** created:
+   - **SYS**: Req Decompose (`sysDecomposition`), Interface Spec (`sysInterface`)
+   - **SWE**: Acceptance Criteria (`sweAcceptance`), API Contract (`sweApiContract`)
+   - **HWE**: HW/SW Interface (`hweInterface`), Resource Budget (`hweResource`)
+   - **ME**: Packaging Design (`mePackaging`), Thermal Mgmt (`meThermal`)
+   - **V&V**: Test Case (`vvTestCase`), Coverage Analysis (`vvCoverage`)
+3. **Role-filtered computed** — `roleFilteredTemplates` filters by `currentRole`; CoachPanel uses this instead of `effectiveTemplates`
+4. **Common templates unchanged** — AC Template, Optimize, Bug Template, Change Req remain visible to all roles
+
+#### Modified Files
+| File | Change |
+|------|--------|
+| `src/types/template.ts` | Added optional `roles?: UserRole[]` field |
+| `src/config/templates/sys-decomposition.json` | **New** — system requirement decomposition template |
+| `src/config/templates/sys-interface.json` | **New** — interface specification template |
+| `src/config/templates/swe-acceptance.json` | **New** — SW acceptance criteria template |
+| `src/config/templates/swe-api-contract.json` | **New** — API contract definition template |
+| `src/config/templates/hwe-interface.json` | **New** — HW/SW interface spec template |
+| `src/config/templates/hwe-resource.json` | **New** — ECU resource budget template |
+| `src/config/templates/me-packaging.json` | **New** — mechanical packaging design template |
+| `src/config/templates/me-thermal.json` | **New** — thermal management template |
+| `src/config/templates/vv-test-case.json` | **New** — test case template with verification methods |
+| `src/config/templates/vv-coverage.json` | **New** — test coverage analysis template |
+| `src/config/templates/index.ts` | Register 10 new templates; add `roleFilteredTemplates` computed |
+| `src/components/panels/CoachPanel.vue` | Use `roleFilteredTemplates` instead of `effectiveTemplates` |
+| `src/components/layout/AppHeader.vue` | Version bump to v9.1 |
+| `PLAN.md` | This section |
+
+### v9.2 — Role-Specific Quality Scoring — COMPLETED (2026-03-21)
+
+#### Design Rationale
+
+A system architect cares most about complete, traceable requirements with thorough descriptions, while a software developer cares about structured acceptance criteria and clear task details. By applying different weight distributions per role, the quality score bar reflects what matters most to each discipline — incentivizing role-appropriate completeness.
+
+#### Weight Distribution
+
+| Field | SYS | SWE | HWE | ME | V&V |
+|-------|-----|-----|-----|-----|-----|
+| projectKey | 6 | 8 | 6 | 6 | 6 |
+| issueType | 6 | 8 | 6 | 6 | 6 |
+| assignee | 4 | 8 | 6 | 6 | 4 |
+| estimatedPoints | 2 | 6 | 4 | 4 | 2 |
+| vehicle–detail | 8×5=40 | 6+6+6+8+12=38 | 8+8+8+10+10=44 | 8+8+8+10+10=44 | 6+6+6+6+8=32 |
+| descPresent | 14 | 12 | 12 | 12 | 16 |
+| descLength | 28 | 20 | 22 | 22 | 34 |
+| **Total** | **100** | **100** | **100** | **100** | **100** |
+
+- **SYS/V&V**: description-dominant (42/50 pts) — thorough documentation matters most
+- **SWE**: balanced — detail and acceptance criteria emphasized
+- **HWE/ME**: component-heavy — hardware specs and constraints need structure
+
+#### Changes
+
+1. **Role-aware weights** — `ROLE_WEIGHTS` record in `useForm.ts` maps each `UserRole` to its weight distribution
+2. **Quality score computed** — reads `currentRole` reactively; score updates instantly when role changes
+3. **Test updated** — `useForm.test.ts` mocks `useRole` and adjusts expected values for `sw-developer` weights
+
+#### Modified Files
+| File | Change |
+|------|--------|
+| `src/composables/useForm.ts` | Import `currentRole`; replace hardcoded weights with `ROLE_WEIGHTS` record |
+| `src/composables/__tests__/useForm.test.ts` | Mock `useRole`; update description bonus test expectation |
+| `src/components/layout/AppHeader.vue` | Version bump to v9.2 |
+| `PLAN.md` | This section |
+
+---
+
+## Phase 2 — Domain Knowledge (v9.3–v9.5)
+
+**Goal**: The agent understands automotive engineering standards and vocabulary.
+
+**Priority**: High — without this, the AI gives generic software advice instead of domain-specific guidance.
+
+### v9.3 — Domain Vocabulary & Prompt Engineering
+
+- Create `src/config/domain/` directory with:
+  - `vocabulary.ts` — standard terms (ECU, ASIL, FMEA, HIL/SIL, CAN/LIN, calibration, diagnostic)
+  - `standards.ts` — key rules from ISO 26262, ASPICE, ISO 21434 (SOTIF) as structured data
+- Inject domain context into LLM system prompts so the AI uses correct terminology
+- Add domain-specific validation warnings (e.g., missing ASIL level, no safety relevance tag)
+
+### v9.4 — ASPICE Process Awareness
+
+- Map JIRA ticket types to ASPICE work products:
+  - System requirement → SYS.2
+  - SW requirement → SWE.1
+  - Test case → SWE.4 / SWE.5
+  - Change request → SUP.10
+- Auto-suggest required fields per ASPICE practice
+- Show ASPICE process badge on tickets
+
+### v9.5 — Requirement Quality Rules (INCOSE)
+
+- Implement INCOSE requirement quality checks in the quality scoring engine:
+  - **Atomic**: one requirement per statement
+  - **Complete**: no TBD, TBC, or undefined terms
+  - **Unambiguous**: flag vague words (appropriate, sufficient, some, etc.)
+  - **Verifiable**: must have measurable acceptance criteria
+  - **Traceable**: must reference parent requirement or source
+- Show specific violations, not just a score
+
+---
+
+## Phase 3 — Guided Elicitation (v9.6–v9.8)
+
+**Goal**: The agent helps users think, not just review what they wrote.
+
+**Priority**: High — this is the "deep-interview" concept adapted for engineering.
+
+### v9.6 — Elicitation Mode (Coach Panel)
+
+- Add a new Coach mode: **Elicitation** (alongside existing Coach/Analyze)
+- When activated, the AI asks structured questions before the user writes anything:
+  - "What system-level function does this requirement support?"
+  - "What happens if this requirement is not met? (safety impact)"
+  - "How will you verify this? (test / analysis / review / demonstration)"
+  - "Are there timing or performance constraints?"
+- Questions adapt based on selected role (Phase 1)
+
+### v9.7 — Assumption Detector
+
+- After description is entered, AI scans for hidden assumptions:
+  - Implicit hardware constraints
+  - Undeclared dependencies on other components
+  - Missing environmental conditions (temperature, voltage, etc.)
+- Shows assumptions as warnings with suggested rewrites
+
+### v9.8 — Conflict Checker (Multi-Requirement)
+
+- Allow pasting or referencing multiple requirements
+- AI detects contradictions:
+  - Conflicting timing constraints
+  - Incompatible interface definitions
+  - Redundant requirements from different teams
+- Show conflict pairs with explanation
+
+---
+
+## Phase 4 — Traceability (v10.0–v10.2)
+
+**Goal**: Requirements are linked across levels, not isolated tickets.
+
+**Priority**: Medium — important for ASPICE compliance, but depends on Phases 1–3.
+
+### v10.0 — Requirement Hierarchy Model
+
+- Define requirement levels in `types/`:
+  - Stakeholder Requirement → System Requirement → SW/HW Requirement → Test Case
+- Add parent/child link fields to the form
+- Store hierarchy in ticket metadata (JIRA custom fields or labels)
+
+### v10.1 — Traceability Suggestions
+
+- When creating a SW requirement, AI suggests:
+  - Likely parent system requirement (from recent tickets or context)
+  - Required downstream artifacts (test cases, design specs)
+- Show traceability gaps: "This requirement has no parent" / "No verification method linked"
+
+### v10.2 — Impact Analysis
+
+- "What if this requirement changes?" analysis:
+  - List dependent requirements, test cases, and design documents
+  - Highlight cross-team impact (e.g., HW change affects SW interface)
+- Requires JIRA API read access (query linked issues)
+
+---
+
+## Phase 5 — Multi-Agent Review Pipeline (v10.3–v10.5)
+
+**Goal**: Multiple AI perspectives review a requirement before submission.
+
+**Priority**: Medium — high value for cross-team quality, but needs Phases 1–2 first.
+
+### v10.3 — Multi-Perspective Analysis
+
+- Single "Deep Review" button triggers parallel analysis from multiple viewpoints:
+  - **Safety**: ISO 26262 compliance, ASIL consistency
+  - **Testability**: Can V&V write a test for this?
+  - **Implementability**: Is this feasible for SW/HW teams?
+  - **Completeness**: Missing fields, undefined terms, TBDs
+- Show results in tabbed or accordion view in AIReviewPanel
+
+### v10.4 — Cross-Team Review Workflow
+
+- After AI review, route ticket for human review:
+  - Architect creates → Developer reviews feasibility → V&V reviews testability
+  - Each reviewer sees role-specific checklist
+- Status tracking: Draft → AI Reviewed → Peer Reviewed → Approved → JIRA Created
+
+### v10.5 — Review History & Learning
+
+- Store review feedback per ticket
+- AI learns from accepted/rejected patterns to improve future suggestions
+- Team-level quality dashboard (acceptance rate, common issues)
+
+---
+
+## Phase 6 — Integration & Export (v10.6–v10.8)
+
+**Goal**: The workstation connects to the broader tool chain.
+
+**Priority**: Lower — valuable but not blocking core intelligence features.
+
+### v10.6 — JIRA Read Integration
+
+- Query existing JIRA tickets for:
+  - Duplicate detection before creation
+  - Parent requirement lookup (for traceability)
+  - Sprint/release context awareness
+
+### v10.7 — Export Formats
+
+- Export requirements in:
+  - ReqIF (for DOORS/Polarion interop)
+  - Structured Excel (for legacy workflows)
+  - Markdown (for documentation)
+
+### v10.8 — Batch Operations
+
+- Create multiple related requirements at once (e.g., system req + derived SW reqs + test cases)
+- Bulk quality analysis on pasted requirement sets
+- Import from Excel/CSV for migration workflows
+
+---
+
+## Summary — Priority Matrix
+
+| Phase | Versions | Effort | Impact | Depends On |
+|-------|----------|--------|--------|------------|
+| 0. Skill Auto-Detection | v8.53 | Low | High | Nothing (spec ready) |
+| 1. Role Awareness | v9.0–v9.2 | Low | High | Phase 0 |
+| 2. Domain Knowledge | v9.3–v9.5 | Medium | High | Phase 1 |
+| 3. Guided Elicitation | v9.6–v9.8 | Medium | Very High | Phase 1 + 2 |
+| 4. Traceability | v10.0–v10.2 | Medium-High | High | Phase 1–3 |
+| 5. Multi-Agent Review | v10.3–v10.5 | High | Very High | Phase 1–2 |
+| 6. Integration & Export | v10.6–v10.8 | High | Medium | Phase 4 |
+
+**Start with Phase 0** (skill auto-detection, spec already approved) — then Phase 1 builds role awareness on top of the routing layer.
+
+---
+
+## v9.3 — Domain Vocabulary & Prompt Engineering
+
+**Design rationale**: Without domain knowledge, the AI gives generic software advice. By injecting automotive vocabulary (ASIL, FMEA, CAN, AUTOSAR, etc.) and standard rules (ISO 26262, ASPICE, ISO 21434) into LLM system prompts, the AI uses correct terminology and references applicable standards per role.
+
+**Changes**:
+1. Created `src/config/domain/` directory with structured domain data
+2. `vocabulary.ts` — 30+ automotive engineering terms with role-based filtering (ECU, ASIL, CAN/LIN, AUTOSAR, HIL/SIL, UDS, EMC, DFM, etc.)
+3. `standards.ts` — 7 standard rule sets from ISO 26262, ASPICE, ISO 21448, ISO 21434 with bilingual descriptions
+4. `index.ts` — `buildDomainContext()` generates role-specific domain context for LLM system prompts; `checkDomainWarnings()` runs validation rules on description text
+5. Domain context injected into both Coach and Analyze LLM system prompts (useLLM.ts)
+6. 5 domain validation warning rules: missing ASIL level, missing verification method, missing traceability, missing interface specs, missing thermal/IP rating
+7. Warnings displayed below description textarea with animated transitions
+
+| File | Change |
+|------|--------|
+| `src/config/domain/vocabulary.ts` | New — 30+ domain terms, role-filtered |
+| `src/config/domain/standards.ts` | New — ISO/ASPICE standard rules |
+| `src/config/domain/index.ts` | New — domain context builder + validation warnings |
+| `src/composables/useLLM.ts` | Inject `buildDomainContext()` into coach + analyze system prompts |
+| `src/composables/useForm.ts` | Export `domainWarnings` computed |
+| `src/components/form/DescriptionEditor.vue` | Display domain warnings below textarea |
+| `src/components/form/TaskForm.vue` | Pass domain warnings prop |
+| `src/App.vue` | Wire `domainWarnings` through component tree |
+| `src/components/layout/AppHeader.vue` | Version bump v9.2 → v9.3 |
+
+---
+
+## v9.4 — ASPICE Process Awareness
+
+**Design rationale**: Engineers working in ASPICE-compliant organizations need to know which work product they're creating and what fields are required. By mapping (role + issue type) → ASPICE process area, the tool auto-suggests required fields and shows an ASPICE process badge (e.g., "SWE.1", "SYS.2") in the quality meter.
+
+**Changes**:
+1. `aspice.ts` — ASPICE mapping table: 11 entries covering all 5 roles × 3 issue types (Story/Task/Bug), mapping to process areas (SYS.2, SYS.3, SWE.1, SWE.3, SWE.4, SWE.5, SUP.9, SUP.10)
+2. Each mapping includes field suggestions (required/optional) specific to the ASPICE practice area
+3. ASPICE process badge displayed in QualityMeter header (blue pill badge)
+4. ASPICE field suggestions shown as tag chips below description textarea, with required fields highlighted in orange
+
+| File | Change |
+|------|--------|
+| `src/config/domain/aspice.ts` | New — ASPICE process mapping + field suggestions |
+| `src/config/domain/index.ts` | Export ASPICE types |
+| `src/composables/useForm.ts` | Export `aspiceProfile` computed |
+| `src/components/form/QualityMeter.vue` | Add optional `aspiceBadge` prop + badge styling |
+| `src/components/form/SummaryBuilder.vue` | Pass `aspiceBadge` to QualityMeter |
+| `src/components/form/DescriptionEditor.vue` | Display ASPICE field suggestions |
+| `src/components/form/TaskForm.vue` | Pass aspice props |
+| `src/App.vue` | Wire `aspiceBadge` + `aspiceSuggestions` |
+| `src/components/layout/AppHeader.vue` | Version bump v9.3 → v9.4 |
+
+---
+
+## v9.5 — INCOSE Requirement Quality Rules
+
+**Design rationale**: The quality score was purely field-presence-based. INCOSE rules add content-level quality analysis, checking whether the requirement text itself meets engineering quality standards. This makes the quality score more meaningful and gives engineers specific, actionable feedback.
+
+**Changes**:
+1. `incose.ts` — 5 INCOSE requirement quality checks:
+   - **Atomic**: Detects multiple requirements in one statement (conjunction patterns, multiple shall/must)
+   - **Complete**: Finds TBD, TBC, TODO, undefined markers
+   - **Unambiguous**: Flags 40+ vague terms in EN/ZH (appropriate, sufficient, some, etc.)
+   - **Verifiable**: Checks for measurable criteria (numbers + units, comparison operators)
+   - **Traceable**: Looks for requirement IDs or source references
+2. INCOSE violations displayed as tagged items below ASPICE suggestions (red tag for errors, orange for warnings)
+3. Quality score penalty: -5 per error, -3 per warning, max -15 total
+4. All checks work in both Chinese and English text
+
+| File | Change |
+|------|--------|
+| `src/config/domain/incose.ts` | New — 5 INCOSE quality checks + score penalty |
+| `src/config/domain/index.ts` | Export INCOSE types |
+| `src/composables/useForm.ts` | Export `incoseViolations`, apply penalty to `qualityScore` |
+| `src/components/form/DescriptionEditor.vue` | Display INCOSE violations with severity tags |
+| `src/components/form/TaskForm.vue` | Pass incose props |
+| `src/App.vue` | Wire `incoseViolations` |
+| `src/components/layout/AppHeader.vue` | Version bump v9.4 → v9.5 |
+
+---
+
+## v9.6 — Elicitation Mode (Coach Panel)
+
+**Design rationale**: The AI was only reviewing what users wrote. Elicitation mode flips this — the AI asks structured questions first, helping users think through their requirements before writing. Questions adapt based on the active role, using domain knowledge from Phase 2.
+
+**Changes**:
+1. `elicitation.ts` — 4 common questions + 4 role-specific questions per role (8 total per session)
+   - Common: system function, safety impact, verification method, timing constraints
+   - SYS: subsystem scope, ASIL decomposition, interfaces, environment
+   - SWE: I/O specs, error scenarios, acceptance criteria, API contracts
+   - HWE: electrical specs, protocols, resources, diagnostic coverage
+   - ME: packaging, thermal, IP rating, vibration/shock
+   - V&V: verification method, test environment, pass/fail criteria, preconditions
+2. `buildElicitationPrompt()` generates a full LLM prompt instructing one-question-at-a-time interview style
+3. Purple gradient "Requirement Elicitation" chip in CoachPanel empty state
+4. On click: switches to free-chat mode and sends the elicitation prompt, starting an interactive Q&A session
+5. i18n keys added for both languages
+
+| File | Change |
+|------|--------|
+| `src/config/domain/elicitation.ts` | New — role-adaptive elicitation questions + prompt builder |
+| `src/config/domain/index.ts` | Export elicitation types |
+| `src/components/panels/CoachPanel.vue` | Add elicitation chip + `elicit` emit |
+| `src/App.vue` | Handle `@elicit` event, switch to free-chat, trigger coach |
+| `src/i18n/en.ts`, `zh.ts` | Add `elicitation.*` keys |
+| `src/components/layout/AppHeader.vue` | Version bump v9.5 → v9.6 |
+
+---
+
+## v9.7 — Assumption Detector
+
+**Design rationale**: Engineers often write requirements with implicit assumptions about hardware constraints, timing, dependencies, and environmental conditions. The assumption detector scans descriptions in real-time and surfaces these hidden assumptions with specific rewrite suggestions.
+
+**Changes**:
+1. `assumptions.ts` — 8 assumption detection rules:
+   - **Resource**: memory structures without memory budget
+   - **Timing**: timing behavior without specific constraints
+   - **Concurrency**: concurrent execution without thread safety specs
+   - **Communication**: data transfer without protocol specification
+   - **Power**: power states without voltage/consumption specs
+   - **Temperature**: thermal references without temperature range
+   - **Dependency**: implicit dependencies without explicit requirement IDs
+   - **Configuration**: configurable parameters without default values/ranges
+2. Each assumption includes: category tag, detection message, and suggested rewrite
+3. Assumptions displayed with purple category tags below INCOSE violations in DescriptionEditor
+4. Role-filtered — only relevant assumption types shown per role
+
+| File | Change |
+|------|--------|
+| `src/config/domain/assumptions.ts` | New — 8 assumption detection rules with suggestions |
+| `src/config/domain/index.ts` | Export assumption types |
+| `src/composables/useForm.ts` | Export `assumptions` computed |
+| `src/components/form/DescriptionEditor.vue` | Display assumptions with category tags + suggestions |
+| `src/components/form/TaskForm.vue` | Pass assumptions prop |
+| `src/App.vue` | Wire `assumptions` |
+| `src/components/layout/AppHeader.vue` | Version bump v9.6 → v9.7 |
+
+---
+
+## v9.8 — Conflict Checker (Multi-Requirement)
+
+**Design rationale**: In multi-team automotive projects, requirements from different disciplines often conflict. The Conflict Checker allows pasting multiple requirements and having the AI detect contradictions — timing conflicts, interface incompatibilities, resource budget overruns, behavioral contradictions, redundancies, and safety-level mismatches.
+
+**Changes**:
+1. `conflicts.ts` — builds role-specific conflict-analysis system prompt covering 6 conflict types:
+   - Timing conflicts, Interface conflicts, Resource conflicts
+   - Behavioral conflicts, Redundant requirements, Safety conflicts
+   - Role-specific focus areas (SYS: ASIL consistency; SWE: API contracts; HWE: pin assignments; ME: packaging; V&V: test coverage)
+2. Orange-red gradient "Conflict Check" chip in CoachPanel (alongside Elicitation)
+3. On click: prepends conflict-analysis instruction to description text, switches to free-chat mode, sends to coach
+4. Both chips now in a `guided-chips` flex container for clean 50/50 layout
+5. i18n keys for both languages
+
+| File | Change |
+|------|--------|
+| `src/config/domain/conflicts.ts` | New — role-specific conflict analysis prompt builder |
+| `src/config/domain/index.ts` | Export conflict check types |
+| `src/components/panels/CoachPanel.vue` | Add conflict-check chip, `guided-chips` layout |
+| `src/App.vue` | Handle `@conflict-check` event |
+| `src/i18n/en.ts`, `zh.ts` | Add `conflictCheck.*` keys |
+| `src/components/layout/AppHeader.vue` | Version bump v9.7 → v9.8 |
+
+---
+
+## Phase 4 — Traceability (v10.0–v10.2)
+
+### v10.0 — Requirement Hierarchy Model
+
+**Design rationale**: ASPICE-compliant projects require a clear requirement hierarchy: Stakeholder → System → SW/HW/ME → Detailed Design → Test Case. Each level maps to an ASPICE process area and has defined parent/child relationships. This model enables traceability gap detection and contextual LLM prompts.
+
+**Changes**:
+1. `traceability.ts` — defines `RequirementLevel` type (7 levels + 'none'), `RequirementLevelDef` interface with parent/child relationships, ASPICE mapping, role filtering
+2. Gap detection: `checkTraceabilityGaps()` warns on missing parent, missing verification method, orphan test cases
+3. LLM context: `buildTraceabilityContext()` injects traceability info into system prompts
+4. `TraceabilitySection.vue` — 3-column grid: Requirement Level select, Parent Requirement input, Verification Method select; gap warnings below
+5. Form state extended with `requirementLevel`, `parentReqId`, `verificationMethod`; auto-default on role change
+6. Quality score now applies INCOSE penalty (max -15 pts)
+
+| File | Change |
+|------|--------|
+| `src/config/domain/traceability.ts` | New — hierarchy model, gap detection, context builder |
+| `src/config/domain/index.ts` | Export traceability types and functions |
+| `src/components/form/TraceabilitySection.vue` | New — traceability UI section |
+| `src/components/form/TaskForm.vue` | Add TraceabilitySection between SummaryBuilder and DescriptionEditor |
+| `src/composables/useForm.ts` | Add traceability form fields, computeds, role watcher |
+| `src/composables/useLLM.ts` | Inject traceability context into system prompts |
+| `src/types/form.ts` | Extend FormState with traceability fields |
+| `src/types/api.ts` | Extend WebhookPayload with traceability data |
+| `src/i18n/en.ts`, `zh.ts` | Add `traceability.*` keys |
+| `src/App.vue` | Wire traceability props and events |
+| `src/components/layout/AppHeader.vue` | Version bump v9.8 → v10.0 |
+
+### v10.1 — Traceability Suggestions
+
+**Design rationale**: Engineers often don't know what parent requirement to link or what downstream artifacts are needed. The AI-powered "Suggest Links" button analyzes the current requirement and suggests parent requirements, downstream work products, and traceability completeness checks.
+
+**Changes**:
+1. `trace-suggest.ts` — `buildTraceSuggestPrompt()` generates bilingual prompt with 3 sections: parent requirement suggestion, downstream artifact suggestion, traceability completeness check
+2. "Suggest Links" button in TraceabilitySection (visible when level != 'none')
+3. On click: builds trace-suggest prompt with current context, switches to free-chat mode, sends to coach
+
+| File | Change |
+|------|--------|
+| `src/config/domain/trace-suggest.ts` | New — traceability suggestion prompt builder |
+| `src/config/domain/index.ts` | Export `buildTraceSuggestPrompt` |
+| `src/components/form/TraceabilitySection.vue` | Add "Suggest Links" button |
+| `src/App.vue` | Handle `@suggest-links`, import prompt builder |
+| `src/i18n/en.ts`, `zh.ts` | Add `suggestBtn`, `suggestHint` keys |
+| `src/components/layout/AppHeader.vue` | Version bump v10.0 → v10.1 |
+
+### v10.2 — Impact Analysis
+
+**Design rationale**: When a requirement changes, engineers need to understand the ripple effect: which upstream/downstream requirements, test cases, design documents, and cross-team deliverables are affected. The "Impact Analysis" button triggers an AI analysis covering 6 dimensions: upstream impact, downstream impact, test impact, cross-team impact (role-specific), safety & compliance impact, and a summary table.
+
+**Changes**:
+1. `trace-impact.ts` — `buildImpactAnalysisPrompt()` generates bilingual prompt with role-specific cross-team impact sections:
+   - SYS: impact on SWE/HWE/ME teams, interface re-negotiation
+   - SWE: HW interface (CAN/LIN/SPI), system integration
+   - HWE: SW driver layer (BSW/MCAL), PCB/schematic sync
+   - ME: PCB mounting space, thermal/IP rating
+   - V&V: test equipment, other teams' verification plans
+2. Orange "Impact Analysis" button in TraceabilitySection (alongside Suggest Links)
+3. On click: prepends impact analysis instruction to description, appends structured prompt, switches to free-chat mode, sends to coach
+4. Summary table format requested from LLM: Impact Dimension | Scope | Severity | Recommended Action
+
+| File | Change |
+|------|--------|
+| `src/config/domain/trace-impact.ts` | New — impact analysis prompt builder with role-specific cross-team sections |
+| `src/config/domain/index.ts` | Export `buildImpactAnalysisPrompt` |
+| `src/components/form/TraceabilitySection.vue` | Add "Impact Analysis" button, flex layout for actions |
+| `src/components/form/TaskForm.vue` | Forward `@impact-analysis` emit |
+| `src/App.vue` | Handle `@impact-analysis`, import prompt builder |
+| `src/i18n/en.ts`, `zh.ts` | Add `impactBtn`, `impactHint` keys |
+| `src/components/layout/AppHeader.vue` | Version bump v10.1 → v10.2 |
+
+---
+
+## Phase 5 Changelog — Multi-Agent Review Pipeline
+
+### v10.3 — Multi-Perspective Analysis (Deep Review)
+
+**Design rationale**: A single "Analyze" button gives one viewpoint. For cross-team quality, engineers need the requirement examined from multiple perspectives simultaneously — Safety (ISO 26262), Testability (can V&V write a test?), Implementability (is this feasible?), and Completeness (are there gaps?). The "Deep Review" button triggers a single LLM call with a structured multi-perspective system prompt. The response is parsed by `## ` headers into tabbed sections in the AIReviewPanel, allowing engineers to focus on one perspective at a time or view all at once.
+
+**Changes**:
+1. `review-perspectives.ts` — defines 4 review perspectives with role-specific guidance:
+   - Safety: ISO 26262, ASIL consistency, FMEA/FTA, role-specific safety checks
+   - Testability: acceptance criteria, test environments (HIL/SIL/MIL), vague terms
+   - Implementability: technical feasibility, resource constraints, architectural changes, role-specific (AUTOSAR, PCB, tooling)
+   - Completeness: TBD/TBC, undefined terms, interface definitions, traceability chain
+   - Summary table with ✅/⚠️/❌ ratings
+2. `buildDeepReviewPrompt()` — bilingual prompt forcing LLM to output under exactly 4 `## ` headings
+3. Purple "Deep Review" button (shield icon) in TaskForm action bar, between Analyze and Create
+4. `useLLM.ts` — `isDeepReview` flag + `requestDeepReview()` that temporarily overrides the analyze system prompt with the multi-perspective prompt, then delegates to the existing analyze stream flow
+5. `AIReviewPanel.vue` — perspective tab bar: parses `<h2>` headers from formatted HTML, creates clickable tabs (All | Safety | Testability | Implementability | Completeness), filters displayed content per active tab
+6. `_config` exposed from `createStreamFlow` to allow prompt override
+
+| File | Change |
+|------|--------|
+| `src/config/domain/review-perspectives.ts` | New — 4 review perspectives + bilingual deep review prompt builder |
+| `src/config/domain/index.ts` | Export review-perspectives module |
+| `src/composables/useLLM.ts` | Add `isDeepReview` flag, `requestDeepReview()`, expose `_config` |
+| `src/components/panels/AIReviewPanel.vue` | Add perspective tab bar, section parsing, filtered rendering |
+| `src/components/form/TaskForm.vue` | Add "Deep Review" button (purple, shield icon), emit, CSS |
+| `src/App.vue` | Wire `@deep-review` handler, pass `isDeepReview` prop |
+| `src/types/api.ts` | Add `'deepReview'` to action union type |
+| `src/i18n/en.ts`, `zh.ts` | Add `deepReview`, perspective tab keys |
+| `src/components/layout/AppHeader.vue` | Version bump v10.2 → v10.3 |
+
+### v10.4 — Cross-Team Review Workflow
+
+**Design rationale**: Quality requirements demand a structured review process before JIRA creation. The review workflow tracks a requirement through 5 stages: Draft → AI Reviewed → Peer Reviewed → Approved → JIRA Created. After AI analysis (Analyze or Deep Review), the workflow auto-advances to "AI Reviewed" and presents a role-specific peer review checklist. Each role has 6 checklist items (3 common + 3 role-specific). When all items are checked, an "Approve" button advances to "Approved" status. JIRA creation auto-advances to final state. Reset clears the workflow.
+
+**Changes**:
+1. `review-workflow.ts` — defines `ReviewStatus` type (5 stages), `REVIEW_STEPS` with bilingual labels and colors, `getReviewChecklist(role)` returning role-specific items:
+   - Common: no TBD, traceable, unambiguous
+   - SYS: decomposed, safety concept, interfaces
+   - SWE: feasible, CPU/RAM, test approach
+   - HWE: feasible, component availability, EMC/thermal
+   - ME: space, material/process, IP rating
+   - V&V: verifiable, quantitative criteria, test environment
+2. `useReviewWorkflow.ts` — composable with reactive review state, checklist toggle, progress tracking, advance/reset functions
+3. `ReviewStatusBar.vue` — visual 5-step pipeline with dot/line indicators, peer review checklist with checkboxes and progress %, approve button (appears when 100%)
+4. Auto-advancement: Analyze/Deep Review success → `ai-reviewed`, JIRA creation → `jira-created`, Reset → `draft`
+5. Checklist auto-adapts to current role via `useRole`
+
+| File | Change |
+|------|--------|
+| `src/config/domain/review-workflow.ts` | New — review status types, steps, role-specific checklists |
+| `src/config/domain/index.ts` | Export review-workflow types and functions |
+| `src/composables/useReviewWorkflow.ts` | New — reactive review workflow state management |
+| `src/components/form/ReviewStatusBar.vue` | New — step pipeline + checklist UI |
+| `src/components/form/TaskForm.vue` | Add ReviewStatusBar, review workflow props/emits |
+| `src/App.vue` | Wire review workflow, auto-advance on analyze/create, reset on form reset |
+| `src/components/layout/AppHeader.vue` | Version bump v10.3 → v10.4 |
+
+### v10.5 — Review History & Learning
+
+**Design rationale**: To close the quality feedback loop, the system records review outcomes (checklist pass/fail, quality score, review status) per JIRA ticket. Over time, this data reveals common issues — e.g., "missing traceability" fails 70% of reviews. The system injects these patterns into LLM prompts as "Historical Review Patterns", so the AI pays extra attention to recurring problems. A compact Quality Dashboard shows approval rate, average score, and top failed checklist items.
+
+**Changes**:
+1. `useReviewHistory.ts` — composable storing up to 100 `ReviewRecord` entries in localStorage:
+   - Each record captures: ticketKey, summary, role, issueType, qualityScore, reviewStatus, checklistPassed/Failed
+   - `stats` computed: total, approved count, approval rate, avg quality score, top 5 failed checklist items
+   - `buildLearningContext(lang)` — generates bilingual context string for LLM injection (only when ≥3 records exist)
+2. `ReviewDashboard.vue` — compact panel with 3-column stats grid (Reviews, Approval %, Avg Score) + horizontal bar chart of common issues
+3. Learning context injected into both Analyze and Deep Review system prompts via `buildLearningContext()`
+4. Review record auto-created on JIRA creation success (captures current checklist state and quality score)
+5. Dashboard placed in right column above TicketHistoryPanel, auto-hidden when no records
+
+| File | Change |
+|------|--------|
+| `src/composables/useReviewHistory.ts` | New — review history storage, stats, learning context builder |
+| `src/components/panels/ReviewDashboard.vue` | New — quality dashboard with stats and common issues |
+| `src/composables/useLLM.ts` | Inject `buildLearningContext()` into analyze + deep review system prompts |
+| `src/App.vue` | Import review history, record on JIRA creation, render ReviewDashboard |
+| `src/components/layout/AppHeader.vue` | Version bump v10.4 → v10.5 |
+
+---
+
+## Phase 6 Changelog — Integration & Export
+
+### v10.6 — JIRA Read Integration
+
+**Design rationale**: Before creating a JIRA ticket, engineers need to know if a duplicate already exists, which parent requirements are available for traceability linking, and what sprint/release context applies. The JIRA Read Integration sends `search` action payloads to the existing n8n webhook, which can query JIRA's REST API and return matching tickets. Results include similarity scoring for duplicate detection, and clicking a result auto-fills it as the parent requirement.
+
+**Changes**:
+1. `useJiraSearch.ts` — composable with 3 search modes:
+   - `checkDuplicates(projectKey, summary)` — finds tickets with similar summaries, flags >70% similarity
+   - `searchParentReqs(projectKey, query)` — finds potential parent requirements
+   - `getSprintContext(projectKey)` — retrieves active sprint and release info
+2. `JiraSearchPanel.vue` — compact panel with search input, 3 quick-action buttons (Duplicates, Parent Reqs, Sprint), results list with key/status/similarity badges, duplicate warning banner
+3. Clicking a search result auto-fills `parentReqId` in the form
+4. Auto-triggers duplicate check when opening the JIRA creation confirmation modal
+5. `WebhookPayload.data` extended with `search_query`, `search_type`
+6. `JiraSearchResult` and `JiraSearchResponse` types added
+
+| File | Change |
+|------|--------|
+| `src/composables/useJiraSearch.ts` | New — JIRA search via webhook (duplicate, parent, sprint) |
+| `src/components/panels/JiraSearchPanel.vue` | New — search UI with results, duplicate warnings |
+| `src/types/api.ts` | Add `'search'` action, `JiraSearchResult`, `JiraSearchResponse`, search fields |
+| `src/App.vue` | Wire JiraSearchPanel, auto-duplicate check on create, search result → parent req |
+| `src/components/layout/AppHeader.vue` | Version bump v10.5 → v10.6 |
+
+### v10.7 — Export Formats
+
+**Design rationale**: Engineers need to share requirements with teams using different tools — DOORS/Polarion (ReqIF), Excel (legacy workflows), and documentation (Markdown). The export module produces all three formats from the current form state, including traceability metadata, quality score, and review status.
+
+**Changes**:
+1. `exportFormats.ts` — three export functions + download helper:
+   - `exportMarkdown()` — structured doc with tables, traceability section, description
+   - `exportReqIF()` — OMG ReqIF XML with datatypes, spec-types, attributes (summary, description, level, parent, verification, quality score)
+   - `exportExcelCSV()` — 18-column CSV with all form fields, traceability, and metadata
+   - `downloadFile()` — creates Blob, triggers browser download
+2. Export dropdown button (download icon) in TaskForm action bar — opens popup menu with 3 format choices
+3. Each format triggers download with toast notification
+
+| File | Change |
+|------|--------|
+| `src/utils/exportFormats.ts` | New — Markdown, ReqIF, Excel CSV export + download helper |
+| `src/components/form/TaskForm.vue` | Add export dropdown button/menu, emits, CSS |
+| `src/App.vue` | Wire export handlers, `buildExportData()`, download with toast |
+| `src/components/layout/AppHeader.vue` | Version bump v10.6 → v10.7 |
+
+### v10.8 — Batch Operations
+
+**Design rationale**: Production teams frequently need to process multiple requirements at once — importing from spreadsheets, decomposing system requirements into sub-levels, and performing bulk quality assessments. The batch operations module provides CSV import/parse, requirement decomposition, and bulk quality scoring with a dedicated panel UI.
+
+**Changes**:
+1. `useBatchOps.ts` — composable with batch requirement management:
+   - `BatchRequirement` interface (id, summary, description, level, parentReqId, issueType, qualityScore, selected)
+   - `addItem()` — auto-computes quality score using INCOSE rules + base scoring
+   - `importCSV()` — parses CSV text with quoted field support, maps Summary/Description/Type/Level/Parent columns (bilingual headers)
+   - `decompose()` — generates child requirements at target hierarchy levels from a parent
+   - localStorage persistence with `batch-requirements` key
+2. `BatchPanel.vue` — UI component:
+   - Import area: CSV paste textarea + file upload button, collapsible with transition
+   - Batch items list: checkboxes, level badges, issue type, quality score (color-coded), summary/description preview
+   - Toolbar: select all, selected count, bulk analyze button
+   - Individual item removal
+3. App.vue wiring:
+   - `handleAddCurrentToBatch()` — snapshots current form state into batch list
+   - `handleBatchImportCSV()` — imports CSV with count toast
+   - `handleBulkAnalyze()` — loads first selected batch item into form and triggers analyze
+   - BatchPanel rendered in right column between JiraSearchPanel and ReviewDashboard
+
+| File | Change |
+|------|--------|
+| `src/composables/useBatchOps.ts` | New — batch requirement CRUD, CSV import, decompose, localStorage |
+| `src/components/panels/BatchPanel.vue` | New — batch UI with import, list, toolbar, bulk actions |
+| `src/App.vue` | Wire BatchPanel, add batch handlers (add current, import, bulk analyze) |
+| `src/components/layout/AppHeader.vue` | Version bump v10.7 → v10.8 |
+
+### v10.9 — Complete Architecture Diagram
+
+**Design rationale**: The interactive architecture diagram (`docs/architecture.html`) was missing 7 Vue components and 1 config module that exist in the codebase. This made the diagram incomplete — the stats bar claimed 32 components but only 25 nodes were rendered. Updated the diagram to show the full picture of all files in the workstation.
+
+**Changes**:
+1. Added 7 missing Vue component nodes to the diagram:
+   - `AssigneeCombobox` — fuzzy team member search (child of BasicInfoSection)
+   - `StoryPointsPicker` — Fibonacci point selector (child of BasicInfoSection)
+   - `DownloadModal` — coach history export format picker (child of CoachHistoryTab)
+   - `ConfirmDialog` — reusable yes/no confirmation modal (child of CoachHistoryTab)
+   - `JsonNode` — recursive JSON tree child (child of JsonViewer)
+   - `StatusDot` — state indicator with pulse animation (child of PanelShell)
+   - `HotkeyModal` — keyboard shortcuts reference (rendered by App.vue)
+2. Added 1 missing config module node:
+   - `skills/registry.ts` — built-in skill definitions with metadata and keywords
+3. Added 15 new dependency edges connecting the new nodes to their parents, composables, and config modules
+4. Updated legend and stats bar to reflect accurate counts (8 Config Modules)
+
+| File | Change |
+|------|--------|
+| `docs/architecture.html` | Add 8 missing nodes, 15 edges, update counts and version to v10.9 |
+| `src/components/layout/AppHeader.vue` | Version bump v10.8 → v10.9 |

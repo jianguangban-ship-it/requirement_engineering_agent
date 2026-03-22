@@ -8,21 +8,33 @@
       </div>
       <h1 v-if="currentLang === 'en'" class="header-title"><span class="logo-a">A</span><span class="logo-g">G</span><span class="logo-ec">ec</span></h1>
       <h1 v-else class="header-title">{{ t('header.title') }}</h1>
-      <span class="header-version">v8.52</span>
+      <span class="header-version">v10.9</span>
     </div>
     <div class="header-right">
       <!-- Language Toggle -->
       <div class="toggle-group">
         <button
           class="toggle-btn"
-          :class="{ active: currentLang === 'en' }"
+          :class="{ active: currentLang === 'en', 'lang-en': currentLang === 'en' }"
           @click="setLang('en')"
         >EN</button>
         <button
           class="toggle-btn"
-          :class="{ active: currentLang === 'zh' }"
+          :class="{ active: currentLang === 'zh', 'lang-zh': currentLang === 'zh' }"
           @click="setLang('zh')"
         >中文</button>
+      </div>
+
+      <!-- Role Selector -->
+      <div class="toggle-group role-group">
+        <button
+          v-for="role in ROLES"
+          :key="role.id"
+          class="toggle-btn role-btn"
+          :class="{ active: currentRole === role.id, ['role-' + role.id]: currentRole === role.id }"
+          @click="setRole(role.id)"
+          :title="isZh ? role.labelZh : role.labelEn"
+        ><strong>{{ isZh ? role.shortZh : role.shortEn }}</strong></button>
       </div>
 
       <!-- URL Mode Toggle -->
@@ -88,8 +100,9 @@ import { useI18n } from '@/i18n'
 import { useProductionMode, setUrlMode } from '@/config/webhook'
 import { useTheme } from '@/composables/useTheme'
 import { ICONS } from '@/config/icons'
+import { ROLES, currentRole, setRole } from '@/composables/useRole'
 
-const { t, setLang, currentLang } = useI18n()
+const { t, setLang, currentLang, isZh } = useI18n()
 const isProd = useProductionMode
 const { isDark, toggleTheme } = useTheme()
 
@@ -171,6 +184,8 @@ function openHelp() {
   background-color: var(--accent-blue);
   color: white;
 }
+.toggle-btn.lang-en { background-color: #2563eb; }
+.toggle-btn.lang-zh { background-color: #dc2626; }
 .toggle-btn:hover:not(.active) {
   color: var(--text-primary);
 }
@@ -270,6 +285,22 @@ function openHelp() {
   color: var(--text-primary);
   background-color: var(--bg-tertiary);
 }
+
+/* Role selector */
+.role-group {
+  gap: 0;
+}
+.role-btn {
+  font-size: var(--font-xs, 10px);
+  padding: var(--space-1) var(--space-2);
+  letter-spacing: 0.3px;
+  font-weight: 700;
+}
+.role-btn.role-system-architect { background-color: #0d9488; color: white; }
+.role-btn.role-sw-developer { background-color: #16a34a; color: white; }
+.role-btn.role-hw-designer { background-color: #d97706; color: white; }
+.role-btn.role-me-designer { background-color: #64748b; color: white; }
+.role-btn.role-vv-engineer { background-color: #7c3aed; color: white; }
 
 @media (max-width: 768px) {
   .app-header {

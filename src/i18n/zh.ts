@@ -37,6 +37,7 @@ export default {
     descSentences: '句',
     reset: '重置',
     aiAnalyze: '分析任务',
+    deepReview: '深度审查',
     confirmCreate: '创建 JIRA',
     creating: '创建中...',
     analyzing: '分析中...',
@@ -58,7 +59,12 @@ export default {
     backoffLabel: '请求频率超限，自动重试剩余',
     showDiff: '差异',
     hideDiff: '正常',
-    jiraTicket: 'JIRA 工单'
+    jiraTicket: 'JIRA 工单',
+    allPerspectives: '全部',
+    safety: '安全性',
+    testability: '可测试性',
+    implementability: '可实现性',
+    completeness: '完整性'
   },
   status: {
     idle: '空闲',
@@ -78,6 +84,8 @@ export default {
     testing: '测试环境',
     configHint: '修改常量以更新配置：',
     agentState: 'Agent 状态',
+    activeRole: '当前角色',
+    activeSkill: '当前技能',
     coachMode: 'Coach 模式',
     analyzeMode: '分析模式',
     model: '模型',
@@ -161,6 +169,26 @@ export default {
     confirmDeleteMsg: '确定要删除选中的 {n} 条记录吗？',
     confirmClearTitle: '清空所有历史',
     confirmClearMsg: '这将永久删除全部 {n} 条历史记录，此操作无法撤销。'
+  },
+  elicitation: {
+    chipLabel: '需求引导',
+    chipHint: 'AI 通过结构化问题引导你理清需求'
+  },
+  traceability: {
+    title: '追溯性',
+    subtitle: '需求层级',
+    level: '需求层级',
+    parentReq: '上级需求',
+    parentPlaceholder: '如 SYS-REQ-042',
+    verifyMethod: '验证方法',
+    suggestBtn: '建议关联',
+    suggestHint: 'AI 建议上级需求和下游产物',
+    impactBtn: '影响分析',
+    impactHint: 'AI 分析需求变更的波及影响'
+  },
+  conflictCheck: {
+    chipLabel: '冲突检测',
+    chipHint: '粘贴多条需求 — AI 检测矛盾和冗余'
   },
   quality: {
     excellent: '优秀',

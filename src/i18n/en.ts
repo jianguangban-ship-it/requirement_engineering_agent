@@ -37,6 +37,7 @@ export default {
     descSentences: 'sentences',
     reset: 'Reset',
     aiAnalyze: 'Analyze Task',
+    deepReview: 'Deep Review',
     confirmCreate: 'Create JIRA',
     creating: 'Creating...',
     analyzing: 'Analyzing...',
@@ -58,7 +59,12 @@ export default {
     backoffLabel: 'Rate limited — retrying in',
     showDiff: 'Diff',
     hideDiff: 'Normal',
-    jiraTicket: 'JIRA Ticket'
+    jiraTicket: 'JIRA Ticket',
+    allPerspectives: 'All',
+    safety: 'Safety',
+    testability: 'Testability',
+    implementability: 'Implementability',
+    completeness: 'Completeness'
   },
   status: {
     idle: 'Idle',
@@ -78,6 +84,8 @@ export default {
     testing: 'Testing',
     configHint: 'Modify constant to update config:',
     agentState: 'Agent State',
+    activeRole: 'Active Role',
+    activeSkill: 'Active Skill',
     coachMode: 'Coach Mode',
     analyzeMode: 'Analyze Mode',
     model: 'Model',
@@ -161,6 +169,26 @@ export default {
     confirmDeleteMsg: 'Are you sure you want to delete {n} selected records?',
     confirmClearTitle: 'Clear All History',
     confirmClearMsg: 'This will permanently delete all {n} history records. This cannot be undone.'
+  },
+  elicitation: {
+    chipLabel: 'Requirement Elicitation',
+    chipHint: 'AI guides you through structured questions before writing'
+  },
+  traceability: {
+    title: 'Traceability',
+    subtitle: 'Requirement Hierarchy',
+    level: 'Requirement Level',
+    parentReq: 'Parent Requirement',
+    parentPlaceholder: 'e.g. SYS-REQ-042',
+    verifyMethod: 'Verification Method',
+    suggestBtn: 'Suggest Links',
+    suggestHint: 'AI suggests parent requirements and downstream artifacts',
+    impactBtn: 'Impact Analysis',
+    impactHint: 'AI analyzes ripple effects if this requirement changes'
+  },
+  conflictCheck: {
+    chipLabel: 'Conflict Check',
+    chipHint: 'Paste multiple requirements — AI detects contradictions and redundancy'
   },
   quality: {
     excellent: 'Excellent',

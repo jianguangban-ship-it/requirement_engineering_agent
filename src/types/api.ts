@@ -2,7 +2,7 @@ export interface WebhookPayload {
   meta: {
     source: string
     timestamp: number
-    action: 'analyze' | 'create' | 'coach' | 'preview'
+    action: 'analyze' | 'create' | 'coach' | 'preview' | 'deepReview' | 'search'
   }
   data: {
     project_key?: string
@@ -12,6 +12,11 @@ export interface WebhookPayload {
     description: string
     assignee?: string
     estimated_points?: number
+    requirement_level?: string
+    parent_req_id?: string
+    verification_method?: string
+    search_query?: string
+    search_type?: 'duplicate' | 'parent' | 'sprint'
   }
 }
 
@@ -84,6 +89,22 @@ export interface LLMResponseBody {
 
 export interface LLMStreamChunk {
   choices: Array<{ delta: { content?: string }; finish_reason: string | null }>
+}
+
+export interface JiraSearchResult {
+  key: string
+  summary: string
+  status: string
+  issueType: string
+  assignee?: string
+  similarity?: number
+}
+
+export interface JiraSearchResponse {
+  results: JiraSearchResult[]
+  total: number
+  sprint?: string
+  release?: string
 }
 
 export type CoachMode = 'llm' | 'webhook'

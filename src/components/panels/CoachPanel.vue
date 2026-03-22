@@ -66,6 +66,14 @@
     </div>
 
     <template v-if="activeTab === 'chat'">
+    <!-- Active skill chip -->
+    <Transition name="fade">
+      <div v-if="activeSkill" class="skill-chip" :class="'skill-chip--' + activeSkill.id">
+        <span class="skill-chip-name">{{ activeSkill.name }}</span>
+        <button class="skill-chip-dismiss" @click="dismissSkill" aria-label="Dismiss skill">&times;</button>
+      </div>
+    </Transition>
+
     <!-- Empty state (no messages yet, not loading) -->
     <div v-if="messages.length === 0 && !isLoading" class="empty-state">
       <!-- 429 backoff countdown -->
@@ -90,6 +98,28 @@
           @dragleave="isDragging = false"
           @drop.prevent="handleDrop"
         >
+          <div class="guided-chips">
+            <button
+              class="elicit-chip"
+              :title="t('elicitation.chipHint')"
+              @click="$emit('elicit')"
+            >
+              <svg class="elicit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              {{ t('elicitation.chipLabel') }}
+            </button>
+            <button
+              class="conflict-chip"
+              :title="t('conflictCheck.chipHint')"
+              @click="$emit('conflictCheck')"
+            >
+              <svg class="elicit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86l-8.8 15.32A1 1 0 002.36 21h17.28a1 1 0 00.87-1.5l-8.6-15.32a1.04 1.04 0 00-1.82 0z"/>
+              </svg>
+              {{ t('conflictCheck.chipLabel') }}
+            </button>
+          </div>
           <QuickChip
             v-for="chip in chips"
             :key="chip.key"
@@ -165,9 +195,9 @@ import { computed, ref, watch, onUnmounted, nextTick, onMounted } from 'vue'
 import type { ChatMessage } from '@/types/api'
 import { useScroll } from '@vueuse/core'
 import { useI18n } from '@/i18n'
-import { effectiveTemplates } from '@/config/templates/index'
+import { roleFilteredTemplates } from '@/config/templates/index'
 import { useToast } from '@/composables/useToast'
-import { coachSkillEnabled, setCoachSkillEnabled, taskCoachEnabled, setTaskCoachEnabled } from '@/composables/useLLM'
+import { coachSkillEnabled, setCoachSkillEnabled, taskCoachEnabled, setTaskCoachEnabled, activeSkill, ignoredSkillId } from '@/composables/useLLM'
 import { currentModel } from '@/config/llm'
 import PanelShell from '@/components/layout/PanelShell.vue'
 import QuickChip from '@/components/shared/QuickChip.vue'
@@ -189,6 +219,8 @@ const emit = defineEmits<{
   cancel: []
   retry: []
   applyChip: [key: string]
+  elicit: []
+  conflictCheck: []
   importTemplates: [templates: import('@/types/template').TemplateDefinition[]]
   replay: [content: string]
 }>()
@@ -202,6 +234,13 @@ function handleReplay(content: string) {
 
 const { t, isZh } = useI18n()
 const { addToast } = useToast()
+
+function dismissSkill() {
+  if (activeSkill.value) {
+    ignoredSkillId.value = activeSkill.value.id
+    activeSkill.value = null
+  }
+}
 
 const isDragging = ref(false)
 const retryCountdown = ref(0)
@@ -306,7 +345,7 @@ function copyLastResponse() {
 }
 
 const chips = computed(() =>
-  effectiveTemplates.value.map(t => ({
+  roleFilteredTemplates.value.map(t => ({
     key: t.key,
     icon: t.icon,
     label: isZh.value ? t.label.zh : t.label.en
@@ -421,6 +460,45 @@ const chips = computed(() =>
   color: var(--accent-blue);
   font-weight: 500;
   pointer-events: none;
+}
+
+/* Guided chips (Elicitation + Conflict Check) */
+.guided-chips {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 4px;
+}
+.elicit-chip,
+.conflict-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+}
+.elicit-chip {
+  background: linear-gradient(135deg, var(--accent-purple, #a78bfa), var(--accent-blue));
+}
+.conflict-chip {
+  background: linear-gradient(135deg, var(--accent-orange), var(--accent-red));
+}
+.elicit-chip:hover,
+.conflict-chip:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+.elicit-icon {
+  width: 14px;
+  height: 14px;
 }
 
 /* Typing indicator — bubble style */
@@ -669,5 +747,64 @@ const chips = computed(() =>
 .chat-list {
   display: flex;
   flex-direction: column;
+}
+
+/* Active skill chip */
+.skill-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  margin: 6px 8px 2px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  width: fit-content;
+}
+.skill-chip--coach {
+  border-color: var(--green-border);
+  background-color: var(--green-subtle);
+  color: var(--accent-green);
+}
+.skill-chip--analyze {
+  border-color: var(--blue-border);
+  background-color: var(--blue-subtle);
+  color: var(--accent-blue);
+}
+.skill-chip--ui-ux-pro-max {
+  border-color: var(--accent-purple);
+  background-color: color-mix(in srgb, var(--accent-purple) 10%, transparent);
+  color: var(--accent-purple);
+}
+.skill-chip-name {
+  letter-spacing: 0.3px;
+}
+.skill-chip-dismiss {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.skill-chip-dismiss:hover {
+  opacity: 1;
+}
+
+/* Fade transition for skill chip */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 </style>

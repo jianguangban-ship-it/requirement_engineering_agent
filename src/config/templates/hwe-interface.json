@@ -1,0 +1,10 @@
+{
+  "key": "hweInterface",
+  "icon": "🔧",
+  "label": { "zh": "硬软件接口", "en": "HW/SW Interface" },
+  "roles": ["hw-designer"],
+  "content": {
+    "zh": "**硬软件接口规格**\n\n**ECU / 模块名称**\n\n\n**引脚分配**\n| 引脚 | 信号名 | 方向 | 类型 | 电压范围 |\n|------|--------|------|------|----------|\n|      |        |      |      |          |\n\n**通信协议**\n- 总线类型: (CAN / LIN / SPI / I2C)\n- 波特率: \n- 报文 ID: \n\n**资源预算**\n- Flash: \n- RAM: \n- CPU 负载: \n\n**电气约束**\n- 工作电压: \n- 最大电流: \n\n**ASIL 分解**\n- HW ASIL: \n- SW ASIL: \n",
+    "en": "**HW/SW Interface Specification**\n\n**ECU / Module Name**\n\n\n**Pin Assignment**\n| Pin | Signal Name | Direction | Type | Voltage Range |\n|-----|-------------|-----------|------|---------------|\n|     |             |           |      |               |\n\n**Communication Protocol**\n- Bus Type: (CAN / LIN / SPI / I2C)\n- Baud Rate: \n- Message ID: \n\n**Resource Budget**\n- Flash: \n- RAM: \n- CPU Load: \n\n**Electrical Constraints**\n- Operating Voltage: \n- Max Current: \n\n**ASIL Decomposition**\n- HW ASIL: \n- SW ASIL: \n"
+  }
+}

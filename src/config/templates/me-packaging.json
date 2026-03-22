@@ -1,0 +1,10 @@
+{
+  "key": "mePackaging",
+  "icon": "📐",
+  "label": { "zh": "封装设计", "en": "Packaging Design" },
+  "roles": ["me-designer"],
+  "content": {
+    "zh": "**机械封装设计**\n\n**部件/模块名称**\n\n\n**外形尺寸**\n- 长 × 宽 × 高: \n- 重量限制: \n\n**安装方式**\n- 固定方式: (螺栓 / 卡扣 / 粘接)\n- 安装位置: \n- 安装力矩: \n\n**连接器布局**\n| 连接器 | 类型 | 针数 | 位置 | 防呆设计 |\n|--------|------|------|------|----------|\n|        |      |      |      |          |\n\n**环境要求**\n- 工作温度: \n- IP 防护等级: \n- 振动等级: \n\n**材料要求**\n- 壳体材料: \n- 密封材料: \n\n**公差要求**\n- 关键尺寸公差: \n- 配合要求: \n",
+    "en": "**Mechanical Packaging Design**\n\n**Part/Module Name**\n\n\n**Dimensions**\n- L × W × H: \n- Weight Limit: \n\n**Mounting Method**\n- Fastening: (Bolt / Clip / Adhesive)\n- Mounting Location: \n- Torque Spec: \n\n**Connector Layout**\n| Connector | Type | Pin Count | Position | Keying |\n|-----------|------|-----------|----------|--------|\n|           |      |           |          |        |\n\n**Environmental Requirements**\n- Operating Temperature: \n- IP Protection Rating: \n- Vibration Class: \n\n**Material Requirements**\n- Housing Material: \n- Sealing Material: \n\n**Tolerance Requirements**\n- Critical Dimension Tolerance: \n- Fit Requirements: \n"
+  }
+}

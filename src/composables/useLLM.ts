@@ -3,6 +3,13 @@ import type { LLMRequestBody, LLMStreamChunk, LLMChatMessage, WebhookPayload, Ch
 import { getProviderUrl, getApiKey, getModel } from '@/config/llm'
 import { ICONS } from '@/config/icons'
 import { getCoachSkill, getAnalyzeSkill } from '@/config/skills/index'
+import { SKILL_REGISTRY, resolveSystemPrompt } from '@/config/skills/registry'
+import type { SkillEntry } from '@/config/skills/registry'
+import { matchSkill } from '@/utils/skillMatcher'
+import { getRoleContext, currentRole } from '@/composables/useRole'
+import { buildDomainContext, buildTraceabilityContext, buildDeepReviewPrompt } from '@/config/domain'
+import { useReviewHistory } from '@/composables/useReviewHistory'
+import type { RequirementLevel } from '@/config/domain'
 import { useI18n } from '@/i18n'
 import { addRecord } from '@/composables/useCoachHistory'
 
@@ -11,6 +18,12 @@ const LS_KEY_TASK_COACH_ENABLED = 'task-coach-enabled'
 
 /** Whether the coach system-prompt skill is active. Toggle from the UI for free-form chat. Persisted to localStorage. */
 export const coachSkillEnabled = ref(localStorage.getItem(LS_KEY_COACH_SKILL_ENABLED) !== 'false')
+
+/** Currently auto-detected skill (module-level, persists across re-renders) */
+export const activeSkill = ref<SkillEntry | null>(null)
+
+/** Skill ID dismissed by user via chip ✕ — sticky until a different skill matches or chat is cleared */
+export const ignoredSkillId = ref<string | null>(null)
 
 export function setCoachSkillEnabled(val: boolean): void {
   coachSkillEnabled.value = val
@@ -263,13 +276,14 @@ function createStreamFlow(
   }
 
   return { isLoading, response, messages, wasCancelled, hadError, streamSpeed, backoffSecs,
-           request, cancel, retry, clear }
+           request, cancel, retry, clear, _config: opts }
 }
 
 // ─── Main composable ──────────────────────────────────────────────────────────
 
 export function useLLM() {
   const { isZh, t } = useI18n()
+  const { buildLearningContext } = useReviewHistory()
 
   // ─── Shared helpers ────────────────────────────────────────────────────────
 
@@ -287,6 +301,9 @@ export function useLLM() {
       lines.push(`**描述**:\n${d.description || '（未填写）'}`)
       if (d.assignee !== undefined) lines.push(`**经办人**: ${d.assignee || '（未分配）'}`)
       if (d.estimated_points !== undefined) lines.push(`**故事点**: ${d.estimated_points}`)
+      if (d.requirement_level) lines.push(`**需求层级**: ${d.requirement_level}`)
+      if (d.parent_req_id) lines.push(`**上级需求**: ${d.parent_req_id}`)
+      if (d.verification_method) lines.push(`**验证方法**: ${d.verification_method}`)
     } else {
       lines.push('Please review the following JIRA task description and provide improvement suggestions:')
       lines.push('')
@@ -296,6 +313,9 @@ export function useLLM() {
       lines.push(`**Description**:\n${d.description || '(empty)'}`)
       if (d.assignee !== undefined) lines.push(`**Assignee**: ${d.assignee || '(unassigned)'}`)
       if (d.estimated_points !== undefined) lines.push(`**Story Points**: ${d.estimated_points}`)
+      if (d.requirement_level) lines.push(`**Requirement Level**: ${d.requirement_level}`)
+      if (d.parent_req_id) lines.push(`**Parent Requirement**: ${d.parent_req_id}`)
+      if (d.verification_method) lines.push(`**Verification Method**: ${d.verification_method}`)
     }
 
     return lines.join('\n')
@@ -382,8 +402,42 @@ export function useLLM() {
 
   const coach = createStreamFlow({
     chatMode: true,
-    getSystemPrompt: (lang) => {
-      return coachSkillEnabled.value ? getCoachSkill(lang) : ''
+    getSystemPrompt: (lang, payload) => {
+      if (!coachSkillEnabled.value) {
+        activeSkill.value = null
+        return ''
+      }
+
+      const langKey = lang === 'zh' ? 'zh' as const : 'en' as const
+      const roleContext = getRoleContext(langKey)
+
+      // Run skill auto-detection on the raw user input (description only, not full payload)
+      const rawInput = payload.data.description || ''
+      const matched = matchSkill(rawInput, SKILL_REGISTRY, langKey)
+
+      let basePrompt: string
+      if (matched && matched.id !== ignoredSkillId.value) {
+        // Different skill matched — reset ignored state
+        if (ignoredSkillId.value && matched.id !== ignoredSkillId.value) {
+          ignoredSkillId.value = null
+        }
+        activeSkill.value = matched
+        basePrompt = resolveSystemPrompt(matched, langKey)
+      } else {
+        // No match or ignored — fall back to default coach skill
+        activeSkill.value = null
+        basePrompt = getCoachSkill(lang)
+      }
+
+      // Prepend role context + domain knowledge + traceability to the system prompt
+      const domainContext = buildDomainContext(currentRole.value, langKey)
+      const traceCtx = buildTraceabilityContext(
+        (payload.data.requirement_level || 'none') as RequirementLevel,
+        payload.data.parent_req_id || '',
+        langKey
+      )
+      const parts = [roleContext, domainContext, traceCtx, basePrompt].filter(Boolean)
+      return parts.join('\n\n')
     },
     getUserMessage: (payload, zh) => {
       // Skill-OFF or Task-Coach-OFF → payload only has description, send it directly
@@ -411,12 +465,27 @@ export function useLLM() {
   const previousAnalyzeResponse = ref<unknown>(null)
 
   const analyze = createStreamFlow({
-    getSystemPrompt: (lang) => getAnalyzeSkill(lang),
+    getSystemPrompt: (lang, payload) => {
+      const langKey = lang === 'zh' ? 'zh' as const : 'en' as const
+      const domainCtx = buildDomainContext(currentRole.value, langKey)
+      const traceCtx = buildTraceabilityContext(
+        (payload.data.requirement_level || 'none') as RequirementLevel,
+        payload.data.parent_req_id || '',
+        langKey
+      )
+      const learningCtx = buildLearningContext(langKey)
+      const parts = [getRoleContext(langKey), domainCtx, traceCtx, learningCtx, getAnalyzeSkill(lang)].filter(Boolean)
+      return parts.join('\n\n')
+    },
     getUserMessage: (payload, zh) => buildUserMessage(payload, zh),
     onBeforeRequest: (currentResponse) => {
       previousAnalyzeResponse.value = currentResponse
     }
   }, _callGLMStream, t, isZh)
+
+  // ─── Deep Review flag ──────────────────────────────────────────────────────
+  // When true, the last analyze response came from a multi-perspective deep review
+  const isDeepReview = ref(false)
 
   // ─── Public API (preserve existing interface) ───────────────────────────────
 
@@ -432,7 +501,11 @@ export function useLLM() {
     requestCoach: (payload: WebhookPayload) => coach.request(payload),
     cancelCoach: coach.cancel,
     retryCoach: coach.retry,
-    clearCoachResponse: coach.clear,
+    clearCoachResponse: () => {
+      coach.clear()
+      activeSkill.value = null
+      ignoredSkillId.value = null
+    },
 
     // Analyze
     isAnalyzeLoading: analyze.isLoading,
@@ -448,6 +521,30 @@ export function useLLM() {
     clearAnalyzeResponse: () => {
       analyze.clear()
       previousAnalyzeResponse.value = null
+      isDeepReview.value = false
+    },
+
+    // Deep Review (reuses analyze flow with multi-perspective prompt)
+    isDeepReview,
+    requestDeepReview: async (payload: WebhookPayload) => {
+      isDeepReview.value = true
+      // Override the analyze system prompt with multi-perspective review
+      const langKey = isZh.value ? 'zh' as const : 'en' as const
+      const domainCtx = buildDomainContext(currentRole.value, langKey)
+      const traceCtx = buildTraceabilityContext(
+        (payload.data.requirement_level || 'none') as RequirementLevel,
+        payload.data.parent_req_id || '',
+        langKey
+      )
+      const reviewPrompt = buildDeepReviewPrompt(currentRole.value, langKey)
+      const learningCtx = buildLearningContext(langKey)
+      const parts = [getRoleContext(langKey), domainCtx, traceCtx, learningCtx, reviewPrompt].filter(Boolean)
+      // Temporarily override getSystemPrompt for this request
+      const originalGetSystemPrompt = analyze._config.getSystemPrompt
+      analyze._config.getSystemPrompt = () => parts.join('\n\n')
+      const err = await analyze.request(payload)
+      analyze._config.getSystemPrompt = originalGetSystemPrompt
+      return err
     }
   }
 }

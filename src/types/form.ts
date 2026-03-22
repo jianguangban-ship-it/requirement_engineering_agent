@@ -6,6 +6,12 @@ export interface FormState {
   assignee: string
   estimatedPoints: number
   description: string
+  /** Requirement hierarchy level (traceability) */
+  requirementLevel: import('@/config/domain/traceability').RequirementLevel
+  /** Parent/source requirement ID (traceability) */
+  parentReqId: string
+  /** Verification method (traceability) */
+  verificationMethod: string
 }
 
 export interface SummaryState {

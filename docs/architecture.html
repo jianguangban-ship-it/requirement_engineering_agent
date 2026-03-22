@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGec v10.9 — Architecture Diagram</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text2: #8b949e;
+    --text3: #6e7681;
+    --blue: #58a6ff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --teal: #39d353;
+    --pink: #f778ba;
+    --cyan: #79c0ff;
+    --yellow: #e3b341;
+  }
+  .light {
+    --bg: #f6f8fa;
+    --bg2: #ffffff;
+    --bg3: #f0f2f5;
+    --border: #d0d7de;
+    --text: #1f2328;
+    --text2: #656d76;
+    --text3: #8c959f;
+    --blue: #0969da;
+    --green: #1a7f37;
+    --orange: #bf8700;
+    --red: #cf222e;
+    --purple: #8250df;
+    --teal: #0e8a16;
+    --pink: #bf3989;
+    --cyan: #0550ae;
+    --yellow: #9a6700;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* ── Header ─────────────────────────────── */
+  .header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    backdrop-filter: blur(12px);
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-left h1 { font-size: 16px; font-weight: 700; }
+  .header-left h1 span:nth-child(1) { color: var(--red); }
+  .header-left h1 span:nth-child(2) { color: var(--orange); }
+  .header-left h1 span:nth-child(3) { color: var(--blue); }
+  .header-left .version { font-size: 11px; color: var(--text2); background: var(--bg3); padding: 2px 8px; border-radius: 10px; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .header-right button {
+    background: var(--bg3); border: 1px solid var(--border); color: var(--text2);
+    padding: 4px 12px; border-radius: 6px; font-size: 11px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .header-right button:hover { color: var(--text); border-color: var(--blue); }
+  .header-right button.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .search-box {
+    background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+    padding: 4px 10px; border-radius: 6px; font-size: 11px; width: 180px;
+    outline: none;
+  }
+  .search-box:focus { border-color: var(--blue); }
+
+  /* ── Legend ─────────────────────────────── */
+  .legend {
+    position: fixed; bottom: 16px; left: 16px; z-index: 100;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px; font-size: 10px;
+    display: flex; flex-direction: column; gap: 5px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .legend-title { font-weight: 700; font-size: 11px; color: var(--text); margin-bottom: 4px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; color: var(--text2); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ── Detail Panel ─────────────────────── */
+  .detail-panel {
+    position: fixed; top: 46px; right: 0; bottom: 0; width: 340px; z-index: 90;
+    background: var(--bg2); border-left: 1px solid var(--border);
+    transform: translateX(100%); transition: transform 0.25s ease;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .detail-panel.open { transform: translateX(0); }
+  .detail-header {
+    padding: 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .detail-header h3 { font-size: 14px; font-weight: 600; }
+  .detail-close {
+    background: none; border: none; color: var(--text2); cursor: pointer;
+    font-size: 18px; line-height: 1;
+  }
+  .detail-close:hover { color: var(--text); }
+  .detail-body { padding: 16px; overflow-y: auto; flex: 1; }
+  .detail-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: 600; margin-bottom: 12px;
+  }
+  .detail-section { margin-bottom: 16px; }
+  .detail-section h4 { font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .detail-section ul { list-style: none; padding: 0; }
+  .detail-section li {
+    font-size: 11px; color: var(--text); padding: 3px 0;
+    cursor: pointer; transition: color 0.1s;
+  }
+  .detail-section li:hover { color: var(--blue); }
+  .detail-section li::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  .detail-desc { font-size: 11px; color: var(--text2); line-height: 1.6; }
+
+  /* ── Canvas Area ───────────────────────── */
+  .canvas-wrap {
+    position: fixed; top: 46px; left: 0; right: 0; bottom: 0;
+    overflow: hidden; cursor: grab;
+  }
+  .canvas-wrap.dragging { cursor: grabbing; }
+  .canvas {
+    position: absolute;
+    width: 2800px;
+    height: 2200px;
+    transform-origin: 0 0;
+  }
+
+  /* ── SVG Connections ───────────────────── */
+  .connections {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+  .conn-line {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 1.2;
+    opacity: 0.4;
+    transition: opacity 0.2s, stroke 0.2s, stroke-width 0.2s;
+  }
+  .conn-line.highlighted {
+    opacity: 1;
+    stroke-width: 2;
+  }
+  .conn-line.dimmed { opacity: 0.08; }
+
+  /* ── Nodes ─────────────────────────────── */
+  .node {
+    position: absolute;
+    background: var(--bg2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 100px;
+    text-align: center;
+    user-select: none;
+  }
+  .node:hover { border-color: var(--blue); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+  .node.active { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(88,166,255,0.3); }
+  .node.dimmed { opacity: 0.15; }
+  .node.highlighted { border-width: 2px; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+  .node-name { font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .node-sub { font-size: 9px; color: var(--text3); margin-top: 2px; white-space: nowrap; }
+  .node-icon { font-size: 14px; margin-bottom: 2px; }
+
+  /* Category colors */
+  .cat-external .node-name { color: var(--red); }
+  .cat-external { border-color: color-mix(in srgb, var(--red) 40%, var(--border)); }
+  .cat-external.highlighted { border-color: var(--red); box-shadow: 0 0 0 2px rgba(248,81,73,0.2); }
+
+  .cat-orchestrator .node-name { color: var(--yellow); }
+  .cat-orchestrator { border-color: color-mix(in srgb, var(--yellow) 40%, var(--border)); }
+  .cat-orchestrator.highlighted { border-color: var(--yellow); box-shadow: 0 0 0 2px rgba(227,179,65,0.2); }
+
+  .cat-component .node-name { color: var(--blue); }
+  .cat-component { border-color: color-mix(in srgb, var(--blue) 30%, var(--border)); }
+  .cat-component.highlighted { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(88,166,255,0.2); }
+
+  .cat-composable .node-name { color: var(--green); }
+  .cat-composable { border-color: color-mix(in srgb, var(--green) 30%, var(--border)); }
+  .cat-composable.highlighted { border-color: var(--green); box-shadow: 0 0 0 2px rgba(63,185,80,0.2); }
+
+  .cat-domain .node-name { color: var(--orange); }
+  .cat-domain { border-color: color-mix(in srgb, var(--orange) 30%, var(--border)); }
+  .cat-domain.highlighted { border-color: var(--orange); box-shadow: 0 0 0 2px rgba(210,153,34,0.2); }
+
+  .cat-config .node-name { color: var(--purple); }
+  .cat-config { border-color: color-mix(in srgb, var(--purple) 30%, var(--border)); }
+  .cat-config.highlighted { border-color: var(--purple); box-shadow: 0 0 0 2px rgba(188,140,255,0.2); }
+
+  .cat-util .node-name { color: var(--cyan); }
+  .cat-util { border-color: color-mix(in srgb, var(--cyan) 30%, var(--border)); }
+  .cat-util.highlighted { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(121,192,255,0.2); }
+
+  .cat-storage .node-name { color: var(--pink); }
+  .cat-storage { border-color: color-mix(in srgb, var(--pink) 30%, var(--border)); }
+  .cat-storage.highlighted { border-color: var(--pink); box-shadow: 0 0 0 2px rgba(247,120,186,0.2); }
+
+  /* ── Group Labels ──────────────────────── */
+  .group-label {
+    position: absolute;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text3);
+    pointer-events: none;
+  }
+
+  /* ── Group Boxes ───────────────────────── */
+  .group-box {
+    position: absolute;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--bg2) 50%, transparent);
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  /* ── Zoom indicator ────────────────────── */
+  .zoom-indicator {
+    position: fixed; bottom: 16px; right: 16px; z-index: 100;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 12px; font-size: 10px; color: var(--text2);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .zoom-indicator button {
+    background: var(--bg3); border: 1px solid var(--border); color: var(--text2);
+    width: 24px; height: 24px; border-radius: 4px; cursor: pointer;
+    font-size: 14px; display: flex; align-items: center; justify-content: center;
+  }
+  .zoom-indicator button:hover { color: var(--text); border-color: var(--blue); }
+
+  /* ── Stats bar ─────────────────────────── */
+  .stats-bar {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 100;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 16px; font-size: 10px; color: var(--text2);
+    display: flex; gap: 16px;
+  }
+  .stats-bar .stat-val { font-weight: 700; color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <h1><span>A</span><span>G</span><span>ec</span></h1>
+    <span class="version">v10.9 Architecture</span>
+  </div>
+  <div class="header-right">
+    <input class="search-box" type="text" id="searchBox" placeholder="Search components...">
+    <button id="btnAll" class="active" onclick="filterCategory('all')">All</button>
+    <button id="btnComp" onclick="filterCategory('component')">Components</button>
+    <button id="btnComposable" onclick="filterCategory('composable')">Composables</button>
+    <button id="btnDomain" onclick="filterCategory('domain')">Domain</button>
+    <button id="btnConfig" onclick="filterCategory('config')">Config</button>
+    <button id="btnUtil" onclick="filterCategory('util')">Utilities</button>
+    <button id="btnTheme" onclick="toggleTheme()">Light</button>
+    <button onclick="resetView()">Reset View</button>
+  </div>
+</div>
+
+<!-- Canvas -->
+<div class="canvas-wrap" id="canvasWrap">
+  <div class="canvas" id="canvas">
+    <svg class="connections" id="svgLayer"></svg>
+  </div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-header">
+    <h3 id="detailTitle">—</h3>
+    <button class="detail-close" onclick="closeDetail()">&times;</button>
+  </div>
+  <div class="detail-body" id="detailBody"></div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-title">Legend</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>External Services</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>Orchestrator (App.vue)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Vue Components (32)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Composables (15)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>Domain Knowledge (12)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Config Modules (8)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div>Utilities (5)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--pink)"></div>Browser Storage</div>
+</div>
+
+<!-- Zoom -->
+<div class="zoom-indicator">
+  <button onclick="zoomTo(zoom - 0.1)">&minus;</button>
+  <span id="zoomLabel">100%</span>
+  <button onclick="zoomTo(zoom + 0.1)">+</button>
+</div>
+
+<!-- Stats -->
+<div class="stats-bar">
+  <span><span class="stat-val">32</span> Components</span>
+  <span><span class="stat-val">15</span> Composables</span>
+  <span><span class="stat-val">12</span> Domain Modules</span>
+  <span><span class="stat-val">9</span> Config Modules</span>
+  <span><span class="stat-val" id="edgeCount">0</span> Connections</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// DATA: Nodes & Edges
+// ═══════════════════════════════════════════════════════════════════
+
+const NODES = [
+  // ── External Services (Layer 0) ──
+  { id: 'llm-api', name: 'LLM API', sub: 'OpenAI-compatible', cat: 'external', x: 900, y: 40, desc: 'Any OpenAI-compatible LLM API endpoint (GLM, OpenAI, Anthropic, DeepSeek, Qwen, Mistral). Handles Coach, Analyze, and Deep Review requests via streaming SSE.', file: 'External' },
+  { id: 'jira-webhook', name: 'JIRA / n8n', sub: 'Webhook', cat: 'external', x: 1300, y: 40, desc: 'n8n webhook endpoint for JIRA operations — ticket creation (POST) and search queries (duplicate detection, parent req lookup, sprint context).', file: 'External' },
+
+  // ── Orchestrator (Layer 1) ──
+  { id: 'app-vue', name: 'App.vue', sub: 'Root Orchestrator', cat: 'orchestrator', x: 1050, y: 160, desc: 'Root component that wires all composables, handles events from child components, manages modals, keyboard shortcuts, and localStorage persistence. Coordinates the 3-column layout with drag-resize.', file: 'src/App.vue' },
+
+  // ── Left Column Components ──
+  { id: 'coach-panel', name: 'CoachPanel', sub: 'AI Writing Coach', cat: 'component', x: 200, y: 310, desc: 'AI Design Coach with chat-style conversation, template chips, skill/task toggles, model badge, and streaming indicator. Supports elicitation, conflict check, and replay.', file: 'src/components/panels/CoachPanel.vue' },
+  { id: 'chat-bubble', name: 'ChatBubble', sub: 'Message bubble', cat: 'component', x: 80, y: 430, desc: 'Individual chat message bubble with avatar, timestamp, hash ID, markdown rendering, and copy button.', file: 'src/components/chat/ChatBubble.vue' },
+  { id: 'coach-history', name: 'CoachHistoryTab', sub: 'Chat archive', cat: 'component', x: 250, y: 430, desc: 'Searchable archive of coach conversations with filter, multi-select, bulk delete, download (JSON/Markdown), and replay.', file: 'src/components/coach/CoachHistoryTab.vue' },
+  { id: 'quick-chip', name: 'QuickChip', sub: 'Template chip', cat: 'component', x: 400, y: 430, desc: 'Quick-action template chip for pre-defined prompts. Supports drag-and-drop JSON import.', file: 'src/components/shared/QuickChip.vue' },
+
+  // ── Center Column Components ──
+  { id: 'task-form', name: 'TaskForm', sub: 'Main Form', cat: 'component', x: 680, y: 310, desc: 'Main task form orchestrator containing ReviewStatusBar, BasicInfoSection, SummaryBuilder, TraceabilitySection, DescriptionEditor, and action buttons (Analyze, Deep Review, Create JIRA, Export).', file: 'src/components/form/TaskForm.vue' },
+  { id: 'review-status-bar', name: 'ReviewStatusBar', sub: '5-stage pipeline', cat: 'component', x: 530, y: 430, desc: '5-step review pipeline visualization (Draft → AI Reviewed → Peer Reviewed → Approved → JIRA Created) with checklist and approve button.', file: 'src/components/form/ReviewStatusBar.vue' },
+  { id: 'basic-info', name: 'BasicInfoSection', sub: 'Project/Type/Assignee', cat: 'component', x: 530, y: 530, desc: 'Project selector, issue type, assignee combobox with fuzzy search, and story points picker.', file: 'src/components/form/BasicInfoSection.vue' },
+  { id: 'summary-builder', name: 'SummaryBuilder', sub: '5-part summary', cat: 'component', x: 700, y: 430, desc: '5-field structured summary builder (Vehicle/Product/Layer/Component/Detail) with live preview and quality meter.', file: 'src/components/form/SummaryBuilder.vue' },
+  { id: 'traceability-sec', name: 'TraceabilitySection', sub: 'Level/Parent/Verify', cat: 'component', x: 700, y: 530, desc: 'Requirement level selector, parent requirement input, verification method picker. Includes Suggest Links and Impact Analysis buttons.', file: 'src/components/form/TraceabilitySection.vue' },
+  { id: 'desc-editor', name: 'DescriptionEditor', sub: 'Text area + warnings', cat: 'component', x: 870, y: 430, desc: 'Main description textarea with word/sentence counter. Displays domain warnings, ASPICE suggestions, INCOSE violations, and detected assumptions inline.', file: 'src/components/form/DescriptionEditor.vue' },
+  { id: 'quality-meter', name: 'QualityMeter', sub: 'Score bar', cat: 'component', x: 870, y: 530, desc: 'Quality score progress bar with color coding (Excellent/Good/Incomplete/Empty). Score includes INCOSE penalty.', file: 'src/components/form/QualityMeter.vue' },
+
+  // ── Right Column Components ──
+  { id: 'ai-review', name: 'AIReviewPanel', sub: 'Analysis results', cat: 'component', x: 1250, y: 310, desc: 'AI analysis results with markdown rendering, diff view, perspective tabs (for deep review), model badge, and streaming indicator.', file: 'src/components/panels/AIReviewPanel.vue' },
+  { id: 'jira-response', name: 'JiraResponsePanel', sub: 'Creation response', cat: 'component', x: 1420, y: 310, desc: 'JIRA ticket creation response showing ticket key (clickable link), status, and full JSON response.', file: 'src/components/panels/JiraResponsePanel.vue' },
+  { id: 'processing-summary', name: 'ProcessingSummary', sub: 'Score card', cat: 'component', x: 1580, y: 310, desc: 'Score card showing AI-corrected story points, number of subtasks, and processing status.', file: 'src/components/panels/ProcessingSummary.vue' },
+  { id: 'dev-tools', name: 'DevTools', sub: 'Payload inspector', cat: 'component', x: 1580, y: 410, desc: 'Developer tools panel showing webhook payload, active model, skill modification status, stream stats.', file: 'src/components/dev/DevTools.vue' },
+  { id: 'jira-search', name: 'JiraSearchPanel', sub: 'Duplicate/Parent/Sprint', cat: 'component', x: 1250, y: 410, desc: 'JIRA search panel with 3 modes: duplicate detection, parent requirement lookup, sprint context. Results with similarity badges.', file: 'src/components/panels/JiraSearchPanel.vue' },
+  { id: 'batch-panel', name: 'BatchPanel', sub: 'CSV import + bulk ops', cat: 'component', x: 1420, y: 410, desc: 'Batch requirement management with CSV import (paste or file), item list with checkboxes/quality scores, bulk analyze, select all/clear.', file: 'src/components/panels/BatchPanel.vue' },
+  { id: 'review-dashboard', name: 'ReviewDashboard', sub: 'Stats + charts', cat: 'component', x: 1250, y: 510, desc: 'Review statistics dashboard showing total reviews, approval rate, avg quality score, and top failed checks bar chart.', file: 'src/components/panels/ReviewDashboard.vue' },
+  { id: 'ticket-history', name: 'TicketHistoryPanel', sub: 'Last 20 tickets', cat: 'component', x: 1420, y: 510, desc: 'History of last 20 successfully created JIRA tickets with clickable links, summary, project/type badges, relative timestamps.', file: 'src/components/panels/TicketHistoryPanel.vue' },
+
+  // ── Form Sub-Components ──
+  { id: 'assignee-combo', name: 'AssigneeCombobox', sub: 'Fuzzy team search', cat: 'component', x: 530, y: 620, desc: 'Searchable dropdown for selecting team members with avatar indicators, role badges, and fuzzy filtering.', file: 'src/components/form/AssigneeCombobox.vue' },
+  { id: 'story-points', name: 'StoryPointsPicker', sub: 'Fibonacci selector', cat: 'component', x: 700, y: 620, desc: 'Story point input with preset Fibonacci buttons and custom numeric entry. Keyboard-navigable via roving tabindex.', file: 'src/components/form/StoryPointsPicker.vue' },
+
+  // ── Coach Sub-Components ──
+  { id: 'download-modal', name: 'DownloadModal', sub: 'Export format picker', cat: 'component', x: 400, y: 530, desc: 'Modal dialog for selecting coach history export format: JSON, Markdown, or both.', file: 'src/components/coach/DownloadModal.vue' },
+
+  // ── Shared Components ──
+  { id: 'panel-shell', name: 'PanelShell', sub: 'Reusable wrapper', cat: 'component', x: 1580, y: 510, desc: 'Reusable panel wrapper with title, status dot, max-height, and slot content.', file: 'src/components/layout/PanelShell.vue' },
+  { id: 'app-header', name: 'AppHeader', sub: 'Global controls', cat: 'component', x: 1050, y: 60, desc: 'Top header bar with language toggle, role selector (5 roles), TEST/PROD mode, theme toggle, help button, and settings gear.', file: 'src/components/layout/AppHeader.vue' },
+  { id: 'llm-settings', name: 'LLMSettings', sub: 'Config modal', cat: 'component', x: 480, y: 200, desc: 'LLM settings modal for API key, provider URL, model selection, skill prompt editing, and template chip management.', file: 'src/components/settings/LLMSettings.vue' },
+  { id: 'toast-container', name: 'ToastContainer', sub: 'Notifications', cat: 'component', x: 1600, y: 200, desc: 'Global toast notification container for success, error, and info messages.', file: 'src/components/shared/ToastContainer.vue' },
+  { id: 'json-viewer', name: 'JsonViewer', sub: 'Tree view', cat: 'component', x: 1580, y: 120, desc: 'Recursive JSON tree viewer with expand/collapse, syntax coloring, and copy button.', file: 'src/components/shared/JsonViewer.vue' },
+  { id: 'json-node', name: 'JsonNode', sub: 'Recursive child', cat: 'component', x: 1750, y: 120, desc: 'Recursive JSON node component — renders expandable/collapsible object and array nodes with syntax highlighting for primitives. Child of JsonViewer.', file: 'src/components/shared/JsonNode.vue' },
+  { id: 'status-dot', name: 'StatusDot', sub: 'State indicator', cat: 'component', x: 1750, y: 200, desc: 'Small circular status indicator showing idle/loading/success/error states with pulse animation for loading.', file: 'src/components/shared/StatusDot.vue' },
+  { id: 'confirm-dialog', name: 'ConfirmDialog', sub: 'Yes/No modal', cat: 'component', x: 400, y: 620, desc: 'Reusable confirmation dialog with title, message, and confirm/cancel buttons. Used for delete and clear-all operations.', file: 'src/components/shared/ConfirmDialog.vue' },
+  { id: 'hotkey-modal', name: 'HotkeyModal', sub: 'Shortcut reference', cat: 'component', x: 1750, y: 310, desc: 'Modal displaying keyboard shortcuts reference table (Ctrl+Enter, Ctrl+Shift+Enter, etc.) with focus trap support.', file: 'src/components/shared/HotkeyModal.vue' },
+
+  // ── Composables (Layer 3) ──
+  { id: 'use-form', name: 'useForm', sub: 'Form state + validation', cat: 'composable', x: 600, y: 680, desc: 'Reactive form state, 5-part summary, computed quality score (with INCOSE penalty), draft persistence to localStorage, domain warnings, traceability gaps, ASPICE profile.', file: 'src/composables/useForm.ts' },
+  { id: 'use-llm', name: 'useLLM', sub: 'Coach + Analyze + Deep Review', cat: 'composable', x: 380, y: 680, desc: 'Three LLM stream flows: Coach (writing guidance), Analyze (standard review), Deep Review (4-perspective). Handles streaming SSE, retries, backoff, and cancellation. Injects role context, domain context, traceability context, and learning context into system prompts.', file: 'src/composables/useLLM.ts' },
+  { id: 'use-webhook', name: 'useWebhook', sub: 'JIRA CREATE', cat: 'composable', x: 1200, y: 680, desc: 'JIRA ticket creation via n8n webhook POST. Handles payload serialization, response parsing, and error handling.', file: 'src/composables/useWebhook.ts' },
+  { id: 'use-role', name: 'useRole', sub: '5 roles', cat: 'composable', x: 170, y: 680, desc: 'Current role management (SYS/SWE/HWE/ME/V&V). Provides role-specific context, placeholders, vocabulary filtering, and process mapping.', file: 'src/composables/useRole.ts' },
+  { id: 'use-review-wf', name: 'useReviewWorkflow', sub: '5-stage pipeline', cat: 'composable', x: 800, y: 680, desc: 'Review state machine: Draft → AI Reviewed → Peer Reviewed → Approved → JIRA Created. Manages checklist items, check progress, and stage transitions.', file: 'src/composables/useReviewWorkflow.ts' },
+  { id: 'use-review-hist', name: 'useReviewHistory', sub: 'Stats + learning', cat: 'composable', x: 1000, y: 680, desc: 'Review outcome storage (max 100 records), statistics (total, approval rate, avg score, top failed checks), and buildLearningContext() for LLM injection.', file: 'src/composables/useReviewHistory.ts' },
+  { id: 'use-jira-search', name: 'useJiraSearch', sub: 'Duplicate/Parent/Sprint', cat: 'composable', x: 1400, y: 680, desc: 'JIRA search via webhook: checkDuplicates(), searchParentReqs(), getSprintContext(). Similarity scoring with duplicate warning threshold (>70%).', file: 'src/composables/useJiraSearch.ts' },
+  { id: 'use-batch', name: 'useBatchOps', sub: 'Batch CRUD + CSV', cat: 'composable', x: 1560, y: 680, desc: 'Batch requirement management: addItem (auto quality score), removeItem, toggleItem, toggleAll, clearBatch, importCSV (quoted field parser), decompose.', file: 'src/composables/useBatchOps.ts' },
+  { id: 'use-toast', name: 'useToast', sub: 'Notifications', cat: 'composable', x: 170, y: 770, desc: 'Toast notification system with success, error, info types and auto-dismiss.', file: 'src/composables/useToast.ts' },
+  { id: 'use-theme', name: 'useTheme', sub: 'Dark/Light', cat: 'composable', x: 310, y: 770, desc: 'Dark/light theme toggle with CSS custom property switching and localStorage persistence.', file: 'src/composables/useTheme.ts' },
+  { id: 'use-coach-hist', name: 'useCoachHistory', sub: 'Chat archive', cat: 'composable', x: 450, y: 770, desc: 'Coach conversation history storage (max 200 records, FIFO eviction), search, export (JSON/Markdown), and replay.', file: 'src/composables/useCoachHistory.ts' },
+  { id: 'use-ticket-hist', name: 'useTicketHistory', sub: 'Ticket log', cat: 'composable', x: 600, y: 770, desc: 'Last 20 JIRA ticket creation records with key, summary, project, type, and date.', file: 'src/composables/useTicketHistory.ts' },
+  { id: 'use-focus-trap', name: 'useFocusTrap', sub: 'Modal focus', cat: 'composable', x: 750, y: 770, desc: 'Focus trap for modal dialogs — keeps keyboard navigation within the modal boundary.', file: 'src/composables/useFocusTrap.ts' },
+  { id: 'use-combobox', name: 'useCombobox', sub: 'Autocomplete', cat: 'composable', x: 900, y: 770, desc: 'Generic combobox/autocomplete logic with fuzzy filtering and keyboard navigation.', file: 'src/composables/useCombobox.ts' },
+  { id: 'use-roving', name: 'useRovingIndex', sub: 'Keyboard nav', cat: 'composable', x: 1050, y: 770, desc: 'Roving tabindex for keyboard navigation in lists and button groups.', file: 'src/composables/useRovingIndex.ts' },
+
+  // ── Domain Knowledge (Layer 4) ──
+  { id: 'dom-vocabulary', name: 'vocabulary', sub: '30+ terms', cat: 'domain', x: 100, y: 920, desc: '30+ automotive engineering terms: ADAS, ASIL, CAN, ECU, LIN, OTA, FOTA, AUTOSAR, etc. Role-filtered term sets.', file: 'src/config/domain/vocabulary.ts' },
+  { id: 'dom-standards', name: 'standards', sub: 'ISO 26262, ASPICE...', cat: 'domain', x: 260, y: 920, desc: 'Standard rules for ISO 26262 (functional safety), ASPICE (process), ISO 21448 (SOTIF), ISO 21434 (cybersecurity). Role-specific rule filtering.', file: 'src/config/domain/standards.ts' },
+  { id: 'dom-aspice', name: 'aspice', sub: 'Process mapping', cat: 'domain', x: 420, y: 920, desc: 'ASPICE process mapping per role and issue type. Returns process ID (e.g., SWE.1), work products, and process-specific suggestions.', file: 'src/config/domain/aspice.ts' },
+  { id: 'dom-incose', name: 'incose', sub: 'Quality checks', cat: 'domain', x: 580, y: 920, desc: 'INCOSE requirement quality rules: no ambiguous terms, no unnecessary passive voice, testable/measurable/atomic statements. Returns violations and score penalty.', file: 'src/config/domain/incose.ts' },
+  { id: 'dom-elicitation', name: 'elicitation', sub: 'Guided Q&A', cat: 'domain', x: 740, y: 920, desc: 'Guided requirement elicitation prompts — role-specific structured questions to help discover and articulate requirements interactively.', file: 'src/config/domain/elicitation.ts' },
+  { id: 'dom-assumptions', name: 'assumptions', sub: 'Implicit detector', cat: 'domain', x: 900, y: 920, desc: 'Implicit assumption detector — scans description for unstated assumptions and flags them for explicit documentation.', file: 'src/config/domain/assumptions.ts' },
+  { id: 'dom-conflicts', name: 'conflicts', sub: 'Contradiction check', cat: 'domain', x: 1060, y: 920, desc: 'Conflict/contradiction checker prompt builder — analyzes multiple requirements for logical conflicts, redundancy, and inconsistencies.', file: 'src/config/domain/conflicts.ts' },
+  { id: 'dom-traceability', name: 'traceability', sub: 'Hierarchy model', cat: 'domain', x: 100, y: 1020, desc: 'Requirement hierarchy model (Stakeholder → System → SW/HW/ME → DD → TC). Provides level definitions, role-level mapping, gap detection, and traceability context for LLM.', file: 'src/config/domain/traceability.ts' },
+  { id: 'dom-trace-suggest', name: 'trace-suggest', sub: 'Link suggestions', cat: 'domain', x: 300, y: 1020, desc: 'AI traceability suggestion prompt builder — generates prompts for suggesting parent, sibling, and child requirement links.', file: 'src/config/domain/trace-suggest.ts' },
+  { id: 'dom-trace-impact', name: 'trace-impact', sub: 'Impact analysis', cat: 'domain', x: 500, y: 1020, desc: 'AI impact analysis prompt builder with 6 dimensions (upstream, downstream, cross-domain, test, safety, schedule). Role-specific cross-team sections.', file: 'src/config/domain/trace-impact.ts' },
+  { id: 'dom-review-persp', name: 'review-perspectives', sub: '4-viewpoint review', cat: 'domain', x: 700, y: 1020, desc: '4 review perspectives: Safety, Testability, Implementability, Completeness. Builds deep review prompt with role-specific guidance for each perspective.', file: 'src/config/domain/review-perspectives.ts' },
+  { id: 'dom-review-wf', name: 'review-workflow', sub: 'Status + checklists', cat: 'domain', x: 900, y: 1020, desc: 'Review status types, 5-step pipeline definition, and role-specific checklists (3 common + 3 role-specific items per role).', file: 'src/config/domain/review-workflow.ts' },
+  { id: 'dom-index', name: 'domain/index', sub: 'Central hub', cat: 'domain', x: 500, y: 1120, desc: 'Central aggregator — re-exports all domain modules. Provides buildDomainContext(role, lang) and checkDomainWarnings(role, desc, issueType).', file: 'src/config/domain/index.ts' },
+
+  // ── Config Modules (Layer 4 right) ──
+  { id: 'cfg-llm', name: 'config/llm', sub: 'API settings', cat: 'config', x: 1200, y: 920, desc: 'LLM API configuration: getProviderUrl(), getApiKey(), getModel(). Preset model list from 6 providers.', file: 'src/config/llm.ts' },
+  { id: 'cfg-webhook', name: 'config/webhook', sub: 'Webhook URLs', cat: 'config', x: 1360, y: 920, desc: 'Webhook URL configuration for TEST and PROD modes. useProductionMode() reactive flag.', file: 'src/config/webhook.ts' },
+  { id: 'cfg-constants', name: 'constants', sub: 'Dropdowns + presets', cat: 'config', x: 1520, y: 920, desc: 'Task types, Fibonacci story points, vehicle/product/layer dropdown options, default component history.', file: 'src/config/constants.ts' },
+  { id: 'cfg-projects', name: 'projects', sub: 'Project + team data', cat: 'config', x: 1200, y: 1020, desc: 'PROJECT_CONFIG array and TEAM_MEMBERS array with names, IDs, and avatar data.', file: 'src/config/projects.ts' },
+  { id: 'cfg-skills', name: 'skills/', sub: 'Prompt registry', cat: 'config', x: 1360, y: 1020, desc: 'Skill prompt registry and management: getCoachSkill(), getAnalyzeSkill(), resolveSystemPrompt(). Supports import/export/reset.', file: 'src/config/skills/index.ts' },
+  { id: 'cfg-templates', name: 'templates/', sub: 'Chip definitions', cat: 'config', x: 1520, y: 1020, desc: 'Template chip definitions with role filtering, custom overrides, getTemplateContent(), import/export.', file: 'src/config/templates/index.ts' },
+  { id: 'cfg-icons', name: 'icons', sub: 'SVG strings', cat: 'config', x: 1680, y: 920, desc: 'ICONS constant with SVG icon strings used across the UI.', file: 'src/config/icons.ts' },
+  { id: 'cfg-skill-reg', name: 'skills/registry', sub: 'Built-in skills', cat: 'config', x: 1680, y: 1020, desc: 'Central skill registry defining built-in skills (Design Coach, Task Analysis) with metadata, keywords, and resolveSystemPrompt(). Imports from skills/index.', file: 'src/config/skills/registry.ts' },
+
+  // ── Utilities (Layer 4 far right) ──
+  { id: 'util-markdown', name: 'markdown', sub: 'Remark/Rehype/KaTeX', cat: 'util', x: 1680, y: 1020, desc: 'AST-based markdown renderer using unified + remark-parse + remark-math + remark-gfm + remark-breaks + remark-rehype + rehype-katex + rehype-highlight + rehype-raw + rehype-stringify + DOMPurify. Bilingual (EN/ZH) safe.', file: 'src/utils/markdown.ts' },
+  { id: 'util-format-coach', name: 'formatCoach', sub: 'Response formatter', cat: 'util', x: 1820, y: 920, desc: 'formatCoachResponse() — formats raw LLM output for display in chat bubbles and analysis panel.', file: 'src/utils/formatCoach.ts' },
+  { id: 'util-export', name: 'exportFormats', sub: 'MD/ReqIF/CSV', cat: 'util', x: 1820, y: 1020, desc: 'Export functions: exportMarkdown(), exportReqIF() (OMG XML), exportExcelCSV() (18 columns). downloadFile() helper creates Blob and triggers browser download.', file: 'src/utils/exportFormats.ts' },
+  { id: 'util-diff', name: 'diffText', sub: 'Word-level diff', cat: 'util', x: 1680, y: 1120, desc: 'diffWords() — computes word-level differences between two text strings for the analysis diff view.', file: 'src/utils/diffText.ts' },
+  { id: 'util-skill-match', name: 'skillMatcher', sub: 'Auto-detection', cat: 'util', x: 1820, y: 1120, desc: 'matchSkill() — auto-detects the appropriate skill prompt based on user message content.', file: 'src/utils/skillMatcher.ts' },
+
+  // ── Browser Storage ──
+  { id: 'localstorage', name: 'localStorage', sub: 'Browser persistence', cat: 'storage', x: 800, y: 1200, desc: 'Browser localStorage for: draft form state, LLM settings, coach history (200 records), review history (100 records), ticket history (20 records), batch requirements, theme preference, column sizes, response cache.', file: 'Browser API' },
+];
+
+const EDGES = [
+  // External → Composables
+  { from: 'llm-api', to: 'use-llm', label: 'SSE stream' },
+  { from: 'jira-webhook', to: 'use-webhook', label: 'POST create' },
+  { from: 'jira-webhook', to: 'use-jira-search', label: 'POST search' },
+
+  // App.vue → Components (rendered children)
+  { from: 'app-vue', to: 'app-header', label: 'renders' },
+  { from: 'app-vue', to: 'coach-panel', label: 'renders' },
+  { from: 'app-vue', to: 'task-form', label: 'renders + props' },
+  { from: 'app-vue', to: 'ai-review', label: 'renders + props' },
+  { from: 'app-vue', to: 'jira-response', label: 'renders' },
+  { from: 'app-vue', to: 'processing-summary', label: 'renders' },
+  { from: 'app-vue', to: 'dev-tools', label: 'renders' },
+  { from: 'app-vue', to: 'jira-search', label: 'renders + events' },
+  { from: 'app-vue', to: 'batch-panel', label: 'renders + events' },
+  { from: 'app-vue', to: 'review-dashboard', label: 'renders' },
+  { from: 'app-vue', to: 'ticket-history', label: 'renders' },
+  { from: 'app-vue', to: 'toast-container', label: 'renders' },
+  { from: 'app-vue', to: 'llm-settings', label: 'renders (modal)' },
+  { from: 'app-vue', to: 'json-viewer', label: 'renders (modal)' },
+
+  // App.vue → Composables (uses)
+  { from: 'app-vue', to: 'use-form', label: 'uses' },
+  { from: 'app-vue', to: 'use-llm', label: 'uses' },
+  { from: 'app-vue', to: 'use-webhook', label: 'uses' },
+  { from: 'app-vue', to: 'use-role', label: 'uses' },
+  { from: 'app-vue', to: 'use-review-wf', label: 'uses' },
+  { from: 'app-vue', to: 'use-review-hist', label: 'uses' },
+  { from: 'app-vue', to: 'use-jira-search', label: 'uses' },
+  { from: 'app-vue', to: 'use-batch', label: 'uses' },
+  { from: 'app-vue', to: 'use-toast', label: 'uses' },
+  { from: 'app-vue', to: 'use-focus-trap', label: 'uses' },
+  { from: 'app-vue', to: 'use-ticket-hist', label: 'uses' },
+
+  // App.vue → Domain (direct calls)
+  { from: 'app-vue', to: 'dom-index', label: 'buildPrompts()' },
+
+  // App.vue → Utilities
+  { from: 'app-vue', to: 'util-export', label: 'export calls' },
+
+  // TaskForm → Children
+  { from: 'task-form', to: 'review-status-bar', label: 'child' },
+  { from: 'task-form', to: 'basic-info', label: 'child' },
+  { from: 'task-form', to: 'summary-builder', label: 'child' },
+  { from: 'task-form', to: 'traceability-sec', label: 'child' },
+  { from: 'task-form', to: 'desc-editor', label: 'child' },
+
+  // CoachPanel → Children
+  { from: 'coach-panel', to: 'chat-bubble', label: 'child' },
+  { from: 'coach-panel', to: 'coach-history', label: 'child' },
+  { from: 'coach-panel', to: 'quick-chip', label: 'child' },
+
+  // SummaryBuilder → QualityMeter
+  { from: 'summary-builder', to: 'quality-meter', label: 'child' },
+
+  // BasicInfoSection → Children
+  { from: 'basic-info', to: 'assignee-combo', label: 'child' },
+  { from: 'basic-info', to: 'story-points', label: 'child' },
+
+  // CoachHistoryTab → Children
+  { from: 'coach-history', to: 'download-modal', label: 'child' },
+  { from: 'coach-history', to: 'confirm-dialog', label: 'child' },
+
+  // JsonViewer → JsonNode
+  { from: 'json-viewer', to: 'json-node', label: 'child (recursive)' },
+
+  // PanelShell → StatusDot
+  { from: 'panel-shell', to: 'status-dot', label: 'child' },
+
+  // App.vue → HotkeyModal
+  { from: 'app-vue', to: 'hotkey-modal', label: 'renders (modal)' },
+
+  // Composable → Domain dependencies
+  { from: 'use-form', to: 'dom-incose', label: 'quality rules' },
+  { from: 'use-form', to: 'dom-assumptions', label: 'detect()' },
+  { from: 'use-form', to: 'dom-traceability', label: 'gap check' },
+  { from: 'use-form', to: 'dom-aspice', label: 'profile()' },
+  { from: 'use-form', to: 'dom-index', label: 'warnings()' },
+
+  { from: 'use-llm', to: 'dom-index', label: 'domain context' },
+  { from: 'use-llm', to: 'dom-review-persp', label: 'deep review prompt' },
+  { from: 'use-llm', to: 'dom-traceability', label: 'trace context' },
+  { from: 'use-llm', to: 'use-role', label: 'role context' },
+  { from: 'use-llm', to: 'use-review-hist', label: 'learning context' },
+  { from: 'use-llm', to: 'cfg-llm', label: 'API config' },
+  { from: 'use-llm', to: 'cfg-skills', label: 'skill prompts' },
+
+  { from: 'use-webhook', to: 'cfg-webhook', label: 'URL config' },
+  { from: 'use-jira-search', to: 'cfg-webhook', label: 'URL config' },
+  { from: 'use-batch', to: 'dom-incose', label: 'quality score' },
+
+  { from: 'use-review-wf', to: 'dom-review-wf', label: 'steps + checklists' },
+  { from: 'use-review-wf', to: 'use-role', label: 'role checklists' },
+
+  { from: 'use-role', to: 'dom-vocabulary', label: 'role terms' },
+  { from: 'use-role', to: 'dom-standards', label: 'role rules' },
+
+  // Domain → Domain (aggregation)
+  { from: 'dom-index', to: 'dom-vocabulary', label: 're-exports' },
+  { from: 'dom-index', to: 'dom-standards', label: 're-exports' },
+  { from: 'dom-index', to: 'dom-aspice', label: 're-exports' },
+  { from: 'dom-index', to: 'dom-incose', label: 're-exports' },
+  { from: 'dom-index', to: 'dom-elicitation', label: 're-exports' },
+  { from: 'dom-index', to: 'dom-assumptions', label: 're-exports' },
+  { from: 'dom-index', to: 'dom-conflicts', label: 're-exports' },
+  { from: 'dom-index', to: 'dom-traceability', label: 're-exports' },
+  { from: 'dom-index', to: 'dom-trace-suggest', label: 're-exports' },
+  { from: 'dom-index', to: 'dom-trace-impact', label: 're-exports' },
+  { from: 'dom-index', to: 'dom-review-persp', label: 're-exports' },
+  { from: 'dom-index', to: 'dom-review-wf', label: 're-exports' },
+
+  // Component → Utility
+  { from: 'chat-bubble', to: 'util-format-coach', label: 'render' },
+  { from: 'ai-review', to: 'util-format-coach', label: 'render' },
+  { from: 'ai-review', to: 'util-diff', label: 'diff view' },
+  { from: 'ai-review', to: 'util-markdown', label: 'render' },
+  { from: 'chat-bubble', to: 'util-markdown', label: 'render' },
+
+  // Component → Config
+  { from: 'basic-info', to: 'cfg-projects', label: 'project list' },
+  { from: 'basic-info', to: 'cfg-constants', label: 'dropdowns' },
+  { from: 'traceability-sec', to: 'dom-traceability', label: 'levels' },
+  { from: 'review-status-bar', to: 'dom-review-wf', label: 'steps' },
+  { from: 'app-header', to: 'use-role', label: 'role selector' },
+  { from: 'app-header', to: 'use-theme', label: 'theme toggle' },
+  { from: 'app-header', to: 'cfg-webhook', label: 'mode toggle' },
+  { from: 'dev-tools', to: 'cfg-webhook', label: 'URL display' },
+  { from: 'dev-tools', to: 'cfg-skills', label: 'skill status' },
+
+  // New component → Composable/Config dependencies
+  { from: 'assignee-combo', to: 'use-combobox', label: 'autocomplete logic' },
+  { from: 'story-points', to: 'cfg-constants', label: 'FIBONACCI_POINTS' },
+  { from: 'story-points', to: 'use-roving', label: 'keyboard nav' },
+  { from: 'hotkey-modal', to: 'use-focus-trap', label: 'focus trap' },
+  { from: 'hotkey-modal', to: 'cfg-icons', label: 'icons' },
+
+  // skills/registry → skills/index
+  { from: 'cfg-skill-reg', to: 'cfg-skills', label: 'imports prompts' },
+  { from: 'util-skill-match', to: 'cfg-skill-reg', label: 'reads registry' },
+
+  // Composable → Storage
+  { from: 'use-form', to: 'localstorage', label: 'draft persist' },
+  { from: 'use-review-hist', to: 'localstorage', label: 'review records' },
+  { from: 'use-coach-hist', to: 'localstorage', label: 'chat archive' },
+  { from: 'use-ticket-hist', to: 'localstorage', label: 'ticket log' },
+  { from: 'use-batch', to: 'localstorage', label: 'batch items' },
+  { from: 'use-theme', to: 'localstorage', label: 'theme pref' },
+  { from: 'cfg-llm', to: 'localstorage', label: 'API settings' },
+
+  // useLLM → skillMatcher
+  { from: 'use-llm', to: 'util-skill-match', label: 'auto-detect' },
+
+  // Coach panel → composable
+  { from: 'coach-panel', to: 'use-coach-hist', label: 'history tab' },
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('canvas');
+const svgLayer = document.getElementById('svgLayer');
+const canvasWrap = document.getElementById('canvasWrap');
+
+// Category → color CSS var name
+const CAT_COLORS = {
+  external: '--red', orchestrator: '--yellow', component: '--blue',
+  composable: '--green', domain: '--orange', config: '--purple',
+  util: '--cyan', storage: '--pink'
+};
+
+// Create node elements
+const nodeEls = {};
+NODES.forEach(n => {
+  const el = document.createElement('div');
+  el.className = `node cat-${n.cat}`;
+  el.id = `node-${n.id}`;
+  el.style.left = n.x + 'px';
+  el.style.top = n.y + 'px';
+  el.innerHTML = `<div class="node-name">${n.name}</div><div class="node-sub">${n.sub}</div>`;
+  el.addEventListener('click', (e) => { e.stopPropagation(); selectNode(n.id); });
+  el.addEventListener('mouseenter', () => hoverNode(n.id));
+  el.addEventListener('mouseleave', () => unhoverNode());
+  canvas.appendChild(el);
+  nodeEls[n.id] = el;
+});
+
+// Draw SVG edges
+function getNodeCenter(id) {
+  const el = nodeEls[id];
+  if (!el) return { x: 0, y: 0 };
+  const r = el.getBoundingClientRect();
+  const cr = canvas.getBoundingClientRect();
+  const s = zoom;
+  return {
+    x: (r.left - cr.left) / s + r.width / (2 * s),
+    y: (r.top - cr.top) / s + r.height / (2 * s)
+  };
+}
+
+const edgeEls = [];
+
+function drawEdges() {
+  svgLayer.innerHTML = '';
+  // Arrow marker
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  marker.setAttribute('id', 'arrow');
+  marker.setAttribute('viewBox', '0 0 10 6');
+  marker.setAttribute('refX', '10');
+  marker.setAttribute('refY', '3');
+  marker.setAttribute('markerWidth', '8');
+  marker.setAttribute('markerHeight', '6');
+  marker.setAttribute('orient', 'auto-start-reverse');
+  const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  polygon.setAttribute('points', '0,0 10,3 0,6');
+  polygon.setAttribute('fill', 'var(--border)');
+  marker.appendChild(polygon);
+  defs.appendChild(marker);
+  svgLayer.appendChild(defs);
+
+  edgeEls.length = 0;
+
+  EDGES.forEach(e => {
+    const from = getNodeCenter(e.from);
+    const to = getNodeCenter(e.to);
+    if (!from || !to) return;
+
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const cx1 = from.x + dx * 0.1;
+    const cy1 = from.y + dy * 0.5;
+    const cx2 = to.x - dx * 0.1;
+    const cy2 = to.y - dy * 0.5;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M${from.x},${from.y} C${cx1},${cy1} ${cx2},${cy2} ${to.x},${to.y}`);
+    path.setAttribute('class', 'conn-line');
+    path.setAttribute('marker-end', 'url(#arrow)');
+    path.dataset.from = e.from;
+    path.dataset.to = e.to;
+    svgLayer.appendChild(path);
+    edgeEls.push(path);
+  });
+
+  document.getElementById('edgeCount').textContent = edgeEls.length;
+}
+
+// Initial draw after layout settles
+requestAnimationFrame(() => requestAnimationFrame(drawEdges));
+
+// ═══════════════════════════════════════════════════════════════════
+// INTERACTION: Hover highlighting
+// ═══════════════════════════════════════════════════════════════════
+
+let hoveredId = null;
+let selectedId = null;
+
+function getConnected(id) {
+  const nodes = new Set([id]);
+  const edges = new Set();
+  EDGES.forEach((e, i) => {
+    if (e.from === id || e.to === id) {
+      nodes.add(e.from);
+      nodes.add(e.to);
+      edges.add(i);
+    }
+  });
+  return { nodes, edges };
+}
+
+function hoverNode(id) {
+  if (selectedId) return; // don't hover when detail is open
+  hoveredId = id;
+  const { nodes, edges } = getConnected(id);
+
+  Object.entries(nodeEls).forEach(([nid, el]) => {
+    el.classList.toggle('highlighted', nodes.has(nid));
+    el.classList.toggle('dimmed', !nodes.has(nid));
+  });
+  edgeEls.forEach((path, i) => {
+    const isConn = edges.has(i);
+    path.classList.toggle('highlighted', isConn);
+    path.classList.toggle('dimmed', !isConn);
+    if (isConn) {
+      const e = EDGES[i];
+      const fromNode = NODES.find(n => n.id === e.from);
+      const toNode = NODES.find(n => n.id === e.to);
+      const colorVar = e.from === id ? CAT_COLORS[toNode?.cat] : CAT_COLORS[fromNode?.cat];
+      path.style.stroke = `var(${colorVar || '--blue'})`;
+    } else {
+      path.style.stroke = '';
+    }
+  });
+}
+
+function unhoverNode() {
+  if (selectedId) return;
+  hoveredId = null;
+  Object.values(nodeEls).forEach(el => {
+    el.classList.remove('highlighted', 'dimmed');
+  });
+  edgeEls.forEach(path => {
+    path.classList.remove('highlighted', 'dimmed');
+    path.style.stroke = '';
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INTERACTION: Click → Detail Panel
+// ═══════════════════════════════════════════════════════════════════
+
+function selectNode(id) {
+  selectedId = id;
+  const node = NODES.find(n => n.id === id);
+  if (!node) return;
+
+  // Highlight
+  const { nodes, edges } = getConnected(id);
+  Object.entries(nodeEls).forEach(([nid, el]) => {
+    el.classList.toggle('active', nid === id);
+    el.classList.toggle('highlighted', nodes.has(nid) && nid !== id);
+    el.classList.toggle('dimmed', !nodes.has(nid));
+  });
+  edgeEls.forEach((path, i) => {
+    const isConn = edges.has(i);
+    path.classList.toggle('highlighted', isConn);
+    path.classList.toggle('dimmed', !isConn);
+    if (isConn) {
+      const e = EDGES[i];
+      const targetId = e.from === id ? e.to : e.from;
+      const targetNode = NODES.find(n => n.id === targetId);
+      path.style.stroke = `var(${CAT_COLORS[targetNode?.cat] || '--blue'})`;
+    } else {
+      path.style.stroke = '';
+    }
+  });
+
+  // Build detail panel
+  const panel = document.getElementById('detailPanel');
+  const title = document.getElementById('detailTitle');
+  const body = document.getElementById('detailBody');
+
+  title.textContent = node.name;
+
+  const catLabel = { external: 'External Service', orchestrator: 'Orchestrator', component: 'Vue Component', composable: 'Composable', domain: 'Domain Knowledge', config: 'Config Module', util: 'Utility', storage: 'Storage' };
+  const catColor = { external: 'var(--red)', orchestrator: 'var(--yellow)', component: 'var(--blue)', composable: 'var(--green)', domain: 'var(--orange)', config: 'var(--purple)', util: 'var(--cyan)', storage: 'var(--pink)' };
+
+  // Connections
+  const incoming = EDGES.filter(e => e.to === id).map(e => ({ id: e.from, label: e.label, node: NODES.find(n => n.id === e.from) }));
+  const outgoing = EDGES.filter(e => e.from === id).map(e => ({ id: e.to, label: e.label, node: NODES.find(n => n.id === e.to) }));
+
+  let html = `
+    <div class="detail-badge" style="background:color-mix(in srgb, ${catColor[node.cat]} 20%, var(--bg3)); color:${catColor[node.cat]}">${catLabel[node.cat]}</div>
+    <div class="detail-desc">${node.desc}</div>
+    <div class="detail-section" style="margin-top:12px">
+      <h4>File</h4>
+      <div style="font-size:11px;color:var(--text);font-family:monospace;word-break:break-all">${node.file}</div>
+    </div>
+  `;
+
+  if (incoming.length > 0) {
+    html += `<div class="detail-section"><h4>Incoming (${incoming.length})</h4><ul>`;
+    incoming.forEach(c => {
+      const color = catColor[c.node?.cat] || 'var(--text2)';
+      html += `<li onclick="selectNode('${c.id}')" style="--dot-color:${color}"><span style="display:inline-block;width:6px;height:6px;border-radius:2px;background:${color};margin-right:6px;vertical-align:middle"></span><strong>${c.node?.name || c.id}</strong> <span style="color:var(--text3);font-size:10px">— ${c.label}</span></li>`;
+    });
+    html += `</ul></div>`;
+  }
+
+  if (outgoing.length > 0) {
+    html += `<div class="detail-section"><h4>Outgoing (${outgoing.length})</h4><ul>`;
+    outgoing.forEach(c => {
+      const color = catColor[c.node?.cat] || 'var(--text2)';
+      html += `<li onclick="selectNode('${c.id}')"><span style="display:inline-block;width:6px;height:6px;border-radius:2px;background:${color};margin-right:6px;vertical-align:middle"></span><strong>${c.node?.name || c.id}</strong> <span style="color:var(--text3);font-size:10px">— ${c.label}</span></li>`;
+    });
+    html += `</ul></div>`;
+  }
+
+  body.innerHTML = html;
+  panel.classList.add('open');
+}
+
+function closeDetail() {
+  selectedId = null;
+  document.getElementById('detailPanel').classList.remove('open');
+  Object.values(nodeEls).forEach(el => el.classList.remove('active', 'highlighted', 'dimmed'));
+  edgeEls.forEach(path => { path.classList.remove('highlighted', 'dimmed'); path.style.stroke = ''; });
+}
+
+// Click canvas to deselect
+canvasWrap.addEventListener('click', (e) => {
+  if (e.target === canvasWrap || e.target === canvas) closeDetail();
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// PAN & ZOOM
+// ═══════════════════════════════════════════════════════════════════
+
+let zoom = 0.75;
+let panX = -200;
+let panY = 0;
+let isPanning = false;
+let panStartX, panStartY;
+
+function applyTransform() {
+  canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+  document.getElementById('zoomLabel').textContent = Math.round(zoom * 100) + '%';
+}
+
+canvasWrap.addEventListener('mousedown', (e) => {
+  if (e.target !== canvasWrap && e.target !== canvas && e.target.tagName !== 'svg') return;
+  isPanning = true;
+  panStartX = e.clientX - panX;
+  panStartY = e.clientY - panY;
+  canvasWrap.classList.add('dragging');
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!isPanning) return;
+  panX = e.clientX - panStartX;
+  panY = e.clientY - panStartY;
+  applyTransform();
+});
+
+window.addEventListener('mouseup', () => {
+  isPanning = false;
+  canvasWrap.classList.remove('dragging');
+});
+
+canvasWrap.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.08 : 0.08;
+  zoomTo(zoom + delta, e.clientX, e.clientY);
+}, { passive: false });
+
+function zoomTo(newZoom, cx, cy) {
+  newZoom = Math.max(0.2, Math.min(2, newZoom));
+  if (cx !== undefined && cy !== undefined) {
+    // Zoom toward cursor
+    const wrap = canvasWrap.getBoundingClientRect();
+    const mx = cx - wrap.left;
+    const my = cy - wrap.top;
+    panX = mx - (mx - panX) * (newZoom / zoom);
+    panY = my - (my - panY) * (newZoom / zoom);
+  }
+  zoom = newZoom;
+  applyTransform();
+  requestAnimationFrame(drawEdges);
+}
+
+function resetView() {
+  zoom = 0.75;
+  panX = -200;
+  panY = 0;
+  applyTransform();
+  requestAnimationFrame(drawEdges);
+}
+
+applyTransform();
+
+// ═══════════════════════════════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════════════════════════════
+
+document.getElementById('searchBox').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  if (!q) {
+    Object.values(nodeEls).forEach(el => el.classList.remove('dimmed', 'highlighted'));
+    edgeEls.forEach(p => p.classList.remove('dimmed'));
+    return;
+  }
+  const matches = new Set();
+  NODES.forEach(n => {
+    if (n.name.toLowerCase().includes(q) || n.sub.toLowerCase().includes(q) || n.desc.toLowerCase().includes(q)) {
+      matches.add(n.id);
+    }
+  });
+  Object.entries(nodeEls).forEach(([id, el]) => {
+    el.classList.toggle('highlighted', matches.has(id));
+    el.classList.toggle('dimmed', !matches.has(id));
+  });
+  edgeEls.forEach((path, i) => {
+    const e = EDGES[i];
+    path.classList.toggle('dimmed', !matches.has(e.from) && !matches.has(e.to));
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// CATEGORY FILTER
+// ═══════════════════════════════════════════════════════════════════
+
+let activeFilter = 'all';
+
+function filterCategory(cat) {
+  activeFilter = cat;
+  document.querySelectorAll('.header-right button').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn' + (cat === 'all' ? 'All' : cat === 'component' ? 'Comp' : cat.charAt(0).toUpperCase() + cat.slice(1))).classList.add('active');
+
+  if (cat === 'all') {
+    Object.values(nodeEls).forEach(el => el.classList.remove('dimmed', 'highlighted'));
+    edgeEls.forEach(p => { p.classList.remove('dimmed', 'highlighted'); p.style.stroke = ''; });
+    return;
+  }
+
+  const matches = new Set();
+  NODES.forEach(n => { if (n.cat === cat) matches.add(n.id); });
+
+  // Also show connected nodes
+  const extended = new Set(matches);
+  EDGES.forEach(e => {
+    if (matches.has(e.from)) extended.add(e.to);
+    if (matches.has(e.to)) extended.add(e.from);
+  });
+
+  Object.entries(nodeEls).forEach(([id, el]) => {
+    el.classList.toggle('highlighted', matches.has(id));
+    el.classList.toggle('dimmed', !extended.has(id));
+  });
+  edgeEls.forEach((path, i) => {
+    const e = EDGES[i];
+    const connected = matches.has(e.from) || matches.has(e.to);
+    path.classList.toggle('highlighted', connected);
+    path.classList.toggle('dimmed', !connected);
+    if (connected) {
+      path.style.stroke = `var(${CAT_COLORS[cat]})`;
+    } else {
+      path.style.stroke = '';
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// THEME TOGGLE
+// ═══════════════════════════════════════════════════════════════════
+
+let isDark = true;
+function toggleTheme() {
+  isDark = !isDark;
+  document.body.classList.toggle('light', !isDark);
+  document.getElementById('btnTheme').textContent = isDark ? 'Light' : 'Dark';
+  requestAnimationFrame(drawEdges);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════════════════════════
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDetail();
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault();
+    document.getElementById('searchBox').focus();
+  }
+});
+
+// Redraw edges on resize
+window.addEventListener('resize', () => requestAnimationFrame(drawEdges));
+</script>
+
+</body>
+</html>

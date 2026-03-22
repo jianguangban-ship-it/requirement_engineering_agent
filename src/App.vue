@@ -48,6 +48,8 @@
             @cancel="cancelCoach"
             @retry="handleCoachRetry"
             @apply-chip="applyCoachChip"
+            @elicit="handleElicitation"
+            @conflict-check="handleConflictCheck"
             @import-templates="handleTemplateImport"
             @replay="handleReplay"
           />
@@ -77,13 +79,33 @@
             :is-coach-loading="isCoachLoading"
             :current-action="formCurrentAction"
             :has-ai-response="!!analyzeResponse"
+            :domain-warnings="domainWarnings"
+            :aspice-badge="aspiceBadge"
+            :aspice-suggestions="aspiceSuggestions"
+            :incose-violations="incoseViolations"
+            :assumptions="assumptions"
+            :traceability-gaps="traceabilityGaps"
             :error-message="errorMessage"
+            :review-status="reviewStatus"
+            :current-step-index="currentStepIndex"
+            :checklist="checklist"
+            :checked-items="checkedItems"
+            :all-checked="allChecked"
+            :check-progress="checkProgress"
             @coach="handleCoachRequest"
             @analyze="handleAnalyze"
+            @deep-review="handleDeepReview"
             @create="handleCreateClick"
             @reset="handleReset"
             @cancel-coach="cancelCoach"
             @project-change="onProjectChange"
+            @suggest-links="handleSuggestLinks"
+            @impact-analysis="handleImpactAnalysis"
+            @toggle-check="toggleCheck"
+            @approve="advanceTo('approved')"
+            @export-markdown="handleExportMarkdown"
+            @export-req-i-f="handleExportReqIF"
+            @export-excel="handleExportExcel"
             @clear-error="errorMessage = ''"
           />
         </div>
@@ -103,6 +125,7 @@
             :response="analyzeResponse"
             :previous-response="previousAnalyzeResponse"
             :is-analyzing="isAnalyzeLoading"
+            :is-deep-review="isDeepReview"
             :has-error="!!errorMessage && formCurrentAction === 'analyze'"
             :was-cancelled="analyzeWasCancelled"
             :had-error="analyzeHadError"
@@ -142,6 +165,33 @@
             :analyze-backoff-secs="analyzeBackoffSecs"
           />
 
+          <JiraSearchPanel
+            :is-searching="isSearching"
+            :search-results="searchResults"
+            :search-error="searchError"
+            :sprint-context="sprintContext"
+            :release-context="releaseContext"
+            :duplicate-warning="duplicateWarning"
+            @check-duplicates="checkDuplicates(form.projectKey, computedSummary)"
+            @search-parent="searchParentReqs(form.projectKey, form.parentReqId || computedSummary)"
+            @get-context="getSprintContext(form.projectKey)"
+            @select-result="handleJiraSearchSelect"
+          />
+
+          <BatchPanel
+            :batch-items="batchItems"
+            :selected-count="selectedCount"
+            @add-current="handleAddCurrentToBatch"
+            @clear-batch="clearBatch"
+            @toggle-item="toggleBatchItem"
+            @toggle-all="toggleBatchAll"
+            @remove-item="removeBatchItem"
+            @bulk-analyze="handleBulkAnalyze"
+            @import-c-s-v="handleBatchImportCSV"
+          />
+
+          <ReviewDashboard :stats="reviewStats" @clear="clearReviewHistory" />
+
           <TicketHistoryPanel />
         </div>
       </div>
@@ -161,6 +211,13 @@ import { useLLM, coachSkillEnabled, setCoachSkillEnabled, taskCoachEnabled } fro
 import { useToast } from '@/composables/useToast'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 import { addTicket } from '@/composables/useTicketHistory'
+import { useReviewWorkflow } from '@/composables/useReviewWorkflow'
+import { useReviewHistory } from '@/composables/useReviewHistory'
+import { exportMarkdown, exportReqIF, exportExcelCSV, downloadFile } from '@/utils/exportFormats'
+import { useJiraSearch } from '@/composables/useJiraSearch'
+import { useBatchOps } from '@/composables/useBatchOps'
+import { buildElicitationPrompt, buildConflictCheckPrompt, buildTraceSuggestPrompt, buildImpactAnalysisPrompt } from '@/config/domain'
+import { currentRole } from '@/composables/useRole'
 import { getTemplateContent, effectiveTemplates, setCustomTemplates, customTemplatesModified } from '@/config/templates/index'
 import type { TemplateDefinition } from '@/types/template'
 import { coachSkillModified, analyzeSkillModified } from '@/config/skills/index'
@@ -175,6 +232,9 @@ import AIReviewPanel from '@/components/panels/AIReviewPanel.vue'
 import JiraResponsePanel from '@/components/panels/JiraResponsePanel.vue'
 import ProcessingSummary from '@/components/panels/ProcessingSummary.vue'
 import TicketHistoryPanel from '@/components/panels/TicketHistoryPanel.vue'
+import ReviewDashboard from '@/components/panels/ReviewDashboard.vue'
+import JiraSearchPanel from '@/components/panels/JiraSearchPanel.vue'
+import BatchPanel from '@/components/panels/BatchPanel.vue'
 import DevTools from '@/components/dev/DevTools.vue'
 import ToastContainer from '@/components/shared/ToastContainer.vue'
 import JsonViewer from '@/components/shared/JsonViewer.vue'
@@ -257,6 +317,7 @@ function stopDrag() {
 const {
   form, summary, componentHistory, computedSummary,
   canSubmit, qualityScore, qualityScoreColor, qualityScoreLabel,
+  domainWarnings, incoseViolations, assumptions, traceabilityGaps, aspiceProfile,
   getProjectName, resetForm, addComponentToHistory, restoreDraft
 } = useForm()
 
@@ -272,8 +333,33 @@ const {
   requestCoach, cancelCoach, retryCoach, clearCoachResponse,
   isAnalyzeLoading, analyzeResponse, previousAnalyzeResponse, analyzeWasCancelled, analyzeHadError,
   analyzeStreamSpeed, analyzeBackoffSecs,
-  requestAnalyze, cancelAnalyze, retryAnalyze, clearAnalyzeResponse
+  requestAnalyze, cancelAnalyze, retryAnalyze, clearAnalyzeResponse,
+  isDeepReview, requestDeepReview
 } = useLLM()
+
+const {
+  reviewStatus, currentStepIndex, checklist, checkedItems,
+  allChecked, checkProgress, advanceTo, toggleCheck, resetWorkflow
+} = useReviewWorkflow()
+
+const {
+  stats: reviewStats,
+  addRecord: addReviewRecord,
+  clearAll: clearReviewHistory
+} = useReviewHistory()
+
+const {
+  isSearching, searchResults, searchError,
+  sprintContext, releaseContext, duplicateWarning,
+  checkDuplicates, searchParentReqs, getSprintContext, clearSearch
+} = useJiraSearch()
+
+const {
+  batchItems, selectedCount,
+  addItem: addBatchItem, removeItem: removeBatchItem,
+  toggleItem: toggleBatchItem, toggleAll: toggleBatchAll,
+  clearBatch, importCSV: importBatchCSV
+} = useBatchOps()
 
 const activeModel = computed(() => getModel())
 
@@ -289,6 +375,10 @@ watch(showConfirmModal, (open) => {
   else deactivateConfirmTrap()
 })
 
+// ASPICE badge + suggestions derived from profile
+const aspiceBadge = computed(() => aspiceProfile.value?.mapping.processId ?? undefined)
+const aspiceSuggestions = computed(() => aspiceProfile.value?.suggestions ?? [])
+
 // Shims so TaskForm buttons reflect both JIRA-submitting and LLM-analyzing states
 const formIsSubmitting = computed(() => isSubmitting.value || isAnalyzeLoading.value)
 const formCurrentAction = computed(() => isAnalyzeLoading.value ? 'analyze' : currentAction.value)
@@ -302,7 +392,7 @@ const canCoachSubmit = computed(() => {
 })
 
 // Build payload — for coach/preview, content adapts to Skill and Task-Coach toggles
-function buildPayload(action: 'analyze' | 'create' | 'coach' | 'preview'): WebhookPayload {
+function buildPayload(action: 'analyze' | 'create' | 'coach' | 'preview' | 'deepReview'): WebhookPayload {
   const meta = { source: 'jira_agent_ui_v8.0', timestamp: Date.now(), action }
 
   // analyze / create always need the full task fields
@@ -316,7 +406,10 @@ function buildPayload(action: 'analyze' | 'create' | 'coach' | 'preview'): Webho
         summary: computedSummary.value,
         description: form.description,
         assignee: form.assignee,
-        estimated_points: form.estimatedPoints
+        estimated_points: form.estimatedPoints,
+        requirement_level: form.requirementLevel !== 'none' ? form.requirementLevel : undefined,
+        parent_req_id: form.parentReqId || undefined,
+        verification_method: form.verificationMethod || undefined
       }
     }
   }
@@ -340,7 +433,10 @@ function buildPayload(action: 'analyze' | 'create' | 'coach' | 'preview'): Webho
       summary: computedSummary.value,
       description: form.description,
       assignee: form.assignee,
-      estimated_points: form.estimatedPoints
+      estimated_points: form.estimatedPoints,
+      requirement_level: form.requirementLevel !== 'none' ? form.requirementLevel : undefined,
+      parent_req_id: form.parentReqId || undefined,
+      verification_method: form.verificationMethod || undefined
     }
   }
 }
@@ -435,14 +531,108 @@ async function handleAnalyze() {
     addToast('success', t('toast.analyzeSuccess'))
     addComponentToHistory(summary.component)
     saveResponsesToStorage()
+    if (reviewStatus.value === 'draft') advanceTo('ai-reviewed')
   } else if (err !== 'cancelled') {
     errorMessage.value = err
     addToast('error', err)
   }
 }
 
+async function handleDeepReview() {
+  if (!canSubmit.value || formIsSubmitting.value) return
+  errorMessage.value = ''
+  const err = await requestDeepReview(buildPayload('deepReview'))
+  if (!err) {
+    addToast('success', t('toast.analyzeSuccess'))
+    addComponentToHistory(summary.component)
+    saveResponsesToStorage()
+    if (reviewStatus.value === 'draft') advanceTo('ai-reviewed')
+  } else if (err !== 'cancelled') {
+    errorMessage.value = err
+    addToast('error', err)
+  }
+}
+
+function buildExportData() {
+  return {
+    form,
+    summary,
+    computedSummary: computedSummary.value,
+    qualityScore: qualityScore.value,
+    reviewStatus: reviewStatus.value,
+    role: currentRole.value,
+    timestamp: new Date().toISOString()
+  }
+}
+
+function handleExportMarkdown() {
+  const content = exportMarkdown(buildExportData())
+  const filename = `${computedSummary.value.slice(0, 50).replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_')}.md`
+  downloadFile(content, filename, 'text/markdown;charset=utf-8')
+  addToast('success', isZh.value ? '已导出 Markdown' : 'Exported Markdown')
+}
+
+function handleExportReqIF() {
+  const content = exportReqIF(buildExportData())
+  const filename = `requirement-${Date.now()}.reqif`
+  downloadFile(content, filename, 'application/xml;charset=utf-8')
+  addToast('success', isZh.value ? '已导出 ReqIF' : 'Exported ReqIF')
+}
+
+function handleExportExcel() {
+  const content = exportExcelCSV(buildExportData())
+  const filename = `requirement-${Date.now()}.csv`
+  downloadFile(content, filename, 'text/csv;charset=utf-8')
+  addToast('success', isZh.value ? '已导出 Excel CSV' : 'Exported Excel CSV')
+}
+
+function handleJiraSearchSelect(result: { key: string; summary: string }) {
+  // Use selected result as parent requirement
+  form.parentReqId = result.key
+  addToast('info', `${result.key} → ${isZh.value ? '已设为上级需求' : 'Set as parent requirement'}`)
+}
+
+function handleAddCurrentToBatch() {
+  addBatchItem({
+    summary: computedSummary.value,
+    description: form.description,
+    issueType: form.issueType as 'Story' | 'Task' | 'Bug',
+    level: form.requirementLevel as import('@/config/domain/traceability').RequirementLevel,
+    parentReqId: form.parentReqId || ''
+  })
+  addToast('success', isZh.value ? '已添加到批量列表' : 'Added to batch list')
+}
+
+function handleBatchImportCSV(text: string) {
+  const count = importBatchCSV(text)
+  if (count > 0) {
+    addToast('success', isZh.value ? `已导入 ${count} 条需求` : `Imported ${count} requirements`)
+  } else {
+    addToast('error', isZh.value ? '导入失败，请检查 CSV 格式' : 'Import failed, check CSV format')
+  }
+}
+
+async function handleBulkAnalyze() {
+  const selected = batchItems.value.filter(b => b.selected)
+  if (selected.length === 0) return
+  // Analyze first selected item as a demo — full bulk would iterate
+  const item = selected[0]
+  form.description = item.description
+  summary.detail = item.summary
+  form.issueType = item.issueType
+  form.requirementLevel = item.level
+  form.parentReqId = item.parentReqId
+  addToast('info', isZh.value ? `已加载批量项: ${item.summary}` : `Loaded batch item: ${item.summary}`)
+  await nextTick()
+  handleAnalyze()
+}
+
 function handleCreateClick() {
   showConfirmModal.value = true
+  // Auto-check for duplicates before creating
+  if (form.projectKey && computedSummary.value) {
+    checkDuplicates(form.projectKey, computedSummary.value)
+  }
 }
 
 async function confirmCreate() {
@@ -454,6 +644,7 @@ async function confirmCreate() {
     addToast('error', err)
   } else {
     addToast('success', t('toast.createSuccess'))
+    advanceTo('jira-created')
     const resp = jiraResponse.value as Record<string, unknown> | null
     const key = (resp?.key || (resp?.jira_result as Record<string, unknown>)?.key) as string | undefined
     if (key) {
@@ -463,6 +654,20 @@ async function confirmCreate() {
         project: form.projectKey,
         issueType: form.issueType,
         date: new Date().toISOString()
+      })
+      // Record review history for learning
+      const allCheckIds = checklist.value.map(c => c.id)
+      const passedIds = allCheckIds.filter(id => checkedItems.value.has(id))
+      const failedIds = allCheckIds.filter(id => !checkedItems.value.has(id))
+      addReviewRecord({
+        ticketKey: key,
+        summary: computedSummary.value,
+        role: currentRole.value,
+        issueType: form.issueType,
+        qualityScore: qualityScore.value,
+        reviewStatus: reviewStatus.value,
+        checklistPassed: passedIds,
+        checklistFailed: failedIds
       })
     }
   }
@@ -482,6 +687,74 @@ async function handleCoachRequest() {
     errorMessage.value = err
     addToast('error', err)
   }
+}
+
+function handleElicitation() {
+  const lang = isZh.value ? 'zh' as const : 'en' as const
+  const prompt = buildElicitationPrompt(currentRole.value, lang)
+  form.description = prompt
+  // Switch to free-chat mode for interactive Q&A
+  if (coachSkillEnabled.value) {
+    setCoachSkillEnabled(false)
+  }
+  nextTick(() => handleCoachRequest())
+}
+
+function handleSuggestLinks() {
+  const lang = isZh.value ? 'zh' as const : 'en' as const
+  const prompt = buildTraceSuggestPrompt(
+    currentRole.value,
+    form.requirementLevel,
+    form.parentReqId,
+    form.description,
+    lang
+  )
+  const userDesc = form.description.trim()
+  const prefix = lang === 'zh'
+    ? '请分析以下需求的追溯关系并给出建议：\n\n'
+    : 'Please analyze the traceability of the following requirement and provide suggestions:\n\n'
+  form.description = prefix + userDesc + '\n\n---\n\n' + prompt
+  if (coachSkillEnabled.value) {
+    setCoachSkillEnabled(false)
+  }
+  nextTick(() => handleCoachRequest())
+}
+
+function handleImpactAnalysis() {
+  const lang = isZh.value ? 'zh' as const : 'en' as const
+  const prompt = buildImpactAnalysisPrompt(
+    currentRole.value,
+    form.requirementLevel,
+    form.parentReqId,
+    form.description,
+    lang
+  )
+  const userDesc = form.description.trim()
+  const prefix = lang === 'zh'
+    ? '请分析以下需求如果发生变更，会产生哪些波及影响：\n\n'
+    : 'Please analyze the ripple effects if the following requirement changes:\n\n'
+  form.description = prefix + userDesc + '\n\n---\n\n' + prompt
+  if (coachSkillEnabled.value) {
+    setCoachSkillEnabled(false)
+  }
+  nextTick(() => handleCoachRequest())
+}
+
+function handleConflictCheck() {
+  // The description should already contain multiple requirements pasted by the user.
+  // We prepend the conflict-check instruction and send it to coach.
+  const lang = isZh.value ? 'zh' as const : 'en' as const
+  const systemPrompt = buildConflictCheckPrompt(currentRole.value, lang)
+  const userReqs = form.description.trim()
+  const prefix = lang === 'zh'
+    ? '请分析以下需求是否存在冲突、矛盾或冗余：\n\n'
+    : 'Please analyze the following requirements for conflicts, contradictions, or redundancy:\n\n'
+  form.description = prefix + userReqs
+  // Use free-chat mode so the conflict-check prompt goes directly
+  if (coachSkillEnabled.value) {
+    setCoachSkillEnabled(false)
+  }
+  nextTick(() => handleCoachRequest())
 }
 
 function handleReplay(content: string) {
@@ -526,6 +799,8 @@ function handleReset() {
   clearCoachResponse()
   clearAnalyzeResponse()
   clearResponsesFromStorage()
+  resetWorkflow()
+  clearSearch()
   errorMessage.value = ''
   addToast('info', t('toast.draftCleared'))
 }

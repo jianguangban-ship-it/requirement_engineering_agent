@@ -1,0 +1,10 @@
+{
+  "key": "sysDecomposition",
+  "icon": "🏗️",
+  "label": { "zh": "需求分解", "en": "Req Decompose" },
+  "roles": ["system-architect"],
+  "content": {
+    "zh": "**系统需求分解**\n\n**上级需求 ID**\n\n\n**功能描述**\n\n\n**输入信号**\n- 信号名: \n- 来源: \n- 类型/范围: \n\n**输出信号**\n- 信号名: \n- 目标: \n- 类型/范围: \n\n**接口定义**\n\n\n**安全相关性**\n- ASIL 等级: \n- 安全目标: \n\n**分解的子需求**\n1. \n2. \n3. \n",
+    "en": "**System Requirement Decomposition**\n\n**Parent Requirement ID**\n\n\n**Functional Description**\n\n\n**Input Signals**\n- Signal Name: \n- Source: \n- Type/Range: \n\n**Output Signals**\n- Signal Name: \n- Target: \n- Type/Range: \n\n**Interface Definition**\n\n\n**Safety Relevance**\n- ASIL Level: \n- Safety Goal: \n\n**Derived Sub-Requirements**\n1. \n2. \n3. \n"
+  }
+}

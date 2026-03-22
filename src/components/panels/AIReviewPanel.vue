@@ -83,8 +83,23 @@
           {{ t('settings.cancel') }}
         </button>
       </div>
+      <!-- Deep review perspective tabs -->
+      <div v-if="hasPerspectiveTabs && !showDiff" class="perspective-tabs">
+        <button
+          class="perspective-tab"
+          :class="{ 'tab-active': activeTab === 'all' }"
+          @click="activeTab = 'all'"
+        >{{ t('panel.allPerspectives') }}</button>
+        <button
+          v-for="s in perspectiveSections"
+          :key="s.id"
+          class="perspective-tab"
+          :class="{ 'tab-active': activeTab === s.id }"
+          @click="activeTab = s.id"
+        >{{ s.label }}</button>
+      </div>
       <div v-if="showDiff && canShowDiff" class="coach-response diff-view" v-html="diffHtml" />
-      <div v-else class="coach-response" v-html="formattedAnalysis" />
+      <div v-else class="coach-response" v-html="filteredAnalysisHtml" />
       <div v-if="isAnalyzing" class="stream-footer">
         <span class="streaming-cursor" />
         <span v-if="streamSpeed > 0" class="stream-speed">{{ streamSpeed }} {{ t('dev.streamSpeed') }}</span>
@@ -119,6 +134,7 @@ const props = defineProps<{
   response: unknown
   previousResponse: unknown
   isAnalyzing: boolean
+  isDeepReview: boolean
   hasError: boolean
   wasCancelled: boolean
   hadError: boolean
@@ -133,6 +149,7 @@ const { addToast } = useToast()
 
 const retryCountdown = ref(0)
 const showDiff = ref(false)
+const activeTab = ref('all')
 let _cooldownTimer: number | null = null
 
 function handleRetry() {
@@ -174,6 +191,53 @@ watch(() => props.response, (val) => {
     _rafId = null
   })
 }, { immediate: true })
+
+// ─── Perspective tabs (deep review) ─────────────────────────────────────────
+interface PerspectiveSection {
+  id: string
+  label: string
+  html: string
+}
+
+const PERSPECTIVE_IDS = [
+  { pattern: /safety|安全/i, id: 'safety', labelKey: 'panel.safety' },
+  { pattern: /testab|可测试/i, id: 'testability', labelKey: 'panel.testability' },
+  { pattern: /implement|可实现/i, id: 'implementability', labelKey: 'panel.implementability' },
+  { pattern: /complete|完整/i, id: 'completeness', labelKey: 'panel.completeness' }
+]
+
+const perspectiveSections = computed<PerspectiveSection[]>(() => {
+  if (!props.isDeepReview || !formattedAnalysis.value) return []
+  const html = formattedAnalysis.value
+  // Split by <h2> tags (rendered from ## headers)
+  const parts = html.split(/(?=<h2[^>]*>)/i)
+  if (parts.length <= 1) return []
+
+  const sections: PerspectiveSection[] = []
+  for (const part of parts) {
+    const headerMatch = part.match(/<h2[^>]*>(.*?)<\/h2>/i)
+    if (!headerMatch) continue
+    const headerText = headerMatch[1].replace(/<[^>]*>/g, '') // strip inner tags
+    const matched = PERSPECTIVE_IDS.find(p => p.pattern.test(headerText))
+    sections.push({
+      id: matched?.id || `section-${sections.length}`,
+      label: matched ? t(matched.labelKey) : headerText.replace(/[🛡️🧪⚙️📋]\s*/g, '').trim(),
+      html: part
+    })
+  }
+  return sections
+})
+
+const hasPerspectiveTabs = computed(() => perspectiveSections.value.length >= 2)
+
+const filteredAnalysisHtml = computed(() => {
+  if (!hasPerspectiveTabs.value || activeTab.value === 'all') return formattedAnalysis.value
+  const section = perspectiveSections.value.find(s => s.id === activeTab.value)
+  return section?.html || formattedAnalysis.value
+})
+
+// Reset tab when response changes
+watch(() => props.response, () => { activeTab.value = 'all' })
 
 const rawText = computed(() => {
   const r = props.response as Record<string, unknown>
@@ -462,4 +526,38 @@ async function copyResponse() {
   cursor: not-allowed;
 }
 .retry-icon { width: 12px; height: 12px; }
+
+/* Deep review perspective tabs */
+.perspective-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  margin-bottom: 10px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  overflow-x: auto;
+}
+.perspective-tab {
+  flex: 1;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.perspective-tab:hover:not(.tab-active) {
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+}
+.perspective-tab.tab-active {
+  background-color: var(--accent-purple);
+  color: white;
+  font-weight: 600;
+}
 </style>

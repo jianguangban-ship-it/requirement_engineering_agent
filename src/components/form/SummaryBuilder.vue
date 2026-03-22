@@ -70,6 +70,7 @@
       :quality-label="qualityScoreLabel"
       :preview="computedSummary"
       :placeholder="t('form.previewPlaceholder')"
+      :aspice-badge="aspiceBadge"
     >
       <template #header-actions>
         <button
@@ -103,6 +104,7 @@ const props = defineProps<{
   qualityScore: number
   qualityScoreColor: string
   qualityScoreLabel: string
+  aspiceBadge?: string
 }>()
 
 const COMPONENT_MAX = 50

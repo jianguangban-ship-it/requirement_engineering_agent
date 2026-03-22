@@ -1,0 +1,10 @@
+{
+  "key": "vvTestCase",
+  "icon": "🧪",
+  "label": { "zh": "测试用例", "en": "Test Case" },
+  "roles": ["vv-engineer"],
+  "content": {
+    "zh": "**测试用例**\n\n**关联需求 ID**\n\n\n**验证方法**\n- [ ] 评审 (Review)\n- [ ] 分析 (Analysis)\n- [ ] 仿真 (Simulation)\n- [ ] 测试 (Test)\n- [ ] 演示 (Demonstration)\n\n**测试环境**\n- 平台: (MIL / SIL / HIL / 实车)\n- 工具链: \n- 配置: \n\n**前置条件**\n\n\n**测试步骤**\n1. \n2. \n3. \n\n**通过标准**\n\n\n**失败标准**\n\n\n**测试数据**\n| 输入 | 期望输出 | 容差 |\n|------|----------|------|\n|      |          |      |\n",
+    "en": "**Test Case**\n\n**Linked Requirement ID**\n\n\n**Verification Method**\n- [ ] Review\n- [ ] Analysis\n- [ ] Simulation\n- [ ] Test\n- [ ] Demonstration\n\n**Test Environment**\n- Platform: (MIL / SIL / HIL / Vehicle)\n- Tool Chain: \n- Configuration: \n\n**Preconditions**\n\n\n**Test Steps**\n1. \n2. \n3. \n\n**Pass Criteria**\n\n\n**Fail Criteria**\n\n\n**Test Data**\n| Input | Expected Output | Tolerance |\n|-------|-----------------|----------|\n|       |                 |          |\n"
+  }
+}

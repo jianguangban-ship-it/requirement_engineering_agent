@@ -1,0 +1,10 @@
+{
+  "key": "sweApiContract",
+  "icon": "📡",
+  "label": { "zh": "API 契约", "en": "API Contract" },
+  "roles": ["sw-developer"],
+  "content": {
+    "zh": "**API 契约定义**\n\n**接口名称/路径**\n\n\n**方法**\n- 函数签名 / HTTP Method: \n\n**输入参数**\n| 参数名 | 类型 | 必选 | 描述 |\n|--------|------|------|------|\n|        |      |      |      |\n\n**返回值**\n- 成功: \n- 错误码: \n\n**前置条件**\n\n\n**后置条件**\n\n\n**调用示例**\n```\n\n```\n",
+    "en": "**API Contract Definition**\n\n**Interface Name/Path**\n\n\n**Method**\n- Function Signature / HTTP Method: \n\n**Input Parameters**\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n|           |      |          |             |\n\n**Return Value**\n- Success: \n- Error Code: \n\n**Preconditions**\n\n\n**Postconditions**\n\n\n**Usage Example**\n```\n\n```\n"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "key": "vvCoverage",
+  "icon": "📈",
+  "label": { "zh": "覆盖分析", "en": "Coverage Analysis" },
+  "roles": ["vv-engineer"],
+  "content": {
+    "zh": "**测试覆盖分析**\n\n**分析范围**\n- 模块/功能: \n- 需求基线版本: \n\n**覆盖统计**\n| 需求 ID | 验证方法 | 测试用例 ID | 状态 |\n|---------|----------|------------|------|\n|         |          |            | ⬜    |\n\n**覆盖率**\n- 需求覆盖率: ___ / ___ = ___%\n- 未覆盖需求: \n\n**覆盖缺口分析**\n- 缺口原因: \n- 补充计划: \n\n**风险评估**\n- 未覆盖项的安全影响: \n- 建议优先级: \n",
+    "en": "**Test Coverage Analysis**\n\n**Scope**\n- Module/Function: \n- Requirement Baseline Version: \n\n**Coverage Statistics**\n| Req ID | Verification Method | Test Case ID | Status |\n|--------|--------------------|--------------|---------|\n|        |                    |              | ⬜      |\n\n**Coverage Rate**\n- Requirement Coverage: ___ / ___ = ___%\n- Uncovered Requirements: \n\n**Gap Analysis**\n- Gap Reason: \n- Remediation Plan: \n\n**Risk Assessment**\n- Safety Impact of Uncovered Items: \n- Recommended Priority: \n"
+  }
+}

@@ -4,6 +4,10 @@ import type { ProjectKey } from '@/types/team'
 import { PROJECT_CONFIG } from '@/config/projects'
 import { DEFAULT_COMPONENT_HISTORY } from '@/config/constants'
 import { useI18n } from '@/i18n'
+import { currentRole } from '@/composables/useRole'
+import type { UserRole } from '@/composables/useRole'
+import { checkDomainWarnings, getAspiceProfile, checkIncoseRules, incoseScorePenalty, detectAssumptions, getDefaultLevel, checkTraceabilityGaps } from '@/config/domain'
+import type { DomainWarning, AspiceProfile, IncoseViolation, Assumption, TraceabilityGap } from '@/config/domain'
 
 const DRAFT_KEY = 'jira-workstation-draft'
 
@@ -15,7 +19,10 @@ export function useForm() {
     issueType: 'Story',
     assignee: '',
     estimatedPoints: 3,
-    description: ''
+    description: '',
+    requirementLevel: getDefaultLevel(currentRole.value),
+    parentReqId: '',
+    verificationMethod: ''
   })
 
   const summary = reactive<SummaryState>({
@@ -58,14 +65,46 @@ export function useForm() {
     )
   })
 
-  // Quality score
+  // Quality score — role-specific weights
+  //
+  // SYS: completeness + traceability (description heavily weighted)
+  // SWE: acceptance criteria + unambiguity (detail + description)
+  // HWE: measurability + constraints (component + description)
+  // ME:  packaging specs + constraints (component + description)
+  // V&V: testability + verification method (description dominant)
+
+  const ROLE_WEIGHTS: Record<UserRole, Record<string, number>> = {
+    'system-architect': {
+      projectKey: 6, issueType: 6, assignee: 4, estimatedPoints: 2,
+      vehicle: 8, product: 8, layer: 8, component: 8, detail: 8,
+      descriptionPresent: 14, descriptionLength: 28
+    },
+    'sw-developer': {
+      projectKey: 8, issueType: 8, assignee: 8, estimatedPoints: 6,
+      vehicle: 6, product: 6, layer: 6, component: 8, detail: 12,
+      descriptionPresent: 12, descriptionLength: 20
+    },
+    'hw-designer': {
+      projectKey: 6, issueType: 6, assignee: 6, estimatedPoints: 4,
+      vehicle: 8, product: 8, layer: 8, component: 10, detail: 10,
+      descriptionPresent: 12, descriptionLength: 22
+    },
+    'me-designer': {
+      projectKey: 6, issueType: 6, assignee: 6, estimatedPoints: 4,
+      vehicle: 8, product: 8, layer: 8, component: 10, detail: 10,
+      descriptionPresent: 12, descriptionLength: 22
+    },
+    'vv-engineer': {
+      projectKey: 6, issueType: 6, assignee: 4, estimatedPoints: 2,
+      vehicle: 6, product: 6, layer: 6, component: 6, detail: 8,
+      descriptionPresent: 16, descriptionLength: 34
+    }
+  }
+
   const qualityScore = computed(() => {
     let score = 0
-    const weights: Record<string, number> = {
-      projectKey: 8, issueType: 8, assignee: 8, estimatedPoints: 6,
-      vehicle: 8, product: 8, layer: 8, component: 8, detail: 10,
-      descriptionPresent: 10, descriptionLength: 18
-    }
+    const weights = ROLE_WEIGHTS[currentRole.value]
+
     if (form.projectKey) score += weights.projectKey
     if (form.issueType) score += weights.issueType
     if (form.assignee) score += weights.assignee
@@ -84,7 +123,11 @@ export function useForm() {
         weights.descriptionLength
       )
     }
-    return Math.min(score, 100)
+    // Apply INCOSE quality penalty (only when description is present)
+    if (desc) {
+      score -= incoseScorePenalty(incoseViolations.value)
+    }
+    return Math.max(0, Math.min(score, 100))
   })
 
   const qualityScoreColor = computed(() => {
@@ -103,6 +146,36 @@ export function useForm() {
     return t('quality.empty')
   })
 
+  // Domain-specific validation warnings
+  const domainWarnings = computed<DomainWarning[]>(() =>
+    checkDomainWarnings(currentRole.value, form.description, form.issueType)
+  )
+
+  // INCOSE requirement quality checks
+  const incoseViolations = computed<IncoseViolation[]>(() =>
+    checkIncoseRules(form.description)
+  )
+
+  // Assumption detection
+  const assumptions = computed<Assumption[]>(() =>
+    detectAssumptions(currentRole.value, form.description)
+  )
+
+  // Traceability gaps
+  const traceabilityGaps = computed<TraceabilityGap[]>(() =>
+    checkTraceabilityGaps(form.requirementLevel, form.parentReqId, form.verificationMethod)
+  )
+
+  // Auto-update requirement level when role changes
+  watch(currentRole, (newRole) => {
+    form.requirementLevel = getDefaultLevel(newRole)
+  })
+
+  // ASPICE process mapping
+  const aspiceProfile = computed<AspiceProfile | null>(() =>
+    getAspiceProfile(currentRole.value, form.issueType)
+  )
+
   // Get current project name
   function getProjectName(): string {
     return PROJECT_CONFIG.find(p => p.key === form.projectKey)?.name || ''
@@ -114,6 +187,9 @@ export function useForm() {
     form.estimatedPoints = 3
     form.description = ''
     form.assignee = ''
+    form.requirementLevel = getDefaultLevel(currentRole.value)
+    form.parentReqId = ''
+    form.verificationMethod = ''
     summary.vehicle = ''
     summary.product = ''
     summary.layer = ''
@@ -169,6 +245,11 @@ export function useForm() {
     qualityScore,
     qualityScoreColor,
     qualityScoreLabel,
+    domainWarnings,
+    incoseViolations,
+    assumptions,
+    traceabilityGaps,
+    aspiceProfile,
     getProjectName,
     resetForm,
     addComponentToHistory,

@@ -1,0 +1,10 @@
+{
+  "key": "hweResource",
+  "icon": "📊",
+  "label": { "zh": "资源预算", "en": "Resource Budget" },
+  "roles": ["hw-designer"],
+  "content": {
+    "zh": "**ECU 资源预算**\n\n**模块/组件名称**\n\n\n**计算资源**\n- CPU 核心/频率: \n- CPU 负载上限: \n- 中断响应时间: \n\n**存储资源**\n- Flash 总量/已用: \n- RAM 总量/已用: \n- EEPROM/NVM: \n\n**外设资源**\n| 外设 | 数量 | 已分配 | 剩余 |\n|------|------|--------|------|\n| ADC  |      |        |      |\n| PWM  |      |        |      |\n| Timer|      |        |      |\n| DMA  |      |        |      |\n\n**功耗预算**\n- 正常模式: \n- 休眠模式: \n- 瞬态峰值: \n",
+    "en": "**ECU Resource Budget**\n\n**Module/Component Name**\n\n\n**Compute Resources**\n- CPU Core/Frequency: \n- CPU Load Ceiling: \n- Interrupt Response Time: \n\n**Memory Resources**\n- Flash Total/Used: \n- RAM Total/Used: \n- EEPROM/NVM: \n\n**Peripheral Resources**\n| Peripheral | Count | Allocated | Remaining |\n|------------|-------|-----------|----------|\n| ADC        |       |           |          |\n| PWM        |       |           |          |\n| Timer      |       |           |          |\n| DMA        |       |           |          |\n\n**Power Budget**\n- Normal Mode: \n- Sleep Mode: \n- Transient Peak: \n"
+  }
+}

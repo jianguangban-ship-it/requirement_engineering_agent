@@ -10,6 +10,7 @@
       </div>
       <div class="meter-right">
         <slot name="header-actions" />
+        <span v-if="aspiceBadge" class="aspice-badge" :title="aspiceBadge">{{ aspiceBadge }}</span>
         <span class="meter-score" :style="{ color: scoreColor }">{{ score }}%</span>
         <span class="meter-quality" :style="{ color: scoreColor }">{{ qualityLabel }}</span>
       </div>
@@ -31,6 +32,7 @@ defineProps<{
   qualityLabel: string
   preview: string
   placeholder: string
+  aspiceBadge?: string
 }>()
 </script>
 
@@ -72,6 +74,17 @@ defineProps<{
 }
 .meter-quality {
   font-size: 12px;
+}
+.aspice-badge {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background-color: var(--accent-blue);
+  color: white;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 .meter-track {
   width: 100%;

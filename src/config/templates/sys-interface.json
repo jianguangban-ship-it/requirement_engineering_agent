@@ -1,0 +1,10 @@
+{
+  "key": "sysInterface",
+  "icon": "🔌",
+  "label": { "zh": "接口规格", "en": "Interface Spec" },
+  "roles": ["system-architect"],
+  "content": {
+    "zh": "**接口规格定义**\n\n**接口名称**\n\n\n**通信协议**\n- 类型: (CAN / LIN / Ethernet / SPI / 内部)\n- 波特率/带宽: \n\n**信号列表**\n| 信号名 | 方向 | 类型 | 单位 | 范围 | 周期 |\n|--------|------|------|------|------|------|\n|        |      |      |      |      |      |\n\n**时序约束**\n- 最大延迟: \n- 更新周期: \n\n**错误处理**\n- 超时策略: \n- 降级行为: \n",
+    "en": "**Interface Specification**\n\n**Interface Name**\n\n\n**Communication Protocol**\n- Type: (CAN / LIN / Ethernet / SPI / Internal)\n- Baud Rate/Bandwidth: \n\n**Signal List**\n| Signal Name | Direction | Type | Unit | Range | Cycle |\n|-------------|-----------|------|------|-------|-------|\n|             |           |      |      |       |       |\n\n**Timing Constraints**\n- Max Latency: \n- Update Period: \n\n**Error Handling**\n- Timeout Strategy: \n- Degradation Behavior: \n"
+  }
+}

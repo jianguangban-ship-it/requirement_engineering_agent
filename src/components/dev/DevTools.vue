@@ -62,6 +62,16 @@
           <code class="config-url">{{ activeModel }}</code>
         </div>
         <div class="config-row">
+          <span class="config-label">{{ t('dev.activeRole') }}:</span>
+          <span style="color: var(--accent-blue); font-weight: 600">{{ isZh ? currentRoleDefinition.labelZh : currentRoleDefinition.labelEn }}</span>
+        </div>
+        <div class="config-row">
+          <span class="config-label">{{ t('dev.activeSkill') }}:</span>
+          <span :style="{ color: activeSkill ? 'var(--accent-purple)' : 'var(--text-muted)' }">
+            {{ activeSkill ? activeSkill.name : '—' }}
+          </span>
+        </div>
+        <div class="config-row">
           <span class="config-label">{{ t('dev.coachSkill') }}:</span>
           <span :style="{ color: coachSkillModified ? 'var(--accent-orange)' : 'var(--text-muted)' }">
             {{ coachSkillModified ? t('settings.skillModified') : t('dev.no') }}
@@ -125,6 +135,8 @@ import { ICONS } from '@/config/icons'
 import { computed, ref } from 'vue'
 import type { ChatMessage } from '@/types/api'
 import { useToast } from '@/composables/useToast'
+import { currentRoleDefinition } from '@/composables/useRole'
+import { activeSkill } from '@/composables/useLLM'
 import JsonViewer from '@/components/shared/JsonViewer.vue'
 
 const props = defineProps<{
@@ -146,7 +158,7 @@ const props = defineProps<{
   analyzeBackoffSecs: number
 }>()
 
-const { t } = useI18n()
+const { t, isZh } = useI18n()
 const { addToast } = useToast()
 
 // Last assistant message raw content (for debugging LaTeX/rendering)

@@ -21,6 +21,10 @@ vi.mock('@/config/constants', () => ({
   DEFAULT_COMPONENT_HISTORY: ['CompA', 'CompB']
 }))
 
+vi.mock('@/composables/useRole', () => ({
+  currentRole: { value: 'sw-developer' }
+}))
+
 // Stub localStorage
 const storage: Record<string, string> = {}
 vi.stubGlobal('localStorage', {
@@ -129,8 +133,8 @@ describe('useForm', () => {
       const { form } = formApi
       form.description = 'x'.repeat(100)
       await nextTick()
-      // base 22 + descPresent 10 + floor(100/200*18)=9 = 41
-      expect(formApi.qualityScore.value).toBe(41)
+      // sw-developer: base 22 + descPresent 12 + floor(100/200*20)=10 = 44
+      expect(formApi.qualityScore.value).toBe(44)
     })
   })
 

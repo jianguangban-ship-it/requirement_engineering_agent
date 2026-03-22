@@ -1,0 +1,10 @@
+{
+  "key": "meThermal",
+  "icon": "🌡️",
+  "label": { "zh": "热管理", "en": "Thermal Mgmt" },
+  "roles": ["me-designer"],
+  "content": {
+    "zh": "**热管理设计**\n\n**发热源**\n- 组件: \n- 最大功耗: \n- 结温上限: \n\n**散热方案**\n- 散热方式: (自然对流 / 强制风冷 / 液冷 / 导热垫)\n- 散热面积: \n- 热阻要求: \n\n**环境条件**\n- 环境温度范围: \n- 气流条件: \n\n**仿真/测试要求**\n- 热仿真工况: \n- 测试验证点: \n\n**安全余量**\n- 降额系数: \n- 最大允许温升: \n",
+    "en": "**Thermal Management Design**\n\n**Heat Source**\n- Component: \n- Max Power Dissipation: \n- Junction Temp Limit: \n\n**Cooling Solution**\n- Method: (Natural Convection / Forced Air / Liquid / Thermal Pad)\n- Cooling Area: \n- Thermal Resistance Target: \n\n**Environmental Conditions**\n- Ambient Temperature Range: \n- Airflow Conditions: \n\n**Simulation/Test Requirements**\n- Thermal Simulation Cases: \n- Test Verification Points: \n\n**Safety Margin**\n- Derating Factor: \n- Max Allowable Temp Rise: \n"
+  }
+}

@@ -19,6 +19,17 @@
     </Transition>
 
     <div class="form-card">
+      <ReviewStatusBar
+        :review-status="reviewStatus"
+        :current-step-index="currentStepIndex"
+        :checklist="checklist"
+        :checked-items="checkedItems"
+        :all-checked="allChecked"
+        :check-progress="checkProgress"
+        @toggle-check="$emit('toggleCheck', $event)"
+        @approve="$emit('approve')"
+      />
+
       <BasicInfoSection
         :form="form"
         @project-change="$emit('projectChange')"
@@ -31,12 +42,16 @@
         :quality-score="qualityScore"
         :quality-score-color="qualityScoreColor"
         :quality-score-label="qualityScoreLabel"
+        :aspice-badge="aspiceBadge"
       />
 
-      <DescriptionEditor v-model="form.description" />
+      <TraceabilitySection :form="form" :traceability-gaps="traceabilityGaps" @suggest-links="$emit('suggestLinks')" @impact-analysis="$emit('impactAnalysis')" />
+
+      <DescriptionEditor v-model="form.description" :domain-warnings="domainWarnings" :aspice-suggestions="aspiceSuggestions" :incose-violations="incoseViolations" :assumptions="assumptions" />
 
       <!-- Action Buttons -->
       <div class="form-actions">
+        <div class="action-group-left">
         <button
           class="action-btn"
           :class="isCoachLoading ? 'action-cancel' : 'action-reset'"
@@ -55,6 +70,28 @@
             </svg>
           </Transition>
         </button>
+        <!-- Export dropdown -->
+        <div class="export-dropdown" v-if="canSubmit">
+          <button class="action-btn action-export" @click="showExportMenu = !showExportMenu" :title="isZh ? '导出' : 'Export'">
+            <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </button>
+          <Transition name="fade">
+            <div v-if="showExportMenu" class="export-menu">
+              <button class="export-item" @click="$emit('exportMarkdown'); showExportMenu = false">
+                <span class="export-dot" style="background:var(--text-muted)"></span> Markdown
+              </button>
+              <button class="export-item" @click="$emit('exportReqIF'); showExportMenu = false">
+                <span class="export-dot" style="background:var(--accent-blue)"></span> ReqIF
+              </button>
+              <button class="export-item" @click="$emit('exportExcel'); showExportMenu = false">
+                <span class="export-dot" style="background:var(--accent-green)"></span> Excel CSV
+              </button>
+            </div>
+          </Transition>
+        </div>
+        </div>
         <div class="action-group">
           <!-- Writing Guidance -->
           <button
@@ -88,6 +125,23 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
             </svg>
           </button>
+          <!-- Deep Review (multi-perspective, hidden in free-chat mode) -->
+          <button
+            v-show="coachSkillEnabled"
+            class="action-btn action-deep-review"
+            :class="{ dimmed: hasAiResponse }"
+            :disabled="!canSubmit || isSubmitting || isCoachLoading"
+            :title="t('form.deepReview')"
+            @click="$emit('deepReview')"
+          >
+            <svg v-if="isSubmitting && currentAction === 'deepReview'" class="action-icon animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4">
+              <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-linecap="round" opacity="0.25"/>
+              <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+            </svg>
+            <svg v-else class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+          </button>
           <!-- Create JIRA -->
           <Transition name="fade">
             <button
@@ -113,12 +167,17 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { FormState, SummaryState } from '@/types/form'
+import type { DomainWarning, AspiceSuggestion, IncoseViolation, Assumption, TraceabilityGap } from '@/config/domain'
 import { useI18n } from '@/i18n'
 import { coachSkillEnabled } from '@/composables/useLLM'
+import type { ReviewStatus, ChecklistItem } from '@/config/domain'
 import BasicInfoSection from './BasicInfoSection.vue'
 import SummaryBuilder from './SummaryBuilder.vue'
+import TraceabilitySection from './TraceabilitySection.vue'
 import DescriptionEditor from './DescriptionEditor.vue'
+import ReviewStatusBar from './ReviewStatusBar.vue'
 
 defineProps<{
   form: FormState
@@ -135,19 +194,40 @@ defineProps<{
   currentAction: string
   hasAiResponse: boolean
   errorMessage: string
+  domainWarnings: DomainWarning[]
+  aspiceBadge?: string
+  aspiceSuggestions: AspiceSuggestion[]
+  incoseViolations: IncoseViolation[]
+  assumptions: Assumption[]
+  traceabilityGaps: TraceabilityGap[]
+  reviewStatus: ReviewStatus
+  currentStepIndex: number
+  checklist: ChecklistItem[]
+  checkedItems: Set<string>
+  allChecked: boolean
+  checkProgress: number
 }>()
 
 defineEmits<{
   coach: []
   analyze: []
+  deepReview: []
   create: []
   reset: []
   cancelCoach: []
   projectChange: []
   clearError: []
+  suggestLinks: []
+  impactAnalysis: []
+  toggleCheck: [itemId: string]
+  approve: []
+  exportMarkdown: []
+  exportReqIF: []
+  exportExcel: []
 }>()
 
-const { t } = useI18n()
+const { t, isZh } = useI18n()
+const showExportMenu = ref(false)
 </script>
 
 <style scoped>
@@ -267,6 +347,18 @@ const { t } = useI18n()
   opacity: 0.65;
 }
 
+/* Deep Review — purple */
+.action-deep-review {
+  background-color: var(--accent-purple, #7c3aed);
+  color: white;
+}
+.action-deep-review:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+.action-deep-review.dimmed {
+  opacity: 0.65;
+}
+
 /* Create JIRA — green */
 .action-create {
   background-color: var(--accent-green);
@@ -307,9 +399,67 @@ const { t } = useI18n()
 }
 
 /* Disabled overrides for colored buttons */
+/* Action group left */
+.action-group-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Export dropdown */
+.export-dropdown {
+  position: relative;
+}
+.action-export {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+.action-export:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--accent-blue);
+}
+.export-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  min-width: 120px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 10;
+}
+.export-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.export-item:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+.export-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .action-reset:disabled,
 .action-coach:disabled,
 .action-analyze:disabled,
+.action-deep-review:disabled,
 .action-create:disabled {
   background-color: var(--bg-tertiary);
   color: var(--text-muted);
