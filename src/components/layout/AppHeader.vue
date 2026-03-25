@@ -8,9 +8,21 @@
       </div>
       <h1 v-if="currentLang === 'en'" class="header-title"><span class="logo-a">A</span><span class="logo-g">G</span><span class="logo-ec">ec</span></h1>
       <h1 v-else class="header-title">{{ t('header.title') }}</h1>
-      <span class="header-version">v10.9</span>
+      <span class="header-version">v10.11</span>
     </div>
     <div class="header-right">
+      <!-- Mode Switcher -->
+      <div class="toggle-group mode-group">
+        <button
+          v-for="m in (['explore', 'design', 'task'] as AppMode[])"
+          :key="m"
+          class="toggle-btn mode-btn"
+          :class="{ active: appMode === m, ['mode-' + m]: appMode === m }"
+          @click="setMode(m)"
+          :title="t('mode.' + m)"
+        ><strong>{{ t('mode.' + m) }}</strong></button>
+      </div>
+
       <!-- Language Toggle -->
       <div class="toggle-group">
         <button
@@ -26,7 +38,7 @@
       </div>
 
       <!-- Role Selector -->
-      <div class="toggle-group role-group">
+      <div class="toggle-group role-group" v-show="appMode === 'design'">
         <button
           v-for="role in ROLES"
           :key="role.id"
@@ -101,6 +113,8 @@ import { useProductionMode, setUrlMode } from '@/config/webhook'
 import { useTheme } from '@/composables/useTheme'
 import { ICONS } from '@/config/icons'
 import { ROLES, currentRole, setRole } from '@/composables/useRole'
+import { appMode, setMode } from '@/composables/useAppMode'
+import type { AppMode } from '@/composables/useAppMode'
 
 const { t, setLang, currentLang, isZh } = useI18n()
 const isProd = useProductionMode
@@ -312,4 +326,18 @@ function openHelp() {
     flex-wrap: wrap;
   }
 }
+
+/* Mode switcher */
+.mode-group {
+  gap: 0;
+}
+.mode-btn {
+  font-size: var(--font-xs, 10px);
+  padding: var(--space-1) var(--space-2);
+  letter-spacing: 0.3px;
+  font-weight: 700;
+}
+.mode-btn.mode-explore.active { background: #a78bfa; color: #fff; }
+.mode-btn.mode-design.active  { background: var(--accent-blue); color: #fff; }
+.mode-btn.mode-task.active    { background: #34d399; color: #fff; }
 </style>
