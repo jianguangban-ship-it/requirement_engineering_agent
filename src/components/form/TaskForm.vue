@@ -19,7 +19,7 @@
     </Transition>
 
     <div class="form-card">
-      <ReviewStatusBar
+      <ReviewStatusBar v-show="appMode === 'design'"
         :review-status="reviewStatus"
         :current-step-index="currentStepIndex"
         :checklist="checklist"
@@ -30,12 +30,12 @@
         @approve="$emit('approve')"
       />
 
-      <BasicInfoSection
+      <BasicInfoSection v-show="appMode !== 'explore'"
         :form="form"
         @project-change="$emit('projectChange')"
       />
 
-      <SummaryBuilder
+      <SummaryBuilder v-show="appMode !== 'explore'"
         :summary="summary"
         :component-history="componentHistory"
         :computed-summary="computedSummary"
@@ -45,7 +45,7 @@
         :aspice-badge="aspiceBadge"
       />
 
-      <TraceabilitySection :form="form" :traceability-gaps="traceabilityGaps" @suggest-links="$emit('suggestLinks')" @impact-analysis="$emit('impactAnalysis')" />
+      <TraceabilitySection v-show="appMode === 'design'" :form="form" :traceability-gaps="traceabilityGaps" @suggest-links="$emit('suggestLinks')" @impact-analysis="$emit('impactAnalysis')" />
 
       <DescriptionEditor v-model="form.description" :domain-warnings="domainWarnings" :aspice-suggestions="aspiceSuggestions" :incose-violations="incoseViolations" :assumptions="assumptions" />
 
@@ -71,7 +71,7 @@
           </Transition>
         </button>
         <!-- Export dropdown -->
-        <div class="export-dropdown" v-if="canSubmit">
+        <div class="export-dropdown" v-if="canSubmit" ref="exportDropdownRef">
           <button class="action-btn action-export" @click="showExportMenu = !showExportMenu" :title="isZh ? '导出' : 'Export'">
             <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -110,7 +110,7 @@
           </button>
           <!-- Analyze Task (hidden in free-chat mode) -->
           <button
-            v-show="coachSkillEnabled"
+            v-show="appMode === 'design'"
             class="action-btn action-analyze"
             :class="{ dimmed: hasAiResponse }"
             :disabled="!canSubmit || isSubmitting || isCoachLoading"
@@ -127,7 +127,7 @@
           </button>
           <!-- Deep Review (multi-perspective, hidden in free-chat mode) -->
           <button
-            v-show="coachSkillEnabled"
+            v-show="appMode === 'design'"
             class="action-btn action-deep-review"
             :class="{ dimmed: hasAiResponse }"
             :disabled="!canSubmit || isSubmitting || isCoachLoading"
@@ -145,7 +145,7 @@
           <!-- Create JIRA -->
           <Transition name="fade">
             <button
-              v-if="hasAiResponse"
+              v-if="appMode === 'task' && hasAiResponse"
               class="action-btn action-create"
               :disabled="isSubmitting || isCoachLoading"
               :title="t('form.confirmCreate')"
@@ -167,11 +167,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import type { FormState, SummaryState } from '@/types/form'
 import type { DomainWarning, AspiceSuggestion, IncoseViolation, Assumption, TraceabilityGap } from '@/config/domain'
 import { useI18n } from '@/i18n'
-import { coachSkillEnabled } from '@/composables/useLLM'
+import { appMode } from '@/composables/useAppMode'
 import type { ReviewStatus, ChecklistItem } from '@/config/domain'
 import BasicInfoSection from './BasicInfoSection.vue'
 import SummaryBuilder from './SummaryBuilder.vue'
@@ -228,6 +228,15 @@ defineEmits<{
 
 const { t, isZh } = useI18n()
 const showExportMenu = ref(false)
+const exportDropdownRef = ref<HTMLElement>()
+
+function handleClickOutside(e: MouseEvent) {
+  if (exportDropdownRef.value && !exportDropdownRef.value.contains(e.target as Node)) {
+    showExportMenu.value = false
+  }
+}
+onMounted(() => document.addEventListener('click', handleClickOutside))
+onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 </script>
 
 <style scoped>
