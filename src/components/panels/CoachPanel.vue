@@ -7,29 +7,6 @@
   >
     <template #header-actions>
       <span class="mode-badge badge-llm" :title="currentModel">{{ currentModel }}</span>
-      <button
-        class="skill-toggle"
-        :class="{ 'skill-on': coachSkillEnabled, 'skill-off': !coachSkillEnabled }"
-        @click="setCoachSkillEnabled(!coachSkillEnabled)"
-        :title="coachSkillEnabled ? t('coach.skillOn') : t('coach.skillOff')"
-        :aria-label="coachSkillEnabled ? t('coach.skillOn') : t('coach.skillOff')"
-      >
-        {{ coachSkillEnabled ? t('coach.skillOn') : t('coach.skillOff') }}
-      </button>
-      <button
-        class="skill-toggle"
-        :class="{
-          'skill-on': taskCoachEnabled && coachSkillEnabled,
-          'skill-off': !taskCoachEnabled || !coachSkillEnabled,
-          'skill-disabled': !coachSkillEnabled
-        }"
-        :disabled="!coachSkillEnabled"
-        @click="setTaskCoachEnabled(!taskCoachEnabled)"
-        :title="(taskCoachEnabled && coachSkillEnabled) ? t('coach.taskCoachOn') : t('coach.taskCoachOff')"
-        :aria-label="(taskCoachEnabled && coachSkillEnabled) ? t('coach.taskCoachOn') : t('coach.taskCoachOff')"
-      >
-        {{ (taskCoachEnabled && coachSkillEnabled) ? t('coach.taskCoachOn') : t('coach.taskCoachOff') }}
-      </button>
       <button v-if="messages.length > 0 && !isLoading" class="copy-btn" @click="copyLastResponse" :title="t('toast.copied')" :aria-label="t('toast.copied')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="9" y="2" width="13" height="13" rx="2"/>
@@ -98,7 +75,8 @@
           @dragleave="isDragging = false"
           @drop.prevent="handleDrop"
         >
-          <div class="guided-chips">
+          <!-- Show Elicitation + Conflict Check only in Explore mode -->
+          <div class="guided-chips" v-if="appMode === 'explore'">
             <button
               class="elicit-chip"
               :title="t('elicitation.chipHint')"
@@ -121,6 +99,7 @@
             </button>
           </div>
           <QuickChip
+            v-if="appMode !== 'explore'"
             v-for="chip in chips"
             :key="chip.key"
             :icon="chip.icon"
@@ -197,7 +176,8 @@ import { useScroll } from '@vueuse/core'
 import { useI18n } from '@/i18n'
 import { roleFilteredTemplates } from '@/config/templates/index'
 import { useToast } from '@/composables/useToast'
-import { coachSkillEnabled, setCoachSkillEnabled, taskCoachEnabled, setTaskCoachEnabled, activeSkill, ignoredSkillId } from '@/composables/useLLM'
+import { activeSkill, ignoredSkillId } from '@/composables/useLLM'
+import { appMode } from '@/composables/useAppMode'
 import { currentModel } from '@/config/llm'
 import PanelShell from '@/components/layout/PanelShell.vue'
 import QuickChip from '@/components/shared/QuickChip.vue'
