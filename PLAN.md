@@ -3111,3 +3111,101 @@ A system architect cares most about complete, traceable requirements with thorou
 |------|--------|
 | `docs/architecture.html` | Add 8 missing nodes, 15 edges, update counts and version to v10.9 |
 | `src/components/layout/AppHeader.vue` | Version bump v10.8 → v10.9 |
+
+### v10.10 — Initial State Hardening & Manual Test Corrections
+
+**Design rationale**: Manual test-walk (2026-03-24) revealed that on first load several inputs auto-selected values, quality score lit up non-zero before the user touched anything, and the Reset button did not fully clear role or requirement level. This created misleading UX — testers and first-time users saw partial state they never set. All inputs must start neutral and Reset must restore a truly blank slate.
+
+**Changes**:
+
+1. **No auto-selection on initial load** — every input now starts empty/unselected:
+   - Role selector defaults to `''` (no role active) instead of `'sw-developer'`
+   - Task type (`issueType`) defaults to `''` (no button highlighted)
+   - Story points (`estimatedPoints`) defaults to `0` (no button highlighted)
+   - Requirement level defaults to `'none'`
+   - Project select shows "Select a project…" placeholder in muted colour
+   - `ROLE_WEIGHTS['']` entry added (all zeros) so quality score stays at 0 until user acts
+
+2. **`UserRole` type widened** — added `''` to the union so TypeScript accepts the empty state throughout the composable and config layers.
+
+3. **Reset button fully clears state** — `resetForm()` now calls `setRole('')` so clicking Reset also clears the role selection and persists the empty role to localStorage.
+
+4. **Select placeholder colour** — `.input-base.select-placeholder { color: var(--text-muted) }` added to `global.css`; `select-placeholder` class bindings added to Project, Vehicle, Product, Layer selects.
+
+5. **Export dropdown click-outside** — clicking outside the export format popup now closes it (added `handleClickOutside` with `onMounted`/`onUnmounted` listeners in `TaskForm.vue`).
+
+6. **Runtime crash fix** — `getReviewChecklist` switch had no `default` branch; when role is `''` the function returned `undefined` and crashed Vue's render. Added `default: return common`.
+
+7. **TypeScript build errors resolved**:
+   - `TEAM_MEMBERS['']` invalid index → guarded `teamMembers` computed with `props.form.projectKey ?`
+   - `getAspiceProfile` called with `''` issueType → added `form.issueType` guard
+   - `ROLE_QUESTIONS` Record missing `''` key → added `'': []` to `elicitation.ts`
+   - `currentRoleDefinition` could be `null` in DevTools template → added null-safe guard
+
+8. **Requirement level auto-update guard** — `watch(currentRole)` now only calls `getDefaultLevel` when `newRole` is non-empty, preventing it from overwriting `'none'` on initial load.
+
+9. **`docs/MANUAL_TEST_GUIDE.md` corrections** — extensive updates to align expected outputs with actual source code:
+   - §4d: story point buttons corrected (1/2/3/5/8 + custom input; "13" → "8")
+   - §5.1–5.5: summary bracket notation corrected (`[...]` not `[—]`)
+   - §6.5 & INCOSE quick-reference: trigger words, tag labels, and penalty details verified against `incose.ts`
+   - §8a–8d: domain warnings, assumption detection, and traceability gap tables corrected with source file references
+   - §11.8–11.11: Skill OFF / free-chat-mode expected behaviours corrected
+
+| File | Change |
+|------|--------|
+| `src/composables/useRole.ts` | Widen `UserRole` to include `''`; default to `''`; guard `getRoleContext`, `getRolePlaceholder`, `currentRoleDefinition` |
+| `src/composables/useForm.ts` | Add `ROLE_WEIGHTS['']`; add `setRole` import; call `setRole('')` in `resetForm()`; guard domain/assumption/ASPICE computeds; restore role-change watch with empty-role guard |
+| `src/types/form.ts` | Widen `issueType` and `projectKey` to allow `''` |
+| `src/components/form/BasicInfoSection.vue` | Add disabled placeholder `<option>`; `select-placeholder` class binding; guard `teamMembers` computed |
+| `src/components/form/SummaryBuilder.vue` | Add `select-placeholder` class bindings to Vehicle/Product/Layer selects |
+| `src/styles/global.css` | Add `.input-base.select-placeholder` muted-colour rule |
+| `src/i18n/en.ts` | Add `selectProject: 'Select a project...'` |
+| `src/i18n/zh.ts` | Add `selectProject: '请选择项目空间...'` |
+| `src/components/form/TaskForm.vue` | Add click-outside handler for export dropdown |
+| `src/config/domain/traceability.ts` | Add `default: return 'none'` to `getDefaultLevel` switch |
+| `src/config/domain/review-workflow.ts` | Add `default: return common` to `getReviewChecklist` switch (crash fix) |
+| `src/config/domain/elicitation.ts` | Add `'': []` to `ROLE_QUESTIONS` Record |
+| `src/components/dev/DevTools.vue` | Null-safe `currentRoleDefinition` access in template |
+| `docs/MANUAL_TEST_GUIDE.md` | Comprehensive corrections to §4d, §5, §6, §8, §11 |
+| `src/components/layout/AppHeader.vue` | Version bump v10.9 → v10.10 |
+
+
+---
+
+## v10.11 — Conflict Check bug fix & manual test guide corrections (§9, §11.5, §11.6)
+
+### Design rationale
+During manual test walkthrough, two gaps were found:
+
+1. **Source code bug**: `handleConflictCheck()` in `App.vue` called `buildConflictCheckPrompt()` to build a rich role-aware prompt (conflict types, output format, role-specific focus) but stored the result in a local variable `systemPrompt` that was never used. Only a generic one-line prefix was actually sent to the LLM, discarding all role-specific conflict analysis instructions.
+
+2. **Test guide gaps**: Section 9 (Traceability) was missing tests for `no-verification` and `orphan-test` gaps, role auto-select, and had incorrect expected message text for 9.8. Section 11.5 and 11.6 were missing key side effects (skill auto-disable, description overwrite/prepend behavior) and 11.6 was missing the prerequisite of pasting requirements first.
+
+### Changes
+
+| File | Change |
+|------|--------|
+| `src/App.vue` | Fix `handleConflictCheck()`: replace dead `prefix + userReqs` with `systemPrompt + '\n\n---\n\n' + userReqs` so the full role-aware conflict analysis prompt is actually sent to the LLM |
+| `docs/MANUAL_TEST_GUIDE.md` | §9: fix 9.8 expected message text, add 9.9 (no-verification gap), 9.10 (orphan-test gap), 9.11 (role auto-select); §11.5: document skill auto-disable + description overwrite; §11.6: add prerequisite (paste requirements first) + document skill auto-disable and description structure |
+| `src/components/layout/AppHeader.vue` | Version bump v10.10 → v10.11 |
+
+
+---
+
+## v10.12 — Three-Mode System: Explore · Design · Task
+
+### Design rationale
+Replaced the improvised Skill ON/OFF + Task Coach toggles with a first-class three-mode
+switcher. Mode state and flag driving live in `useAppMode.ts`. Form/workflow/AI cleanup
+on mode switch is handled by a watch(appMode) in App.vue, since those instances are owned
+there. Chat history is preserved across switches; all other state resets.
+
+| File | Change |
+|------|--------|
+| `src/composables/useAppMode.ts` | New — AppMode type, appMode ref, setMode(), applyModeFlags() |
+| `src/composables/__tests__/useAppMode.test.ts` | New — 8 unit tests, all passing |
+| `src/i18n/en.ts` + `zh.ts` | Add mode label strings (explore/design/task) |
+| `src/components/layout/AppHeader.vue` | Mode switcher buttons before language toggle; role selector v-show Design only; v10.12 |
+| `src/App.vue` | watch(appMode) cleanup; layout-focus → appMode; gridStyle; col-right; per-panel v-show; canCoachSubmit switch; buildPayload switch; handleCoachRequest restore; DevTools watcher |
+| `src/components/panels/CoachPanel.vue` | Remove Skill/TaskSkill toggles; mode-aware chips |
+| `src/components/form/TaskForm.vue` | Mode-conditional v-show on all sections and action buttons |
