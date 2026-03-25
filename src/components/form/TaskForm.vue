@@ -113,7 +113,7 @@
             v-show="appMode !== 'explore'"
             class="action-btn action-analyze"
             :class="{ dimmed: hasAiResponse }"
-            :disabled="!canSubmit || isSubmitting || isCoachLoading"
+            :disabled="!(appMode === 'task' ? canCoachSubmit : canSubmit) || isSubmitting || isCoachLoading"
             :title="t('form.aiAnalyze')"
             @click="$emit('analyze')"
           >
@@ -147,7 +147,7 @@
             <button
               v-if="appMode === 'task' && hasAiResponse"
               class="action-btn action-create"
-              :disabled="isSubmitting || isCoachLoading"
+              :disabled="isSubmitting || isCoachLoading || !canCoachSubmit"
               :title="t('form.confirmCreate')"
               @click="$emit('create')"
             >

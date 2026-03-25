@@ -395,7 +395,8 @@ const canCoachSubmit = computed(() => {
     case 'explore':
       return !!form.description.trim()
     case 'task':
-      return !!form.projectKey && !!form.issueType && !!form.description.trim()
+      // All task fields required: project + assignee + type + points + 5-part summary + description
+      return canSubmit.value && !!form.assignee && !!form.estimatedPoints && !!form.description.trim()
     case 'design':
     default:
       return canSubmit.value
@@ -557,7 +558,8 @@ function restoreResponsesFromStorage() {
 
 // Handlers
 async function handleAnalyze() {
-  if (!canSubmit.value || formIsSubmitting.value) return
+  const analyzeReady = appMode.value === 'task' ? canCoachSubmit.value : canSubmit.value
+  if (!analyzeReady || formIsSubmitting.value) return
   errorMessage.value = ''
   const err = await requestAnalyze(buildPayload('analyze'))
   if (!err) {
@@ -661,6 +663,7 @@ async function handleBulkAnalyze() {
 }
 
 function handleCreateClick() {
+  if (appMode.value === 'task' && !canCoachSubmit.value) return
   showConfirmModal.value = true
   // Auto-check for duplicates before creating
   if (form.projectKey && computedSummary.value) {
