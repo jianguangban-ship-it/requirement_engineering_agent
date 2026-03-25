@@ -4,7 +4,7 @@ import type { ProjectKey } from '@/types/team'
 import { PROJECT_CONFIG } from '@/config/projects'
 import { DEFAULT_COMPONENT_HISTORY } from '@/config/constants'
 import { useI18n } from '@/i18n'
-import { currentRole } from '@/composables/useRole'
+import { currentRole, setRole } from '@/composables/useRole'
 import type { UserRole } from '@/composables/useRole'
 import { checkDomainWarnings, getAspiceProfile, checkIncoseRules, incoseScorePenalty, detectAssumptions, getDefaultLevel, checkTraceabilityGaps } from '@/config/domain'
 import type { DomainWarning, AspiceProfile, IncoseViolation, Assumption, TraceabilityGap } from '@/config/domain'
@@ -15,12 +15,12 @@ export function useForm() {
   const { t, isZh } = useI18n()
 
   const form = reactive<FormState>({
-    projectKey: 'HW',
-    issueType: 'Story',
+    projectKey: '',
+    issueType: '',
     assignee: '',
-    estimatedPoints: 3,
+    estimatedPoints: 0,
     description: '',
-    requirementLevel: getDefaultLevel(currentRole.value),
+    requirementLevel: 'none',
     parentReqId: '',
     verificationMethod: ''
   })
@@ -74,6 +74,11 @@ export function useForm() {
   // V&V: testability + verification method (description dominant)
 
   const ROLE_WEIGHTS: Record<UserRole, Record<string, number>> = {
+    '': {
+      projectKey: 10, issueType: 10, assignee: 5, estimatedPoints: 5,
+      vehicle: 5, product: 5, layer: 5, component: 5, detail: 10,
+      descriptionPresent: 15, descriptionLength: 25
+    },
     'system-architect': {
       projectKey: 6, issueType: 6, assignee: 4, estimatedPoints: 2,
       vehicle: 8, product: 8, layer: 8, component: 8, detail: 8,
@@ -148,7 +153,7 @@ export function useForm() {
 
   // Domain-specific validation warnings
   const domainWarnings = computed<DomainWarning[]>(() =>
-    checkDomainWarnings(currentRole.value, form.description, form.issueType)
+    currentRole.value ? checkDomainWarnings(currentRole.value, form.description, form.issueType) : []
   )
 
   // INCOSE requirement quality checks
@@ -158,7 +163,7 @@ export function useForm() {
 
   // Assumption detection
   const assumptions = computed<Assumption[]>(() =>
-    detectAssumptions(currentRole.value, form.description)
+    currentRole.value ? detectAssumptions(currentRole.value, form.description) : []
   )
 
   // Traceability gaps
@@ -166,14 +171,14 @@ export function useForm() {
     checkTraceabilityGaps(form.requirementLevel, form.parentReqId, form.verificationMethod)
   )
 
-  // Auto-update requirement level when role changes
+  // Auto-update requirement level when role is selected (not on initial empty state)
   watch(currentRole, (newRole) => {
-    form.requirementLevel = getDefaultLevel(newRole)
+    if (newRole) form.requirementLevel = getDefaultLevel(newRole)
   })
 
   // ASPICE process mapping
   const aspiceProfile = computed<AspiceProfile | null>(() =>
-    getAspiceProfile(currentRole.value, form.issueType)
+    currentRole.value && form.issueType ? getAspiceProfile(currentRole.value, form.issueType as 'Story' | 'Task' | 'Bug') : null
   )
 
   // Get current project name
@@ -183,11 +188,12 @@ export function useForm() {
 
   // Reset form
   function resetForm() {
-    form.issueType = 'Story'
-    form.estimatedPoints = 3
+    form.projectKey = ''
+    form.issueType = ''
+    form.estimatedPoints = 0
     form.description = ''
     form.assignee = ''
-    form.requirementLevel = getDefaultLevel(currentRole.value)
+    form.requirementLevel = 'none'
     form.parentReqId = ''
     form.verificationMethod = ''
     summary.vehicle = ''
@@ -195,6 +201,7 @@ export function useForm() {
     summary.layer = ''
     summary.component = ''
     summary.detail = ''
+    setRole('')
     localStorage.removeItem(DRAFT_KEY)
   }
 
