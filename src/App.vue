@@ -707,7 +707,13 @@ async function confirmCreate() {
 }
 
 async function handleCoachRequest() {
-  if (!canCoachSubmit.value || isCoachLoading.value) return
+  if (!canCoachSubmit.value || isCoachLoading.value) {
+    // Restore mode flags in case a tool handler (elicitation, conflict check, etc.)
+    // disabled coachSkillEnabled before calling us — we need to re-assert the mode's
+    // canonical flags even on an early return.
+    applyModeFlags(appMode.value)
+    return
+  }
   errorMessage.value = ''
   const payload = buildPayload('coach')
   // In Explore mode, clear description immediately (acts as chat input box)

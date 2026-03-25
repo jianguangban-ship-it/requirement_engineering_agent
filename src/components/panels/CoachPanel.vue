@@ -98,14 +98,15 @@
               {{ t('conflictCheck.chipLabel') }}
             </button>
           </div>
-          <QuickChip
-            v-if="appMode !== 'explore'"
-            v-for="chip in chips"
-            :key="chip.key"
-            :icon="chip.icon"
-            :label="chip.label"
-            @click="$emit('applyChip', chip.key)"
-          />
+          <template v-if="appMode !== 'explore'">
+            <QuickChip
+              v-for="chip in chips"
+              :key="chip.key"
+              :icon="chip.icon"
+              :label="chip.label"
+              @click="$emit('applyChip', chip.key)"
+            />
+          </template>
           <span v-if="isDragging" class="drag-hint">Drop JSON here</span>
         </div>
       </template>
