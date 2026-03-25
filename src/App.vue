@@ -78,7 +78,7 @@
             :is-submitting="formIsSubmitting"
             :is-coach-loading="isCoachLoading"
             :current-action="formCurrentAction"
-            :has-ai-response="appMode === 'task' ? coachMessages.length > 0 : !!analyzeResponse"
+            :has-ai-response="!!analyzeResponse"
             :domain-warnings="domainWarnings"
             :aspice-badge="aspiceBadge"
             :aspice-suggestions="aspiceSuggestions"
@@ -122,7 +122,7 @@
         <!-- RIGHT: AI Review + JIRA -->
         <div class="col-right" v-show="appMode !== 'explore'">
           <AIReviewPanel
-            v-show="appMode === 'design'"
+            v-show="appMode !== 'explore'"
             :response="analyzeResponse"
             :previous-response="previousAnalyzeResponse"
             :is-analyzing="isAnalyzeLoading"

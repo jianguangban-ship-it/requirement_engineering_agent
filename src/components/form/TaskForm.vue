@@ -110,7 +110,7 @@
           </button>
           <!-- Analyze Task (hidden in free-chat mode) -->
           <button
-            v-show="appMode === 'design'"
+            v-show="appMode !== 'explore'"
             class="action-btn action-analyze"
             :class="{ dimmed: hasAiResponse }"
             :disabled="!canSubmit || isSubmitting || isCoachLoading"
