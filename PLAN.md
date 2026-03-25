@@ -3209,3 +3209,21 @@ there. Chat history is preserved across switches; all other state resets.
 | `src/App.vue` | watch(appMode) cleanup; layout-focus → appMode; gridStyle; col-right; per-panel v-show; canCoachSubmit switch; buildPayload switch; handleCoachRequest restore; DevTools watcher |
 | `src/components/panels/CoachPanel.vue` | Remove Skill/TaskSkill toggles; mode-aware chips |
 | `src/components/form/TaskForm.vue` | Mode-conditional v-show on all sections and action buttons |
+
+
+---
+
+## v10.13 — Task Mode verification fixes
+
+### Design rationale
+Post-implementation testing of Task mode revealed several gaps corrected here.
+
+| File | Change |
+|------|--------|
+| `src/components/panels/CoachPanel.vue` | Wrap `<QuickChip v-for>` in `<template v-if>` to fix Vue 3 v-if+v-for collision |
+| `src/App.vue` | Guard `applyModeFlags` on early `handleCoachRequest` return so tool-triggered flag overrides are always restored |
+| `src/composables/useForm.ts` | Give empty-role (`''`) weight set meaningful values so quality score is live and non-zero in Task mode |
+| `src/App.vue` + `src/components/form/TaskForm.vue` | Show Analyze button and AI Review Panel in Task mode to enable the coach → analyze → create JIRA sequence |
+| `src/App.vue` | Update `canCoachSubmit` Task case to require all fields: project + assignee + type + points + 5-part summary + description |
+| `src/App.vue` | Use `canCoachSubmit` guard in `handleAnalyze` and `handleCreateClick` for Task mode |
+| `src/components/form/TaskForm.vue` | Add `!canCoachSubmit` to Analyze and Create JIRA `:disabled` in Task mode so buttons disable immediately when any field is cleared |
