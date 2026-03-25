@@ -8,11 +8,17 @@ export default {
     themeDark: '切换深色模式',
     themeLight: '切换浅色模式'
   },
+  mode: {
+    explore: '探索',
+    design: '设计',
+    task: '任务'
+  },
   form: {
     basicInfo: '基本信息',
     projectName: '项目空间',
     assignee: '经办人',
     members: '人',
+    selectProject: '请选择项目空间...',
     searchAssignee: '搜索姓名或工号...',
     noResults: '未找到匹配',
     results: '个结果',

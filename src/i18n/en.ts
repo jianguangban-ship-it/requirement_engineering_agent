@@ -8,11 +8,17 @@ export default {
     themeDark: 'Switch to dark mode',
     themeLight: 'Switch to light mode'
   },
+  mode: {
+    explore: 'Explore',
+    design: 'Design',
+    task: 'Task'
+  },
   form: {
     basicInfo: 'Basic Information',
     projectName: 'Project Name',
     assignee: 'Assignee',
     members: 'members',
+    selectProject: 'Select a project...',
     searchAssignee: 'Search assignee by name or ID...',
     noResults: 'No results for',
     results: 'results',
