@@ -78,7 +78,7 @@
             :is-submitting="formIsSubmitting"
             :is-coach-loading="isCoachLoading"
             :current-action="formCurrentAction"
-            :has-ai-response="!!analyzeResponse"
+            :has-ai-response="appMode === 'task' ? coachMessages.length > 0 : !!analyzeResponse"
             :domain-warnings="domainWarnings"
             :aspice-badge="aspiceBadge"
             :aspice-suggestions="aspiceSuggestions"
