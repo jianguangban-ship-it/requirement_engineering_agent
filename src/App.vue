@@ -32,7 +32,7 @@
     <main class="app-main">
       <div
         class="grid-layout"
-        :class="{ 'layout-focus': !coachSkillEnabled }"
+        :class="{ 'layout-focus': appMode === 'explore' }"
         ref="gridRef"
         :style="gridStyle"
       >
@@ -112,7 +112,7 @@
 
         <!-- Drag handle: center | right -->
         <div
-          v-show="coachSkillEnabled"
+          v-show="appMode !== 'explore'"
           class="col-drag-handle"
           @mousedown="startDrag('right', $event)"
         >
@@ -120,8 +120,9 @@
         </div>
 
         <!-- RIGHT: AI Review + JIRA -->
-        <div class="col-right" v-show="coachSkillEnabled">
+        <div class="col-right" v-show="appMode !== 'explore'">
           <AIReviewPanel
+            v-show="appMode === 'design'"
             :response="analyzeResponse"
             :previous-response="previousAnalyzeResponse"
             :is-analyzing="isAnalyzeLoading"
@@ -136,11 +137,13 @@
           />
 
           <JiraResponsePanel
+            v-show="appMode === 'task'"
             :response="jiraResponse"
             :is-creating="isSubmitting && currentAction === 'create'"
           />
 
           <ProcessingSummary
+            v-show="appMode === 'task'"
             :ai-response="analyzeResponse"
             :jira-response="jiraResponse"
             :estimated-points="form.estimatedPoints"
@@ -166,6 +169,7 @@
           />
 
           <JiraSearchPanel
+            v-show="appMode === 'task'"
             :is-searching="isSearching"
             :search-results="searchResults"
             :search-error="searchError"
@@ -179,6 +183,7 @@
           />
 
           <BatchPanel
+            v-show="appMode === 'task'"
             :batch-items="batchItems"
             :selected-count="selectedCount"
             @add-current="handleAddCurrentToBatch"
@@ -190,9 +195,9 @@
             @import-c-s-v="handleBatchImportCSV"
           />
 
-          <ReviewDashboard :stats="reviewStats" @clear="clearReviewHistory" />
+          <ReviewDashboard v-show="appMode === 'task'" :stats="reviewStats" @clear="clearReviewHistory" />
 
-          <TicketHistoryPanel />
+          <TicketHistoryPanel v-show="appMode === 'task'" />
         </div>
       </div>
     </main>
@@ -208,6 +213,7 @@ import { useI18n } from '@/i18n'
 import { useForm } from '@/composables/useForm'
 import { useWebhook } from '@/composables/useWebhook'
 import { useLLM, coachSkillEnabled, setCoachSkillEnabled, taskCoachEnabled } from '@/composables/useLLM'
+import { appMode, applyModeFlags } from '@/composables/useAppMode'
 import { useToast } from '@/composables/useToast'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 import { addTicket } from '@/composables/useTicketHistory'
@@ -259,7 +265,7 @@ try {
 } catch { /* ignore */ }
 
 const gridStyle = computed(() => {
-  if (!coachSkillEnabled.value) return undefined
+  if (appMode.value === 'explore') return undefined
   const [l, c, r] = colFractions.value
   return {
     gridTemplateColumns: `${l}fr 6px ${c}fr 6px ${r}fr`
@@ -447,7 +453,7 @@ let _payloadTimer: ReturnType<typeof setTimeout> | null = null
 watch(
   [() => form.description, () => form.projectKey, () => form.issueType,
    computedSummary, () => form.assignee, () => form.estimatedPoints,
-   coachSkillEnabled, taskCoachEnabled],
+   coachSkillEnabled, taskCoachEnabled, appMode],
   () => {
     if (_payloadTimer) clearTimeout(_payloadTimer)
     _payloadTimer = setTimeout(() => {
@@ -456,6 +462,15 @@ watch(
   },
   { immediate: true }
 )
+
+// Mode switch cleanup — form/workflow/AI state reset when mode changes.
+// Runs here (not in useAppMode) because resetForm, resetWorkflow, clearAnalyzeResponse
+// are all instances owned by App.vue.
+watch(appMode, () => {
+  resetForm()
+  resetWorkflow()
+  clearAnalyzeResponse()
+}, { immediate: false })
 
 // ─── Response persistence ──────────────────────────────────────────────────
 
@@ -742,14 +757,11 @@ function handleImpactAnalysis() {
 
 function handleConflictCheck() {
   // The description should already contain multiple requirements pasted by the user.
-  // We prepend the conflict-check instruction and send it to coach.
+  // Prepend the full role-aware conflict-check prompt, then append the user's requirements.
   const lang = isZh.value ? 'zh' as const : 'en' as const
   const systemPrompt = buildConflictCheckPrompt(currentRole.value, lang)
   const userReqs = form.description.trim()
-  const prefix = lang === 'zh'
-    ? '请分析以下需求是否存在冲突、矛盾或冗余：\n\n'
-    : 'Please analyze the following requirements for conflicts, contradictions, or redundancy:\n\n'
-  form.description = prefix + userReqs
+  form.description = systemPrompt + '\n\n---\n\n' + userReqs
   // Use free-chat mode so the conflict-check prompt goes directly
   if (coachSkillEnabled.value) {
     setCoachSkillEnabled(false)
