@@ -389,12 +389,17 @@ const aspiceSuggestions = computed(() => aspiceProfile.value?.suggestions ?? [])
 const formIsSubmitting = computed(() => isSubmitting.value || isAnalyzeLoading.value)
 const formCurrentAction = computed(() => isAnalyzeLoading.value ? 'analyze' : currentAction.value)
 
-// Coach only needs description when Task Coach is OFF or Skill is OFF (free-form chat mode)
+// Per-mode coach submit guard
 const canCoachSubmit = computed(() => {
-  if (!coachSkillEnabled.value || !taskCoachEnabled.value) {
-    return !!form.description.trim()
+  switch (appMode.value) {
+    case 'explore':
+      return !!form.description.trim()
+    case 'task':
+      return !!form.projectKey && !!form.issueType && !!form.description.trim()
+    case 'design':
+    default:
+      return canSubmit.value
   }
-  return canSubmit.value
 })
 
 // Build payload — for coach/preview, content adapts to Skill and Task-Coach toggles
@@ -420,30 +425,43 @@ function buildPayload(action: 'analyze' | 'create' | 'coach' | 'preview' | 'deep
     }
   }
 
-  // coach / preview — content controlled by Skill-ON/OFF and Task-Coach-ON/OFF
-  const skillOn = coachSkillEnabled.value
-  const taskCoachOn = taskCoachEnabled.value
+  // coach / preview — payload driven by appMode
+  switch (appMode.value) {
+    case 'explore':
+      return { meta, data: { description: form.description } }
 
-  if (!skillOn || !taskCoachOn) {
-    // Skill-OFF or Task-Coach-OFF: only description
-    return { meta, data: { description: form.description } }
-  }
+    case 'task':
+      return {
+        meta,
+        data: {
+          project_key: form.projectKey,
+          project_name: getProjectName(),
+          issue_type: form.issueType,
+          summary: computedSummary.value,
+          description: form.description,
+          assignee: form.assignee,
+          estimated_points: form.estimatedPoints
+          // requirementLevel, parentReqId, verificationMethod intentionally omitted
+        }
+      }
 
-  // Skill-ON + Task-Coach-ON: full payload
-  return {
-    meta,
-    data: {
-      project_key: form.projectKey,
-      project_name: getProjectName(),
-      issue_type: form.issueType,
-      summary: computedSummary.value,
-      description: form.description,
-      assignee: form.assignee,
-      estimated_points: form.estimatedPoints,
-      requirement_level: form.requirementLevel !== 'none' ? form.requirementLevel : undefined,
-      parent_req_id: form.parentReqId || undefined,
-      verification_method: form.verificationMethod || undefined
-    }
+    case 'design':
+    default:
+      return {
+        meta,
+        data: {
+          project_key: form.projectKey,
+          project_name: getProjectName(),
+          issue_type: form.issueType,
+          summary: computedSummary.value,
+          description: form.description,
+          assignee: form.assignee,
+          estimated_points: form.estimatedPoints,
+          requirement_level: form.requirementLevel !== 'none' ? form.requirementLevel : undefined,
+          parent_req_id: form.parentReqId || undefined,
+          verification_method: form.verificationMethod || undefined
+        }
+      }
   }
 }
 
@@ -692,9 +710,11 @@ async function handleCoachRequest() {
   if (!canCoachSubmit.value || isCoachLoading.value) return
   errorMessage.value = ''
   const payload = buildPayload('coach')
-  // In Skill-OFF mode, clear description immediately (acts as chat input box)
-  if (!coachSkillEnabled.value) form.description = ''
+  // In Explore mode, clear description immediately (acts as chat input box)
+  if (appMode.value === 'explore') form.description = ''
   const err = await requestCoach(payload)
+  // Re-assert mode flags — tool-triggered handlers may have temporarily overridden coachSkillEnabled
+  applyModeFlags(appMode.value)
   if (!err) {
     addToast('success', t('toast.coachSuccess'))
     saveResponsesToStorage()
