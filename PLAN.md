@@ -3227,3 +3227,283 @@ Post-implementation testing of Task mode revealed several gaps corrected here.
 | `src/App.vue` | Update `canCoachSubmit` Task case to require all fields: project + assignee + type + points + 5-part summary + description |
 | `src/App.vue` | Use `canCoachSubmit` guard in `handleAnalyze` and `handleCreateClick` for Task mode |
 | `src/components/form/TaskForm.vue` | Add `!canCoachSubmit` to Analyze and Create JIRA `:disabled` in Task mode so buttons disable immediately when any field is cleared |
+
+
+---
+
+## v10.13 — Explore mode description label
+
+### Design rationale
+The section heading "Task Description" was semantically wrong in Explore mode where there is no task context — only a free-chat input. Switching the label to "Explore Description" aligns the UI language with the mode's purpose.
+
+| File | Change |
+|------|--------|
+| `src/components/form/DescriptionEditor.vue` | Import `appMode`; label switches to `exploreDescription` when mode is `explore` |
+| `src/i18n/en.ts` | Add `form.exploreDescription: 'Explore Description'` |
+| `src/i18n/zh.ts` | Add `form.exploreDescription: '探索描述'` |
+
+
+---
+
+## v10.14 — Mode-specific description labels
+
+### Design rationale
+Each mode now has a semantically correct description label. "Task Description" was a catch-all that didn't reflect the purpose of Explore (free chat) or Design (requirement authoring).
+
+| Mode | EN | ZH |
+|------|----|----|
+| Explore | Explore Description | 探索描述 |
+| Design | Requirement Description | 需求描述 |
+| Task | Task Description | 任务描述 |
+
+| File | Change |
+|------|--------|
+| `src/components/form/DescriptionEditor.vue` | Three-way conditional label based on `appMode` |
+| `src/i18n/en.ts` | Add `form.requirementDescription` |
+| `src/i18n/zh.ts` | Add `form.requirementDescription` |
+
+
+---
+
+## v10.15 — Mode-specific Coach Panel empty state
+
+### Design rationale
+Design mode focuses purely on ASPICE-compliant requirement engineering. Generic task-writing chips and guidance text were noise. Each mode now has purpose-specific empty state copy and a narrowly scoped chip set.
+
+| Mode | Chips | Hint |
+|------|-------|------|
+| Explore | Elicitation + Conflict Check | Free-form AI chat |
+| Design | None | ASPICE / ISO 26262 RE guidance |
+| Task | Template chips (role-filtered) | Task description writing |
+
+| File | Change |
+|------|--------|
+| `src/components/panels/CoachPanel.vue` | Hint text switched per `appMode`; chips restricted to Explore (guided) and Task (template) only — Design shows none |
+| `src/i18n/en.ts` | Add `coach.emptyHintDesign`, `coach.emptySubHintDesign`, `coach.emptyHintExplore`, `coach.emptySubHintExplore` |
+| `src/i18n/zh.ts` | Same keys in Chinese |
+
+
+---
+
+## v10.16 — Move Elicitation/Conflict Check chips to Design mode
+
+### Design rationale
+Requirement Elicitation and Conflict Check are RE activities — they belong in Design mode alongside ASPICE/ISO 26262 guidance. Explore mode is now chipless (pure free-form chat). Final chip assignment per mode:
+
+| Mode | Chips |
+|------|-------|
+| Explore | None |
+| Design | Elicitation + Conflict Check |
+| Task | Template chips (role-filtered) |
+
+| File | Change |
+|------|--------|
+| `src/components/panels/CoachPanel.vue` | Guided chips condition: `appMode === 'explore'` → `appMode === 'design'` |
+| `docs/MANUAL_TEST_GUIDE.md` | Sections 3a, 12 updated to reflect new chip placement |
+
+
+---
+
+## v10.17 — Restore Elicitation/Conflict Check button behavior in Design mode
+
+### Design rationale
+When the chips moved from Explore to Design mode, their handlers (`handleElicitation`, `handleConflictCheck`) still called `handleCoachRequest()` which in Design mode is gated by `canCoachSubmit = canSubmit.value` (requires all form fields filled). This silently blocked the chips from firing if the form was incomplete. Added a `force` parameter to bypass the guard for tool-triggered requests — these handlers inject their own prompt into the description, so the canSubmit guard is irrelevant.
+
+| File | Change |
+|------|--------|
+| `src/App.vue` | `handleCoachRequest(force = false)` — guard becomes `!force && !canCoachSubmit.value`; `handleElicitation` and `handleConflictCheck` call with `true` |
+
+
+---
+
+## v10.18 — Elicitation/Conflict Check chips no longer overwrite description field
+
+### Design rationale
+Clicking either chip in Design mode previously injected the prompt template into `form.description`, disrupting any requirement the user had already written. Now the prompt is routed through a `pendingPromptOverride` ref — it goes directly into the coach payload without touching the description field.
+
+| File | Change |
+|------|--------|
+| `src/App.vue` | Add `pendingPromptOverride` ref; `buildPayload('coach')` uses it when set; `handleCoachRequest` clears it after payload is built; `handleElicitation` and `handleConflictCheck` set override instead of writing to `form.description` |
+
+
+---
+
+## v10.19 — Mode-specific Coach panel title
+
+### Design rationale
+The coach panel title now reflects the active mode's purpose.
+
+| Mode | EN | ZH |
+|------|----|----|
+| Explore | AI Chat | AI 对话 |
+| Design | Design Coach | 设计教练 |
+| Task | Task Coach | 任务教练 |
+
+| File | Change |
+|------|--------|
+| `src/components/panels/CoachPanel.vue` | Title uses three-way conditional on `appMode` |
+| `src/i18n/en.ts` | Add `coach.titleTask`, `coach.titleExplore` |
+| `src/i18n/zh.ts` | Same keys in Chinese |
+
+
+---
+
+## v10.20 — Explore mode text fixes
+
+### Design rationale
+Two lingering "Design/Task" labels were still visible in Explore mode.
+
+| Issue | Fix |
+|-------|-----|
+| `emptySubHintExplore` referenced "Writing Guidance" (the Design/Task button name) | Changed to "the Send button" |
+| Send button tooltip showed "Writing Guidance" in all modes | Now shows "Explore" / "探索" in Explore mode |
+
+| File | Change |
+|------|--------|
+| `src/i18n/en.ts` | Update `coach.emptySubHintExplore`; add `coach.requestBtnExplore: 'Explore'` |
+| `src/i18n/zh.ts` | Same — `'探索'` |
+| `src/components/form/TaskForm.vue` | Button `:title` switches on `appMode === 'explore'` |
+
+
+---
+
+## v10.21 — Fix Explore mode sub-hint button name
+
+### Design rationale
+"click the Send button" was corrected to "click the Explore button" to match the actual tooltip label on the button.
+
+| File | Change |
+|------|--------|
+| `src/i18n/en.ts` | `coach.emptySubHintExplore`: "Send button" → "Explore button" |
+| `src/i18n/zh.ts` | "发送按钮" → "探索按钮" |
+
+
+---
+
+## v10.22 — Explore mode visual identity tweaks
+
+### Design rationale
+Coordinating the "EXPLORE DESCRIPTION" label color with the "AI CHAT" panel title gives Explore mode a consistent visual identity distinct from Design/Task.
+
+| Change | Detail |
+|--------|--------|
+| "AI Chat" → "AI CHAT" | Uppercase to match the all-caps style of panel titles |
+| "EXPLORE DESCRIPTION" color | `var(--text-muted)` → `var(--text-primary)` in Explore mode via `.section-title--explore` |
+
+| File | Change |
+|------|--------|
+| `src/i18n/en.ts` | `coach.titleExplore`: 'AI Chat' → 'AI CHAT' |
+| `src/components/form/DescriptionEditor.vue` | Add `.section-title--explore { color: var(--text-primary) }` applied when `appMode === 'explore'` |
+
+
+---
+
+## v10.23 — Preserve user input across mode switches
+
+### Design rationale
+Switching between Explore / Design / Task was resetting the entire form, workflow status, and AI analysis — a jarring experience when the user just wants a different view of the same work. All state is now preserved on mode switch; only the visible UI sections change.
+
+| File | Change |
+|------|--------|
+| `src/App.vue` | Remove `watch(appMode)` block that called `resetForm()`, `resetWorkflow()`, `clearAnalyzeResponse()` |
+| `docs/MANUAL_TEST_GUIDE.md` | Section 3d rewritten: "State Reset" → "State Preservation" |
+
+
+---
+
+## v10.24 — Mode-scoped Reset and per-mode description isolation
+
+### Design rationale
+Each mode now owns its own description. Resetting in one mode leaves the other modes' data untouched.
+
+**Description isolation:**
+- `modeDescriptions` reactive object holds `{ explore, design, task }` separately
+- `watch(appMode)` saves outgoing description and restores incoming on every mode switch
+- `form.description` always reflects the active mode's description
+
+**Reset scope:**
+| Mode | What reset clears |
+|------|-------------------|
+| Explore | `form.description` + `modeDescriptions.explore` + coach chat |
+| Design | All form fields + `modeDescriptions.design` + workflow + AI analysis + coach chat + search |
+| Task | All form fields + `modeDescriptions.task` + workflow + AI analysis + JIRA response + coach chat + search |
+
+| File | Change |
+|------|--------|
+| `src/App.vue` | Add `modeDescriptions` reactive; add `watch(appMode)` for description swap; add `reactive` import; `handleReset` split into Explore vs Design/Task branches |
+
+
+---
+
+## v10.25 — Design mode RE-specific form labels
+
+### Design rationale
+Design mode is for Requirement Engineering, not task creation. Labels now reflect RE terminology to match the ASPICE/ISO 26262 context.
+
+| Field | Task mode (default) | Design mode |
+|-------|--------------------|-------------|
+| Project Name | Project Name / 项目空间 | Library Name / 需求库 |
+| Assignee | Assignee / 经办人 | Author / 作者 |
+| Task Type | Task Type / 任务类型 | Item Type / 条目类型 |
+| Task Summary | Task Summary / 任务摘要 | Requirement Summary / 需求摘要 |
+| Vehicle | Vehicle / 车型 | Product / 产品 |
+| Product | Product / 产品 | Classification / 分类 |
+| Task Detail | Task Detail / 任务概括 | Requirement Title / 需求标题 |
+
+| File | Change |
+|------|--------|
+| `src/i18n/en.ts` | Add `*Design` keys for all 7 labels |
+| `src/i18n/zh.ts` | Same in Chinese |
+| `src/components/form/BasicInfoSection.vue` | Import `appMode`; 3 labels switch on `appMode === 'design'` |
+| `src/components/form/SummaryBuilder.vue` | Import `appMode`; 4 labels switch on `appMode === 'design'` |
+
+---
+
+## v10.26 — Mode-Specific Configuration Split
+
+### Design rationale
+Design mode and Task mode had fundamentally different purposes (requirement engineering vs task ticket creation) but shared the same domain config files (INCOSE rules, ASPICE traceability, elicitation questions, review checklists). This coupling meant Task mode inherited automotive RE logic that was irrelevant to its workflow.
+
+Split shared domain configs into independent `.design.ts` / `.task.ts` variants with a mode-aware resolver (`mode-config.ts`) that dispatches based on `appMode`. Each mode now has its own:
+- Quality checks (INCOSE rules for Design, actionable/scoped/estimated checks for Task)
+- Elicitation questions (requirement elicitation for Design, task-scoping for Task)
+- Review checklists (ASPICE-oriented for Design, task-oriented for Task)
+- Traceability model (ASPICE hierarchy for Design, epic/story/task hierarchy for Task)
+- Coach skills (requirement coaching for Design, task writing coaching for Task)
+
+### Changes
+1. Renamed 4 domain config files with `.design` suffix (`elicitation`, `incose`, `review-workflow`, `traceability`)
+2. Created shared `types.ts` with unified interfaces (`QualityViolation`, `ElicitationSet`, `ReviewStep`, etc.)
+3. Created 4 new `.task` config files with task-focused logic
+4. Created `mode-config.ts` resolver with 8 mode-aware functions
+5. Created task coach skills (`coach-skill-task-en.md`, `coach-skill-task-zh.md`) with separate localStorage override
+6. Updated all consumer composables and components to use resolver
+7. Made `checkDomainWarnings` mode-aware (returns empty for Task mode)
+8. Added task coach skill editing in DevTools
+
+| File | Change |
+|------|--------|
+| `src/config/domain/types.ts` | NEW: shared interfaces for both mode variants |
+| `src/config/domain/elicitation.design.ts` | Renamed from `elicitation.ts`, uses shared types |
+| `src/config/domain/incose.design.ts` | Renamed from `incose.ts`, `IncoseViolation` aliases `QualityViolation` |
+| `src/config/domain/review-workflow.design.ts` | Renamed from `review-workflow.ts`, uses shared types |
+| `src/config/domain/traceability.design.ts` | Renamed from `traceability.ts`, uses shared types |
+| `src/config/domain/elicitation.task.ts` | NEW: task-scoping questions per role |
+| `src/config/domain/quality.task.ts` | NEW: task quality checks (actionable, scoped, complete, estimated, acceptance) |
+| `src/config/domain/review-workflow.task.ts` | NEW: task-oriented review checklists |
+| `src/config/domain/traceability.task.ts` | NEW: epic/story/task/subtask/bug hierarchy |
+| `src/config/domain/mode-config.ts` | NEW: mode-aware resolver functions |
+| `src/config/domain/index.ts` | Updated re-exports, mode-aware `checkDomainWarnings` |
+| `src/config/skills/coach-skill-task-en.md` | NEW: task coach skill (English) |
+| `src/config/skills/coach-skill-task-zh.md` | NEW: task coach skill (Chinese) |
+| `src/config/skills/index.ts` | `getCoachSkill(mode, lang)`, task skill localStorage functions |
+| `src/composables/useLLM.ts` | Pass `appMode.value` to skill/resolver functions |
+| `src/composables/useForm.ts` | Use mode-aware quality checks and domain warnings |
+| `src/composables/useBatchOps.ts` | Use mode-aware quality checks |
+| `src/composables/useReviewWorkflow.ts` | Use mode-aware review steps/checklists |
+| `src/composables/useReviewHistory.ts` | Updated type import path |
+| `src/components/form/ReviewStatusBar.vue` | Use mode-aware review steps |
+| `src/components/form/TaskForm.vue` | Updated type import path |
+| `src/utils/exportFormats.ts` | Updated type import path |
+| `src/App.vue` | Use mode-aware elicitation prompt |
+| `src/components/dev/DevTools.vue` | Task coach skill editing section |
