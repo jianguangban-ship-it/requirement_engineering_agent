@@ -7,7 +7,8 @@ import { SKILL_REGISTRY, resolveSystemPrompt } from '@/config/skills/registry'
 import type { SkillEntry } from '@/config/skills/registry'
 import { matchSkill } from '@/utils/skillMatcher'
 import { getRoleContext, currentRole } from '@/composables/useRole'
-import { buildDomainContext, buildTraceabilityContext, buildDeepReviewPrompt } from '@/config/domain'
+import { appMode } from '@/composables/useAppMode'
+import { buildDomainContext, getModeTraceContext, buildDeepReviewPrompt } from '@/config/domain'
 import { useReviewHistory } from '@/composables/useReviewHistory'
 import type { RequirementLevel } from '@/config/domain'
 import { useI18n } from '@/i18n'
@@ -426,12 +427,12 @@ export function useLLM() {
       } else {
         // No match or ignored — fall back to default coach skill
         activeSkill.value = null
-        basePrompt = getCoachSkill(lang)
+        basePrompt = getCoachSkill(appMode.value, lang)
       }
 
       // Prepend role context + domain knowledge + traceability to the system prompt
       const domainContext = buildDomainContext(currentRole.value, langKey)
-      const traceCtx = buildTraceabilityContext(
+      const traceCtx = getModeTraceContext(appMode.value,
         (payload.data.requirement_level || 'none') as RequirementLevel,
         payload.data.parent_req_id || '',
         langKey
@@ -468,7 +469,7 @@ export function useLLM() {
     getSystemPrompt: (lang, payload) => {
       const langKey = lang === 'zh' ? 'zh' as const : 'en' as const
       const domainCtx = buildDomainContext(currentRole.value, langKey)
-      const traceCtx = buildTraceabilityContext(
+      const traceCtx = getModeTraceContext(appMode.value,
         (payload.data.requirement_level || 'none') as RequirementLevel,
         payload.data.parent_req_id || '',
         langKey
@@ -531,7 +532,7 @@ export function useLLM() {
       // Override the analyze system prompt with multi-perspective review
       const langKey = isZh.value ? 'zh' as const : 'en' as const
       const domainCtx = buildDomainContext(currentRole.value, langKey)
-      const traceCtx = buildTraceabilityContext(
+      const traceCtx = getModeTraceContext(appMode.value,
         (payload.data.requirement_level || 'none') as RequirementLevel,
         payload.data.parent_req_id || '',
         langKey

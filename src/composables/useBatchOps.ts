@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
-import type { RequirementLevel } from '@/config/domain/traceability'
-import { checkIncoseRules, incoseScorePenalty } from '@/config/domain'
+import type { RequirementLevel } from '@/config/domain/traceability.design'
+import { getModeQualityCheck, getModeQualityPenalty } from '@/config/domain'
+import { appMode } from '@/composables/useAppMode'
 
 export interface BatchRequirement {
   id: string
@@ -37,8 +38,8 @@ export function useBatchOps() {
 
   function addItem(item: Omit<BatchRequirement, 'id' | 'qualityScore' | 'selected'>) {
     // Compute quality score
-    const violations = checkIncoseRules(item.description)
-    const penalty = incoseScorePenalty(violations)
+    const violations = getModeQualityCheck(appMode.value, item.description)
+    const penalty = getModeQualityPenalty(appMode.value, violations)
     const baseScore = Math.min(100, (item.summary ? 20 : 0) + (item.description.length > 20 ? 40 : 0) + (item.level !== 'none' ? 20 : 0) + (item.parentReqId ? 20 : 0))
     const qualityScore = Math.max(0, baseScore - penalty)
 

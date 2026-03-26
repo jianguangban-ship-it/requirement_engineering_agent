@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import type { ReviewStatus } from '@/config/domain/review-workflow'
+import type { ReviewStatus } from '@/config/domain/types'
 
 export interface ReviewRecord {
   id: string

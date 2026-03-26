@@ -6,8 +6,9 @@ import { DEFAULT_COMPONENT_HISTORY } from '@/config/constants'
 import { useI18n } from '@/i18n'
 import { currentRole, setRole } from '@/composables/useRole'
 import type { UserRole } from '@/composables/useRole'
-import { checkDomainWarnings, getAspiceProfile, checkIncoseRules, incoseScorePenalty, detectAssumptions, getDefaultLevel, checkTraceabilityGaps } from '@/config/domain'
-import type { DomainWarning, AspiceProfile, IncoseViolation, Assumption, TraceabilityGap } from '@/config/domain'
+import { appMode } from '@/composables/useAppMode'
+import { checkDomainWarnings, getAspiceProfile, getModeQualityCheck, getModeQualityPenalty, detectAssumptions, getDefaultLevel, getModeTraceGaps } from '@/config/domain'
+import type { DomainWarning, AspiceProfile, QualityViolation, Assumption, TraceabilityGap } from '@/config/domain'
 
 const DRAFT_KEY = 'jira-workstation-draft'
 
@@ -130,7 +131,7 @@ export function useForm() {
     }
     // Apply INCOSE quality penalty (only when description is present)
     if (desc) {
-      score -= incoseScorePenalty(incoseViolations.value)
+      score -= getModeQualityPenalty(appMode.value, incoseViolations.value)
     }
     return Math.max(0, Math.min(score, 100))
   })
@@ -153,12 +154,12 @@ export function useForm() {
 
   // Domain-specific validation warnings
   const domainWarnings = computed<DomainWarning[]>(() =>
-    currentRole.value ? checkDomainWarnings(currentRole.value, form.description, form.issueType) : []
+    currentRole.value ? checkDomainWarnings(appMode.value, currentRole.value, form.description, form.issueType) : []
   )
 
   // INCOSE requirement quality checks
-  const incoseViolations = computed<IncoseViolation[]>(() =>
-    checkIncoseRules(form.description)
+  const incoseViolations = computed<QualityViolation[]>(() =>
+    getModeQualityCheck(appMode.value, form.description)
   )
 
   // Assumption detection
@@ -168,7 +169,7 @@ export function useForm() {
 
   // Traceability gaps
   const traceabilityGaps = computed<TraceabilityGap[]>(() =>
-    checkTraceabilityGaps(form.requirementLevel, form.parentReqId, form.verificationMethod)
+    getModeTraceGaps(appMode.value, form.requirementLevel, form.parentReqId, form.verificationMethod)
   )
 
   // Auto-update requirement level when role is selected (not on initial empty state)

@@ -1,17 +1,18 @@
 import { ref, computed } from 'vue'
-import type { ReviewStatus } from '@/config/domain/review-workflow'
-import { REVIEW_STEPS, getReviewChecklist } from '@/config/domain/review-workflow'
+import type { ReviewStatus } from '@/config/domain/types'
+import { getModeReviewSteps, getModeReviewChecklist } from '@/config/domain'
 import { currentRole } from '@/composables/useRole'
+import { appMode } from '@/composables/useAppMode'
 
 const reviewStatus = ref<ReviewStatus>('draft')
 const checkedItems = ref<Set<string>>(new Set())
 
 export function useReviewWorkflow() {
   const currentStepIndex = computed(() =>
-    REVIEW_STEPS.findIndex(s => s.id === reviewStatus.value)
+    getModeReviewSteps(appMode.value).findIndex(s => s.id === reviewStatus.value)
   )
 
-  const checklist = computed(() => getReviewChecklist(currentRole.value))
+  const checklist = computed(() => getModeReviewChecklist(appMode.value, currentRole.value))
 
   const allChecked = computed(() =>
     checklist.value.every(item => checkedItems.value.has(item.id))
@@ -51,6 +52,6 @@ export function useReviewWorkflow() {
     advanceTo,
     toggleCheck,
     resetWorkflow,
-    REVIEW_STEPS
+    REVIEW_STEPS: computed(() => getModeReviewSteps(appMode.value))
   }
 }
