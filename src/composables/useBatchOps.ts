@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import type { RequirementLevel } from '@/config/domain/traceability.design'
+import type { TaskLevel } from '@/config/domain/traceability.task'
 import { getModeQualityCheck, getModeQualityPenalty } from '@/config/domain'
 import { appMode } from '@/composables/useAppMode'
 
@@ -7,7 +8,7 @@ export interface BatchRequirement {
   id: string
   summary: string
   description: string
-  level: RequirementLevel
+  level: RequirementLevel | TaskLevel
   parentReqId: string
   issueType: 'Story' | 'Task' | 'Bug'
   qualityScore: number

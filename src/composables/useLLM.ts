@@ -11,6 +11,7 @@ import { appMode } from '@/composables/useAppMode'
 import { buildDomainContext, getModeTraceContext, buildDeepReviewPrompt } from '@/config/domain'
 import { useReviewHistory } from '@/composables/useReviewHistory'
 import type { RequirementLevel } from '@/config/domain'
+import type { TaskLevel } from '@/config/domain/traceability.task'
 import { useI18n } from '@/i18n'
 import { addRecord } from '@/composables/useCoachHistory'
 
@@ -433,7 +434,7 @@ export function useLLM() {
       // Prepend role context + domain knowledge + traceability to the system prompt
       const domainContext = buildDomainContext(currentRole.value, langKey)
       const traceCtx = getModeTraceContext(appMode.value,
-        (payload.data.requirement_level || 'none') as RequirementLevel,
+        (payload.data.requirement_level || 'none') as RequirementLevel | TaskLevel,
         payload.data.parent_req_id || '',
         langKey
       )
@@ -470,7 +471,7 @@ export function useLLM() {
       const langKey = lang === 'zh' ? 'zh' as const : 'en' as const
       const domainCtx = buildDomainContext(currentRole.value, langKey)
       const traceCtx = getModeTraceContext(appMode.value,
-        (payload.data.requirement_level || 'none') as RequirementLevel,
+        (payload.data.requirement_level || 'none') as RequirementLevel | TaskLevel,
         payload.data.parent_req_id || '',
         langKey
       )
@@ -533,7 +534,7 @@ export function useLLM() {
       const langKey = isZh.value ? 'zh' as const : 'en' as const
       const domainCtx = buildDomainContext(currentRole.value, langKey)
       const traceCtx = getModeTraceContext(appMode.value,
-        (payload.data.requirement_level || 'none') as RequirementLevel,
+        (payload.data.requirement_level || 'none') as RequirementLevel | TaskLevel,
         payload.data.parent_req_id || '',
         langKey
       )

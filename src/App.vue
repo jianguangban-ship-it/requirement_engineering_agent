@@ -223,6 +223,7 @@ import { exportMarkdown, exportReqIF, exportExcelCSV, downloadFile } from '@/uti
 import { useJiraSearch } from '@/composables/useJiraSearch'
 import { useBatchOps } from '@/composables/useBatchOps'
 import { getModeElicitationPrompt, buildConflictCheckPrompt, buildTraceSuggestPrompt, buildImpactAnalysisPrompt } from '@/config/domain'
+import type { RequirementLevel } from '@/config/domain'
 import { currentRole } from '@/composables/useRole'
 import { getTemplateContent, effectiveTemplates, setCustomTemplates, customTemplatesModified } from '@/config/templates/index'
 import type { TemplateDefinition } from '@/types/template'
@@ -644,7 +645,7 @@ function handleAddCurrentToBatch() {
     summary: computedSummary.value,
     description: form.description,
     issueType: form.issueType as 'Story' | 'Task' | 'Bug',
-    level: form.requirementLevel as import('@/config/domain/traceability.design').RequirementLevel,
+    level: form.requirementLevel,
     parentReqId: form.parentReqId || ''
   })
   addToast('success', isZh.value ? '已添加到批量列表' : 'Added to batch list')
@@ -760,7 +761,7 @@ function handleSuggestLinks() {
   const lang = isZh.value ? 'zh' as const : 'en' as const
   const prompt = buildTraceSuggestPrompt(
     currentRole.value,
-    form.requirementLevel,
+    form.requirementLevel as RequirementLevel,
     form.parentReqId,
     form.description,
     lang
@@ -780,7 +781,7 @@ function handleImpactAnalysis() {
   const lang = isZh.value ? 'zh' as const : 'en' as const
   const prompt = buildImpactAnalysisPrompt(
     currentRole.value,
-    form.requirementLevel,
+    form.requirementLevel as RequirementLevel,
     form.parentReqId,
     form.description,
     lang

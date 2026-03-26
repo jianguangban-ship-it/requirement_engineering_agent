@@ -8,6 +8,7 @@ import { currentRole, setRole } from '@/composables/useRole'
 import type { UserRole } from '@/composables/useRole'
 import { appMode } from '@/composables/useAppMode'
 import { checkDomainWarnings, getAspiceProfile, getModeQualityCheck, getModeQualityPenalty, detectAssumptions, getDefaultLevel, getModeTraceGaps } from '@/config/domain'
+import { getDefaultTaskLevel } from '@/config/domain/traceability.task'
 import type { DomainWarning, AspiceProfile, QualityViolation, Assumption, TraceabilityGap } from '@/config/domain'
 
 const DRAFT_KEY = 'jira-workstation-draft'
@@ -174,7 +175,11 @@ export function useForm() {
 
   // Auto-update requirement level when role is selected (not on initial empty state)
   watch(currentRole, (newRole) => {
-    if (newRole) form.requirementLevel = getDefaultLevel(newRole)
+    if (newRole) {
+      form.requirementLevel = appMode.value === 'task'
+        ? getDefaultTaskLevel(newRole)
+        : getDefaultLevel(newRole)
+    }
   })
 
   // ASPICE process mapping
