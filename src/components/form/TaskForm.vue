@@ -97,7 +97,7 @@
           <button
             class="action-btn action-coach"
             :disabled="!canCoachSubmit || isSubmitting || isCoachLoading"
-            :title="t('coach.requestBtn')"
+            :title="appMode === 'explore' ? t('coach.requestBtnExplore') : t('coach.requestBtn')"
             @click="$emit('coach')"
           >
             <svg v-if="isCoachLoading" class="action-icon animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4">
@@ -172,7 +172,7 @@ import type { FormState, SummaryState } from '@/types/form'
 import type { DomainWarning, AspiceSuggestion, IncoseViolation, Assumption, TraceabilityGap } from '@/config/domain'
 import { useI18n } from '@/i18n'
 import { appMode } from '@/composables/useAppMode'
-import type { ReviewStatus, ChecklistItem } from '@/config/domain'
+import type { ReviewStatus, ChecklistItem } from '@/config/domain/types'
 import BasicInfoSection from './BasicInfoSection.vue'
 import SummaryBuilder from './SummaryBuilder.vue'
 import TraceabilitySection from './TraceabilitySection.vue'

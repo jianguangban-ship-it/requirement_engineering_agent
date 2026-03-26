@@ -3,7 +3,7 @@
     <!-- Step pipeline -->
     <div class="status-pipeline">
       <div
-        v-for="(step, i) in REVIEW_STEPS"
+        v-for="(step, i) in reviewSteps"
         :key="step.id"
         class="pipeline-step"
         :class="{
@@ -19,7 +19,7 @@
           <span v-else class="step-num">{{ i + 1 }}</span>
         </div>
         <span class="step-label">{{ isZh ? step.labelZh : step.labelEn }}</span>
-        <div v-if="i < REVIEW_STEPS.length - 1" class="step-line" :class="{ 'line-done': i < currentStepIndex }" />
+        <div v-if="i < reviewSteps.length - 1" class="step-line" :class="{ 'line-done': i < currentStepIndex }" />
       </div>
     </div>
 
@@ -62,8 +62,10 @@
 </template>
 
 <script setup lang="ts">
-import type { ReviewStatus } from '@/config/domain/review-workflow'
-import { REVIEW_STEPS } from '@/config/domain/review-workflow'
+import { computed } from 'vue'
+import type { ReviewStatus } from '@/config/domain/types'
+import { getModeReviewSteps } from '@/config/domain'
+import { appMode } from '@/composables/useAppMode'
 import { useI18n } from '@/i18n'
 
 defineProps<{
@@ -81,6 +83,8 @@ defineEmits<{
 }>()
 
 const { isZh } = useI18n()
+
+const reviewSteps = computed(() => getModeReviewSteps(appMode.value))
 </script>
 
 <style scoped>

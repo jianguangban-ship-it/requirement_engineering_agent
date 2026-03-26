@@ -1,5 +1,5 @@
 import type { FormState, SummaryState } from '@/types/form'
-import type { ReviewStatus } from '@/config/domain/review-workflow'
+import type { ReviewStatus } from '@/config/domain/types'
 
 interface ExportData {
   form: FormState

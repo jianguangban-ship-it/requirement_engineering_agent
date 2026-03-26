@@ -207,7 +207,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import type { WebhookPayload } from '@/types/api'
 import { useI18n } from '@/i18n'
 import { useForm } from '@/composables/useForm'
@@ -222,7 +222,7 @@ import { useReviewHistory } from '@/composables/useReviewHistory'
 import { exportMarkdown, exportReqIF, exportExcelCSV, downloadFile } from '@/utils/exportFormats'
 import { useJiraSearch } from '@/composables/useJiraSearch'
 import { useBatchOps } from '@/composables/useBatchOps'
-import { buildElicitationPrompt, buildConflictCheckPrompt, buildTraceSuggestPrompt, buildImpactAnalysisPrompt } from '@/config/domain'
+import { getModeElicitationPrompt, buildConflictCheckPrompt, buildTraceSuggestPrompt, buildImpactAnalysisPrompt } from '@/config/domain'
 import { currentRole } from '@/composables/useRole'
 import { getTemplateContent, effectiveTemplates, setCustomTemplates, customTemplatesModified } from '@/config/templates/index'
 import type { TemplateDefinition } from '@/types/template'
@@ -372,6 +372,15 @@ const activeModel = computed(() => getModel())
 const errorMessage = ref('')
 const showConfirmModal = ref(false)
 const showSettingsModal = ref(false)
+const pendingPromptOverride = ref<string | null>(null)
+
+// Per-mode description store — each mode owns its own description so resets are isolated.
+// On mode switch, the outgoing description is saved and the incoming one is restored.
+const modeDescriptions = reactive<Record<string, string>>({
+  explore: '',
+  design: '',
+  task: ''
+})
 const showHotkeyModal = ref(false)
 const confirmModalRef = ref<HTMLElement>()
 const { activate: activateConfirmTrap, deactivate: deactivateConfirmTrap } = useFocusTrap(confirmModalRef)
@@ -427,9 +436,14 @@ function buildPayload(action: 'analyze' | 'create' | 'coach' | 'preview' | 'deep
   }
 
   // coach / preview — payload driven by appMode
+  // For coach action, use pendingPromptOverride if set (tool-triggered chips bypass form.description)
+  const desc = (action === 'coach' && pendingPromptOverride.value !== null)
+    ? pendingPromptOverride.value
+    : form.description
+
   switch (appMode.value) {
     case 'explore':
-      return { meta, data: { description: form.description } }
+      return { meta, data: { description: desc } }
 
     case 'task':
       return {
@@ -439,7 +453,7 @@ function buildPayload(action: 'analyze' | 'create' | 'coach' | 'preview' | 'deep
           project_name: getProjectName(),
           issue_type: form.issueType,
           summary: computedSummary.value,
-          description: form.description,
+          description: desc,
           assignee: form.assignee,
           estimated_points: form.estimatedPoints
           // requirementLevel, parentReqId, verificationMethod intentionally omitted
@@ -455,7 +469,7 @@ function buildPayload(action: 'analyze' | 'create' | 'coach' | 'preview' | 'deep
           project_name: getProjectName(),
           issue_type: form.issueType,
           summary: computedSummary.value,
-          description: form.description,
+          description: desc,
           assignee: form.assignee,
           estimated_points: form.estimatedPoints,
           requirement_level: form.requirementLevel !== 'none' ? form.requirementLevel : undefined,
@@ -482,13 +496,11 @@ watch(
   { immediate: true }
 )
 
-// Mode switch cleanup — form/workflow/AI state reset when mode changes.
-// Runs here (not in useAppMode) because resetForm, resetWorkflow, clearAnalyzeResponse
-// are all instances owned by App.vue.
-watch(appMode, () => {
-  resetForm()
-  resetWorkflow()
-  clearAnalyzeResponse()
+// On mode switch: save outgoing description, restore incoming description.
+// Form fields and AI state are preserved — only the description is mode-scoped.
+watch(appMode, (newMode, oldMode) => {
+  modeDescriptions[oldMode] = form.description
+  form.description = modeDescriptions[newMode]
 }, { immediate: false })
 
 // ─── Response persistence ──────────────────────────────────────────────────
@@ -632,7 +644,7 @@ function handleAddCurrentToBatch() {
     summary: computedSummary.value,
     description: form.description,
     issueType: form.issueType as 'Story' | 'Task' | 'Bug',
-    level: form.requirementLevel as import('@/config/domain/traceability').RequirementLevel,
+    level: form.requirementLevel as import('@/config/domain/traceability.design').RequirementLevel,
     parentReqId: form.parentReqId || ''
   })
   addToast('success', isZh.value ? '已添加到批量列表' : 'Added to batch list')
@@ -709,8 +721,8 @@ async function confirmCreate() {
   }
 }
 
-async function handleCoachRequest() {
-  if (!canCoachSubmit.value || isCoachLoading.value) {
+async function handleCoachRequest(force = false) {
+  if ((!force && !canCoachSubmit.value) || isCoachLoading.value) {
     // Restore mode flags in case a tool handler (elicitation, conflict check, etc.)
     // disabled coachSkillEnabled before calling us — we need to re-assert the mode's
     // canonical flags even on an early return.
@@ -719,6 +731,7 @@ async function handleCoachRequest() {
   }
   errorMessage.value = ''
   const payload = buildPayload('coach')
+  pendingPromptOverride.value = null  // consumed — clear so it doesn't affect anything else
   // In Explore mode, clear description immediately (acts as chat input box)
   if (appMode.value === 'explore') form.description = ''
   const err = await requestCoach(payload)
@@ -735,13 +748,12 @@ async function handleCoachRequest() {
 
 function handleElicitation() {
   const lang = isZh.value ? 'zh' as const : 'en' as const
-  const prompt = buildElicitationPrompt(currentRole.value, lang)
-  form.description = prompt
+  pendingPromptOverride.value = getModeElicitationPrompt(appMode.value, currentRole.value, lang)
   // Switch to free-chat mode for interactive Q&A
   if (coachSkillEnabled.value) {
     setCoachSkillEnabled(false)
   }
-  nextTick(() => handleCoachRequest())
+  nextTick(() => handleCoachRequest(true))
 }
 
 function handleSuggestLinks() {
@@ -785,17 +797,17 @@ function handleImpactAnalysis() {
 }
 
 function handleConflictCheck() {
-  // The description should already contain multiple requirements pasted by the user.
-  // Prepend the full role-aware conflict-check prompt, then append the user's requirements.
+  // Build the full conflict-check prompt with the user's requirements appended.
+  // Use pendingPromptOverride so the description field is not touched.
   const lang = isZh.value ? 'zh' as const : 'en' as const
   const systemPrompt = buildConflictCheckPrompt(currentRole.value, lang)
   const userReqs = form.description.trim()
-  form.description = systemPrompt + '\n\n---\n\n' + userReqs
+  pendingPromptOverride.value = systemPrompt + '\n\n---\n\n' + userReqs
   // Use free-chat mode so the conflict-check prompt goes directly
   if (coachSkillEnabled.value) {
     setCoachSkillEnabled(false)
   }
-  nextTick(() => handleCoachRequest())
+  nextTick(() => handleCoachRequest(true))
 }
 
 function handleReplay(content: string) {
@@ -834,15 +846,26 @@ async function handleAnalyzeRetry() {
 
 function handleReset() {
   cancelCoach()
-  cancelAnalyze()
-  resetForm()
-  clearResponses()
-  clearCoachResponse()
-  clearAnalyzeResponse()
-  clearResponsesFromStorage()
-  resetWorkflow()
-  clearSearch()
   errorMessage.value = ''
+
+  if (appMode.value === 'explore') {
+    // Explore reset: only clear this mode's description and chat — leave Design/Task untouched
+    form.description = ''
+    modeDescriptions.explore = ''
+    clearCoachResponse()
+  } else {
+    // Design / Task reset: clear form, workflow, AI state — leave Explore description untouched
+    cancelAnalyze()
+    resetForm()
+    modeDescriptions[appMode.value] = ''
+    clearResponses()
+    clearCoachResponse()
+    clearAnalyzeResponse()
+    clearResponsesFromStorage()
+    resetWorkflow()
+    clearSearch()
+  }
+
   addToast('info', t('toast.draftCleared'))
 }
 
