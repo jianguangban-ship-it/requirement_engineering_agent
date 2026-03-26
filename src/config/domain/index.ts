@@ -1,3 +1,4 @@
+import type { AppMode } from '@/composables/useAppMode'
 import type { UserRole } from '@/composables/useRole'
 import { getTermsForRole } from './vocabulary'
 import { getRulesForRole } from './standards'
@@ -26,6 +27,8 @@ export { REVIEW_PERSPECTIVES, buildDeepReviewPrompt } from './review-perspective
 export type { ReviewPerspective } from './review-perspectives'
 export { REVIEW_STEPS, getReviewChecklist } from './review-workflow.design'
 export type { ReviewStatus, ReviewStep, ChecklistItem } from './review-workflow.design'
+export type { QualityViolation } from './types'
+export * from './mode-config'
 
 /**
  * Build domain context string to inject into LLM system prompts.
@@ -144,10 +147,14 @@ const WARNING_RULES: WarningRule[] = [
 
 /** Run domain-specific validation checks on the description */
 export function checkDomainWarnings(
+  mode: AppMode,
   role: UserRole,
   description: string,
   issueType: string
 ): DomainWarning[] {
+  // Task mode: automotive domain warnings are not relevant
+  if (mode === 'task') return []
+
   const desc = description.trim()
   if (!desc) return []
 
