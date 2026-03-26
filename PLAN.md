@@ -3507,3 +3507,22 @@ Split shared domain configs into independent `.design.ts` / `.task.ts` variants 
 | `src/utils/exportFormats.ts` | Updated type import path |
 | `src/App.vue` | Use mode-aware elicitation prompt |
 | `src/components/dev/DevTools.vue` | Task coach skill editing section |
+
+---
+
+## v10.27 — Task Mode: Button Sequence & Guidance Label
+
+### Design rationale
+In Task mode, the Analyze button was active before the user completed Task Guidance (coach response). The correct sequence is: fill form → get Task Guidance → wait for AI response → then Analyze becomes available. Also renamed "Writing Guidance" to "Task Guidance" in Task mode since the coaching focus is task scoping, not requirement writing.
+
+### Changes
+1. Analyze button in Task mode now requires a completed coach response (`hasCoachResponse`) before activation
+2. "Writing Guidance" button tooltip renamed to "Task Guidance" / "任务指导" in Task mode
+3. Added `hasCoachResponse` prop to TaskForm (true when `coachMessages.length > 0 && !isCoachLoading`)
+
+| File | Change |
+|------|--------|
+| `src/i18n/en.ts` | Add `coach.requestBtnTask: 'Task Guidance'` |
+| `src/i18n/zh.ts` | Add `coach.requestBtnTask: '任务指导'` |
+| `src/components/form/TaskForm.vue` | Mode-aware button label; Analyze gated by `hasCoachResponse` in task mode |
+| `src/App.vue` | Pass `has-coach-response` prop |

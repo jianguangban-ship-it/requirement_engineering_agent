@@ -97,7 +97,7 @@
           <button
             class="action-btn action-coach"
             :disabled="!canCoachSubmit || isSubmitting || isCoachLoading"
-            :title="appMode === 'explore' ? t('coach.requestBtnExplore') : t('coach.requestBtn')"
+            :title="appMode === 'explore' ? t('coach.requestBtnExplore') : appMode === 'task' ? t('coach.requestBtnTask') : t('coach.requestBtn')"
             @click="$emit('coach')"
           >
             <svg v-if="isCoachLoading" class="action-icon animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4">
@@ -113,7 +113,7 @@
             v-show="appMode !== 'explore'"
             class="action-btn action-analyze"
             :class="{ dimmed: hasAiResponse }"
-            :disabled="!(appMode === 'task' ? canCoachSubmit : canSubmit) || isSubmitting || isCoachLoading"
+            :disabled="!(appMode === 'task' ? canCoachSubmit : canSubmit) || isSubmitting || isCoachLoading || (appMode === 'task' && !hasCoachResponse)"
             :title="t('form.aiAnalyze')"
             @click="$emit('analyze')"
           >
@@ -193,6 +193,7 @@ defineProps<{
   isCoachLoading: boolean
   currentAction: string
   hasAiResponse: boolean
+  hasCoachResponse: boolean
   errorMessage: string
   domainWarnings: DomainWarning[]
   aspiceBadge?: string

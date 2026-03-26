@@ -8,7 +8,7 @@
       </div>
       <h1 v-if="currentLang === 'en'" class="header-title"><span class="logo-a">A</span><span class="logo-g">G</span><span class="logo-ec">ec</span></h1>
       <h1 v-else class="header-title">{{ t('header.title') }}</h1>
-      <span class="header-version">v10.26</span>
+      <span class="header-version">v10.27</span>
     </div>
     <div class="header-right">
       <!-- Mode Switcher -->

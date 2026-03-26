@@ -79,6 +79,7 @@
             :is-coach-loading="isCoachLoading"
             :current-action="formCurrentAction"
             :has-ai-response="!!analyzeResponse"
+            :has-coach-response="coachMessages.length > 0 && !isCoachLoading"
             :domain-warnings="domainWarnings"
             :aspice-badge="aspiceBadge"
             :aspice-suggestions="aspiceSuggestions"
