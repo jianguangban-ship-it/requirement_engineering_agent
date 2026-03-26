@@ -63,7 +63,7 @@
         </div>
         <div class="config-row">
           <span class="config-label">{{ t('dev.activeRole') }}:</span>
-          <span style="color: var(--accent-blue); font-weight: 600">{{ isZh ? currentRoleDefinition.labelZh : currentRoleDefinition.labelEn }}</span>
+          <span style="color: var(--accent-blue); font-weight: 600">{{ currentRoleDefinition ? (isZh ? currentRoleDefinition.labelZh : currentRoleDefinition.labelEn) : '—' }}</span>
         </div>
         <div class="config-row">
           <span class="config-label">{{ t('dev.activeSkill') }}:</span>
@@ -75,6 +75,12 @@
           <span class="config-label">{{ t('dev.coachSkill') }}:</span>
           <span :style="{ color: coachSkillModified ? 'var(--accent-orange)' : 'var(--text-muted)' }">
             {{ coachSkillModified ? t('settings.skillModified') : t('dev.no') }}
+          </span>
+        </div>
+        <div class="config-row">
+          <span class="config-label">Task Coach Skill:</span>
+          <span :style="{ color: coachSkillTaskModified ? 'var(--accent-orange)' : 'var(--text-muted)' }">
+            {{ coachSkillTaskModified ? t('settings.skillModified') : t('dev.no') }}
           </span>
         </div>
         <div class="config-row">
@@ -125,6 +131,28 @@
         </div>
       </div>
     </details>
+
+    <details>
+      <summary class="dev-summary"><strong>{{ ICONS.devAgent }} Task Coach Skill</strong></summary>
+      <div class="dev-config">
+        <div class="skill-header">
+          <div class="skill-label-row">
+            <span v-if="coachSkillTaskModified" class="skill-modified-badge">● {{ t('settings.skillModified') }}</span>
+          </div>
+          <div class="skill-actions">
+            <button class="btn-reset" @click="handleResetTaskCoach">{{ t('settings.skillReset') }}</button>
+          </div>
+        </div>
+        <textarea
+          class="skill-textarea"
+          :value="localTaskCoachSkill"
+          @input="onTaskCoachSkillInput"
+        />
+        <div class="skill-footer">
+          <span class="skill-counter">{{ localTaskCoachSkill.length }} chars · ~{{ Math.floor(localTaskCoachSkill.length / 4) }} tokens</span>
+        </div>
+      </div>
+    </details>
   </div>
 </template>
 
@@ -138,6 +166,10 @@ import { useToast } from '@/composables/useToast'
 import { currentRoleDefinition } from '@/composables/useRole'
 import { activeSkill } from '@/composables/useLLM'
 import JsonViewer from '@/components/shared/JsonViewer.vue'
+import {
+  getCoachSkillTaskRaw, setCoachSkillTask, resetCoachSkillTask,
+  coachSkillTaskModified, getCoachSkillTaskDefault
+} from '@/config/skills/index'
 
 const props = defineProps<{
   payload: string
@@ -183,6 +215,22 @@ const isProd = useProductionMode
 const activeUrl = computed(() =>
   isProd.value ? WEBHOOK_CONFIG.prodUrl : WEBHOOK_CONFIG.testUrl
 )
+
+// ─── Task Coach Skill editing ─────────────────────────────────────────────
+function currentLang(): 'zh' | 'en' { return isZh.value ? 'zh' : 'en' }
+
+const localTaskCoachSkill = ref(getCoachSkillTaskRaw(currentLang()))
+
+function onTaskCoachSkillInput(e: Event) {
+  const val = (e.target as HTMLTextAreaElement).value
+  localTaskCoachSkill.value = val
+  setCoachSkillTask(val)
+}
+
+function handleResetTaskCoach() {
+  resetCoachSkillTask()
+  localTaskCoachSkill.value = getCoachSkillTaskDefault(currentLang())
+}
 </script>
 
 <style scoped>
@@ -323,4 +371,23 @@ const activeUrl = computed(() =>
   width: 13px;
   height: 13px;
 }
+/* Skill editing section */
+.skill-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+.skill-label-row { display: flex; align-items: center; gap: 8px; }
+.skill-actions { display: flex; align-items: center; gap: 6px; }
+.skill-modified-badge { font-size: 10px; font-weight: 600; color: var(--accent-orange); }
+.btn-reset {
+  font-size: 11px; padding: 3px 8px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+}
+.btn-reset:hover:not(:disabled) { color: var(--text-primary); background: var(--bg-tertiary); }
+.skill-textarea {
+  width: 100%; height: 200px; padding: var(--space-2) var(--space-3); resize: vertical;
+  border-radius: var(--radius-md); border: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary); color: var(--text-primary);
+  font-size: var(--font-base); font-family: var(--font-mono); line-height: 1.6; outline: none; box-sizing: border-box;
+}
+.skill-textarea:focus { border-color: var(--accent-blue); }
+.skill-footer { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 4px; }
+.skill-counter { font-size: var(--font-sm); color: var(--text-muted); white-space: nowrap; }
 </style>
