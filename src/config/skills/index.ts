@@ -2,23 +2,32 @@ import { ref } from 'vue'
 import coachSkillDefault from './coach-skill.md?raw'
 import coachSkillZh from './coach-skill-zh.md?raw'
 import coachSkillEn from './coach-skill-en.md?raw'
+import coachSkillTaskEn from './coach-skill-task-en.md?raw'
+import coachSkillTaskZh from './coach-skill-task-zh.md?raw'
 import analyzeSkillDefault from './analyze-skill.md?raw'
 import analyzeSkillZh from './analyze-skill-zh.md?raw'
 import analyzeSkillEn from './analyze-skill-en.md?raw'
 import responseFormatDefault from './response-format.md?raw'
+import type { AppMode } from '@/composables/useAppMode'
 
 const LS_KEY_COACH_SKILL = 'coach-skill'
+const LS_KEY_COACH_SKILL_TASK = 'coach-skill-task'
 const LS_KEY_ANALYZE_SKILL = 'analyze-skill'
 const LS_KEY_RESPONSE_FORMAT = 'response-format'
 
 /** Reactive flags — true when a localStorage override is active */
 export const coachSkillModified = ref(localStorage.getItem(LS_KEY_COACH_SKILL) !== null)
+export const coachSkillTaskModified = ref(localStorage.getItem(LS_KEY_COACH_SKILL_TASK) !== null)
 export const analyzeSkillModified = ref(localStorage.getItem(LS_KEY_ANALYZE_SKILL) !== null)
 export const responseFormatModified = ref(localStorage.getItem(LS_KEY_RESPONSE_FORMAT) !== null)
 
 /** Get lang-specific bundled default (no {lang} substitution needed) */
 export function getCoachSkillDefault(lang: 'zh' | 'en'): string {
   return lang === 'zh' ? coachSkillZh : coachSkillEn
+}
+
+export function getCoachSkillTaskDefault(lang: 'zh' | 'en'): string {
+  return lang === 'zh' ? coachSkillTaskZh : coachSkillTaskEn
 }
 
 export function getAnalyzeSkillDefault(lang: 'zh' | 'en'): string {
@@ -36,7 +45,11 @@ export function getResponseFormat(): string {
 
 /** Get effective skill — localStorage override first, then lang-specific bundled default.
  *  Response format instructions are automatically appended. */
-export function getCoachSkill(lang: 'zh' | 'en'): string {
+export function getCoachSkill(mode: AppMode, lang: 'zh' | 'en'): string {
+  if (mode === 'task') {
+    const skill = localStorage.getItem(LS_KEY_COACH_SKILL_TASK) ?? getCoachSkillTaskDefault(lang)
+    return skill + '\n\n' + getResponseFormat()
+  }
   const skill = localStorage.getItem(LS_KEY_COACH_SKILL) ?? getCoachSkillDefault(lang)
   return skill + '\n\n' + getResponseFormat()
 }
@@ -83,6 +96,20 @@ export function setResponseFormat(content: string): void {
 export function resetResponseFormat(): void {
   localStorage.removeItem(LS_KEY_RESPONSE_FORMAT)
   responseFormatModified.value = false
+}
+
+export function getCoachSkillTaskRaw(lang: 'zh' | 'en'): string {
+  return localStorage.getItem(LS_KEY_COACH_SKILL_TASK) ?? getCoachSkillTaskDefault(lang)
+}
+
+export function setCoachSkillTask(content: string): void {
+  localStorage.setItem(LS_KEY_COACH_SKILL_TASK, content)
+  coachSkillTaskModified.value = true
+}
+
+export function resetCoachSkillTask(): void {
+  localStorage.removeItem(LS_KEY_COACH_SKILL_TASK)
+  coachSkillTaskModified.value = false
 }
 
 // Legacy exports kept for backward compatibility
