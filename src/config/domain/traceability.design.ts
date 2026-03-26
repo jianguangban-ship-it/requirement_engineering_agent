@@ -1,4 +1,7 @@
 import type { UserRole } from '@/composables/useRole'
+import type { TraceabilityGap } from './types'
+
+export type { TraceabilityGap } from './types'
 
 /**
  * Requirement Hierarchy & Traceability Model
@@ -122,6 +125,7 @@ export function getDefaultLevel(role: UserRole): RequirementLevel {
     case 'hw-designer': return 'hardware'
     case 'me-designer': return 'mechanical'
     case 'vv-engineer': return 'test-case'
+    default: return 'none'
   }
 }
 
@@ -143,13 +147,6 @@ export function getValidParentLevels(level: RequirementLevel): RequirementLevelD
 }
 
 // ─── Traceability gap detection ──────────────────────────────────────────────
-
-export interface TraceabilityGap {
-  id: string
-  messageEn: string
-  messageZh: string
-  severity: 'warning' | 'info'
-}
 
 /** Check for traceability gaps */
 export function checkTraceabilityGaps(

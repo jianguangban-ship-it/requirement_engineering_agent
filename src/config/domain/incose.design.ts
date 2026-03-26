@@ -1,3 +1,5 @@
+import type { QualityViolation } from './types'
+
 /**
  * INCOSE Requirement Quality Rules
  * Checks: Atomic, Complete, Unambiguous, Verifiable, Traceable
@@ -5,16 +7,7 @@
 
 export type IncoseRuleId = 'atomic' | 'complete' | 'unambiguous' | 'verifiable' | 'traceable'
 
-export interface IncoseViolation {
-  ruleId: IncoseRuleId
-  titleEn: string
-  titleZh: string
-  messageEn: string
-  messageZh: string
-  severity: 'error' | 'warning'
-  /** Matched text fragments that triggered the violation */
-  matches?: string[]
-}
+export type IncoseViolation = QualityViolation
 
 // ─── Detection patterns ──────────────────────────────────────────────────────
 
@@ -26,8 +19,8 @@ const CONJUNCTION_SPLIT = /\b(and shall|and must|and should|or shall|or must|or 
 const INCOMPLETE_PATTERN = /\b(TBD|TBC|TODO|FIXME|to be (decided|confirmed|determined|defined|specified|discussed)|undefined|not yet (defined|determined|specified)|待定|待确认|待讨论|待补充|未定义|未确定)\b/ig
 
 // Unambiguous: flag vague words
-const VAGUE_WORDS_EN = /\b(appropriate|adequate|sufficient|some|several|many|few|various|reasonable|normal|typical|acceptable|proper|suitable|easy|simple|fast|slow|good|bad|large|small|significant|approximately|roughly|about|etc\.?|and so on|and\/or|if possible|as needed|as appropriate|as required|user[- ]friendly|flexible|robust|efficient|effective|timely|prompt|regular|periodically|often|sometimes|rarely|usually|generally|typically|commonly|mostly|mainly|primarily)\b/ig
-const VAGUE_WORDS_ZH = /(?:适当|足够|一些|若干|合理|正常|典型|可接受|合适|简单|快速|大约|大概|等等|左右|如果可能|根据需要|用户友好|灵活|高效|有效|及时|定期|经常|有时|通常|一般)/g
+const VAGUE_WORDS_EN = /\b(appropriate|adequate|maybe|sufficient|some|several|many|few|various|reasonable|normal|typical|acceptable|proper|suitable|easy|simple|fast|slow|good|bad|large|small|significant|approximately|roughly|about|etc\.?|and so on|and\/or|if possible|as needed|as appropriate|as required|user[- ]friendly|flexible|robust|efficient|effective|timely|prompt|regular|periodically|often|sometimes|rarely|usually|generally|typically|commonly|mostly|mainly|primarily)\b/ig
+const VAGUE_WORDS_ZH = /(?:适当|足够|一些|若干|合理|正常|典型|可接受|合适|简单|快速|大约|大概|差不多|等等|左右|如果可能|根据需要|用户友好|灵活|高效|有效|及时|定期|经常|有时|通常|一般)/g
 
 // Verifiable: must have measurable/testable criteria — check for numbers, units, or clear boolean conditions
 const MEASURABLE_PATTERN = /\b(\d+\.?\d*\s*(ms|s|sec|min|hour|Hz|kHz|MHz|GHz|V|mV|A|mA|W|kW|%|byte|KB|MB|GB|mm|cm|m|kg|g|°C|dB|bps|kbps|Mbps|Gbps|px))\b|(?:≤|≥|<|>|==|!=|shall not exceed|within \d|at least \d|no more than|maximum|minimum|equal to)/i
@@ -37,7 +30,7 @@ const TRACE_REF_PATTERN = /\b(REQ[-_]?\w{2,}|SYS[-_]?\d|SWE[-_]?\d|HWE[-_]?\d|TS
 
 // ─── Check functions ─────────────────────────────────────────────────────────
 
-function checkAtomic(desc: string): IncoseViolation | null {
+function checkAtomic(desc: string): QualityViolation | null {
   // Count "shall/must/should" occurrences
   const shallMatches = desc.match(MULTI_REQ_PATTERN)
   const hasConjunction = CONJUNCTION_SPLIT.test(desc)
@@ -55,7 +48,7 @@ function checkAtomic(desc: string): IncoseViolation | null {
   return null
 }
 
-function checkComplete(desc: string): IncoseViolation | null {
+function checkComplete(desc: string): QualityViolation | null {
   const matches: string[] = []
   let m: RegExpExecArray | null
   const pattern = new RegExp(INCOMPLETE_PATTERN.source, 'ig')
@@ -77,7 +70,7 @@ function checkComplete(desc: string): IncoseViolation | null {
   return null
 }
 
-function checkUnambiguous(desc: string): IncoseViolation | null {
+function checkUnambiguous(desc: string): QualityViolation | null {
   const matches: string[] = []
   let m: RegExpExecArray | null
 
@@ -108,7 +101,7 @@ function checkUnambiguous(desc: string): IncoseViolation | null {
   return null
 }
 
-function checkVerifiable(desc: string): IncoseViolation | null {
+function checkVerifiable(desc: string): QualityViolation | null {
   // Only check if description is substantial enough to warrant verification criteria
   if (desc.length < 80) return null
 
@@ -125,7 +118,7 @@ function checkVerifiable(desc: string): IncoseViolation | null {
   return null
 }
 
-function checkTraceable(desc: string): IncoseViolation | null {
+function checkTraceable(desc: string): QualityViolation | null {
   // Only flag for substantial descriptions
   if (desc.length < 100) return null
 
@@ -145,11 +138,11 @@ function checkTraceable(desc: string): IncoseViolation | null {
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /** Run all INCOSE quality checks on a requirement description */
-export function checkIncoseRules(description: string): IncoseViolation[] {
+export function checkIncoseRules(description: string): QualityViolation[] {
   const desc = description.trim()
   if (!desc) return []
 
-  const violations: IncoseViolation[] = []
+  const violations: QualityViolation[] = []
 
   const atomic = checkAtomic(desc)
   if (atomic) violations.push(atomic)
@@ -170,7 +163,7 @@ export function checkIncoseRules(description: string): IncoseViolation[] {
 }
 
 /** Calculate an INCOSE quality penalty (0–15 points deducted from quality score) */
-export function incoseScorePenalty(violations: IncoseViolation[]): number {
+export function incoseScorePenalty(violations: QualityViolation[]): number {
   let penalty = 0
   for (const v of violations) {
     if (v.severity === 'error') penalty += 5

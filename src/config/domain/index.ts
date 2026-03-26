@@ -8,24 +8,24 @@ export { STANDARD_RULES, getRulesForRole } from './standards'
 export type { StandardRule } from './standards'
 export { getAspiceProfile } from './aspice'
 export type { AspiceProfile, AspiceMapping, AspiceSuggestion } from './aspice'
-export { checkIncoseRules, incoseScorePenalty } from './incose'
-export type { IncoseViolation, IncoseRuleId } from './incose'
-export { getElicitationSet, buildElicitationPrompt } from './elicitation'
-export type { ElicitationQuestion, ElicitationSet } from './elicitation'
+export { checkIncoseRules, incoseScorePenalty } from './incose.design'
+export type { IncoseViolation, IncoseRuleId } from './incose.design'
+export { getElicitationSet, buildElicitationPrompt } from './elicitation.design'
+export type { ElicitationQuestion, ElicitationSet } from './elicitation.design'
 export { detectAssumptions } from './assumptions'
 export type { Assumption } from './assumptions'
 export { buildConflictCheckPrompt } from './conflicts'
 export {
   REQUIREMENT_LEVELS, getDefaultLevel, getLevelsForRole, getLevelDef,
   getValidParentLevels, checkTraceabilityGaps, buildTraceabilityContext
-} from './traceability'
-export type { RequirementLevel, RequirementLevelDef, TraceabilityGap } from './traceability'
+} from './traceability.design'
+export type { RequirementLevel, RequirementLevelDef, TraceabilityGap } from './traceability.design'
 export { buildTraceSuggestPrompt } from './trace-suggest'
 export { buildImpactAnalysisPrompt } from './trace-impact'
 export { REVIEW_PERSPECTIVES, buildDeepReviewPrompt } from './review-perspectives'
 export type { ReviewPerspective } from './review-perspectives'
-export { REVIEW_STEPS, getReviewChecklist } from './review-workflow'
-export type { ReviewStatus, ReviewStep, ChecklistItem } from './review-workflow'
+export { REVIEW_STEPS, getReviewChecklist } from './review-workflow.design'
+export type { ReviewStatus, ReviewStep, ChecklistItem } from './review-workflow.design'
 
 /**
  * Build domain context string to inject into LLM system prompts.

@@ -1,24 +1,13 @@
 import type { UserRole } from '@/composables/useRole'
+import type { ElicitationQuestion, ElicitationSet } from './types'
+
+export type { ElicitationQuestion, ElicitationSet } from './types'
 
 /**
  * Elicitation questions — structured questions the AI asks
  * to help users think through requirements before writing them.
  * Questions adapt based on selected role.
  */
-
-export interface ElicitationQuestion {
-  questionEn: string
-  questionZh: string
-  /** Why this question matters */
-  hintEn: string
-  hintZh: string
-}
-
-export interface ElicitationSet {
-  titleEn: string
-  titleZh: string
-  questions: ElicitationQuestion[]
-}
 
 const COMMON_QUESTIONS: ElicitationQuestion[] = [
   {
@@ -48,6 +37,7 @@ const COMMON_QUESTIONS: ElicitationQuestion[] = [
 ]
 
 const ROLE_QUESTIONS: Record<UserRole, ElicitationQuestion[]> = {
+  '': [],
   'system-architect': [
     {
       questionEn: 'Which subsystems or components are affected by this requirement?',

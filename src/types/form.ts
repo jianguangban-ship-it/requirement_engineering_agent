@@ -1,13 +1,13 @@
 import type { ProjectKey } from './team'
 
 export interface FormState {
-  projectKey: ProjectKey
-  issueType: 'Story' | 'Task' | 'Bug'
+  projectKey: ProjectKey | ''
+  issueType: '' | 'Story' | 'Task' | 'Bug'
   assignee: string
   estimatedPoints: number
   description: string
   /** Requirement hierarchy level (traceability) */
-  requirementLevel: import('@/config/domain/traceability').RequirementLevel
+  requirementLevel: import('@/config/domain/traceability.design').RequirementLevel
   /** Parent/source requirement ID (traceability) */
   parentReqId: string
   /** Verification method (traceability) */

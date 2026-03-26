@@ -1,6 +1,6 @@
 import type { UserRole } from '@/composables/useRole'
-import type { RequirementLevel } from './traceability'
-import { getLevelDef, REQUIREMENT_LEVELS } from './traceability'
+import type { RequirementLevel } from './traceability.design'
+import { getLevelDef, REQUIREMENT_LEVELS } from './traceability.design'
 
 /**
  * Traceability Suggestions — builds AI prompts to suggest

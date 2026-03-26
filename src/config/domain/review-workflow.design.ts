@@ -1,19 +1,13 @@
 import type { UserRole } from '@/composables/useRole'
+import type { ReviewStatus, ReviewStep, ChecklistItem } from './types'
+
+export type { ReviewStatus, ReviewStep, ChecklistItem } from './types'
 
 /**
  * Cross-Team Review Workflow — status tracking and role-specific checklists.
  *
  * Workflow: Draft → AI Reviewed → Peer Reviewed → Approved → JIRA Created
  */
-
-export type ReviewStatus = 'draft' | 'ai-reviewed' | 'peer-reviewed' | 'approved' | 'jira-created'
-
-export interface ReviewStep {
-  id: ReviewStatus
-  labelEn: string
-  labelZh: string
-  iconColor: string
-}
 
 export const REVIEW_STEPS: ReviewStep[] = [
   { id: 'draft',         labelEn: 'Draft',         labelZh: '草稿',      iconColor: 'var(--text-muted)' },
@@ -22,12 +16,6 @@ export const REVIEW_STEPS: ReviewStep[] = [
   { id: 'approved',      labelEn: 'Approved',      labelZh: '已批准',    iconColor: 'var(--accent-green)' },
   { id: 'jira-created',  labelEn: 'JIRA Created',  labelZh: '已创建',    iconColor: 'var(--accent-green)' }
 ]
-
-export interface ChecklistItem {
-  id: string
-  labelEn: string
-  labelZh: string
-}
 
 /** Role-specific review checklist — the reviewer checks these before approving */
 export function getReviewChecklist(reviewerRole: UserRole): ChecklistItem[] {
@@ -73,5 +61,7 @@ export function getReviewChecklist(reviewerRole: UserRole): ChecklistItem[] {
         { id: 'vv-criteria',    labelEn: 'Pass/fail criteria are quantitative',      labelZh: '通过/失败标准可量化' },
         { id: 'vv-environment', labelEn: 'Test environment requirements identified', labelZh: '测试环境需求已确认' }
       ]
+    default:
+      return common
   }
 }
