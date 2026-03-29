@@ -43,8 +43,114 @@
       </button>
     </div>
 
-    <!-- Record List -->
-    <div v-if="filteredRecords.length > 0" class="history-list">
+    <!-- Session-grouped view (when no search active) -->
+    <div v-if="filteredRecords.length > 0 && !isSearching" class="history-list">
+      <!-- Grouped sessions -->
+      <details
+        v-for="group in sessionGroups.grouped"
+        :key="group.sessionId"
+        class="session-group"
+        open
+      >
+        <summary class="session-header">
+          <div class="session-header-left">
+            <span class="session-preview">{{ firstUserPreview(group.records) }}</span>
+            <span class="session-meta">
+              {{ formatTime(group.firstTimestamp) }}
+              <span class="session-count">{{ t('coach.historySessionLabel').replace('{n}', String(group.records.length)) }}</span>
+            </span>
+          </div>
+          <button
+            class="continue-btn"
+            @click.prevent="$emit('continueSession', group.sessionId)"
+          >
+            {{ t('coach.historyContinue') }}
+          </button>
+        </summary>
+        <div class="session-records">
+          <div
+            v-for="record in group.records"
+            :key="record.id"
+            class="history-record"
+            :class="{ 'record-selected': selectedIds.has(record.id) }"
+          >
+            <input
+              type="checkbox"
+              :checked="selectedIds.has(record.id)"
+              @change="toggleSelect(record.id)"
+              class="record-checkbox"
+            />
+            <div class="record-body">
+              <div class="record-badges">
+                <span class="role-badge" :class="[`badge-${record.role}`]">
+                  {{ record.role === 'user' ? t('coach.userLabel') : t('coach.agentLabel') }}
+                </span>
+                <span class="record-time">{{ formatTime(record.timestamp) }}</span>
+                <span class="record-hash">#{{ record.id }}</span>
+                <button
+                  v-if="record.role === 'user'"
+                  class="replay-btn"
+                  @click="$emit('replay', record.content)"
+                >
+                  {{ t('coach.historyReplay') }}
+                </button>
+              </div>
+              <div class="record-preview">{{ truncate(record.content, 150) }}</div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- Ungrouped (legacy) records -->
+      <details
+        v-if="sessionGroups.ungrouped.length > 0"
+        class="session-group session-ungrouped"
+      >
+        <summary class="session-header">
+          <div class="session-header-left">
+            <span class="session-preview ungrouped-label">{{ t('coach.historyUngrouped') }}</span>
+            <span class="session-meta">
+              <span class="session-count">{{ t('coach.historySessionLabel').replace('{n}', String(sessionGroups.ungrouped.length)) }}</span>
+            </span>
+          </div>
+        </summary>
+        <div class="session-records">
+          <div
+            v-for="record in sessionGroups.ungrouped"
+            :key="record.id"
+            class="history-record"
+            :class="{ 'record-selected': selectedIds.has(record.id) }"
+          >
+            <input
+              type="checkbox"
+              :checked="selectedIds.has(record.id)"
+              @change="toggleSelect(record.id)"
+              class="record-checkbox"
+            />
+            <div class="record-body">
+              <div class="record-badges">
+                <span class="role-badge" :class="[`badge-${record.role}`]">
+                  {{ record.role === 'user' ? t('coach.userLabel') : t('coach.agentLabel') }}
+                </span>
+                <span class="record-time">{{ formatTime(record.timestamp) }}</span>
+                <span class="record-hash">#{{ record.id }}</span>
+                <button
+                  v-if="record.role === 'user'"
+                  class="replay-btn"
+                  @click="$emit('replay', record.content)"
+                >
+                  {{ t('coach.historyReplay') }}
+                </button>
+              </div>
+              <div class="record-preview">{{ truncate(record.content, 150) }}</div>
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- Flat list (search mode) -->
+    <div v-else-if="filteredRecords.length > 0 && isSearching" class="history-list">
       <div
         v-for="record in filteredRecords"
         :key="record.id"
@@ -113,6 +219,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import type { CoachHistoryRecord } from '@/types/api'
 import { useI18n } from '@/i18n'
 import {
   coachHistory,
@@ -121,12 +228,16 @@ import {
   deleteRecords,
   clearHistory,
   exportRecords,
-  formatTime
+  formatTime,
+  getSessionGroups
 } from '@/composables/useCoachHistory'
 import ConfirmDialog from '@/components/shared/ConfirmDialog.vue'
 import DownloadModal from '@/components/coach/DownloadModal.vue'
 
-const emit = defineEmits<{ replay: [content: string] }>()
+const emit = defineEmits<{
+  replay: [content: string]
+  continueSession: [sessionId: string]
+}>()
 const { t } = useI18n()
 
 // ─── Search & Filter ────────────────────────────────────────────────────────
@@ -142,8 +253,14 @@ watch(searchQuery, (val) => {
   }, 150)
 })
 
+const isSearching = computed(() => debouncedQuery.value.trim() !== '' || roleFilter.value !== 'all')
+
 const filteredRecords = computed(() =>
   searchRecords(debouncedQuery.value, roleFilter.value)
+)
+
+const sessionGroups = computed(() =>
+  getSessionGroups(filteredRecords.value)
 )
 
 // ─── Selection ──────────────────────────────────────────────────────────────
@@ -203,6 +320,11 @@ function handleDownload(format: 'json' | 'markdown' | 'both') {
 function truncate(text: string, max: number): string {
   if (text.length <= max) return text
   return text.slice(0, max) + '...'
+}
+
+function firstUserPreview(records: CoachHistoryRecord[]): string {
+  const first = records.find(r => r.role === 'user')
+  return truncate(first?.content || '...', 60)
 }
 </script>
 
@@ -291,11 +413,94 @@ function truncate(text: string, max: number): string {
   overflow-y: auto;
   padding: 6px 10px;
 }
+
+/* Session groups */
+.session-group {
+  margin-bottom: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.session-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background-color: var(--bg-tertiary);
+  cursor: pointer;
+  list-style: none;
+  gap: 8px;
+}
+.session-header::-webkit-details-marker {
+  display: none;
+}
+.session-header::before {
+  content: '\25B6';
+  font-size: 8px;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+details[open] > .session-header::before {
+  transform: rotate(90deg);
+}
+.session-header-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.session-preview {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ungrouped-label {
+  color: var(--text-muted);
+  font-style: italic;
+}
+.session-meta {
+  font-size: 9px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 8px;
+}
+.session-count {
+  padding: 0 4px;
+  border-radius: 4px;
+  background-color: var(--bg-secondary);
+}
+.continue-btn {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-green);
+  background-color: var(--green-subtle);
+  color: var(--accent-green);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.continue-btn:hover {
+  background-color: var(--accent-green);
+  color: white;
+}
+.session-records {
+  padding: 4px 6px;
+}
+
+/* Record cards */
 .history-record {
   display: flex;
   gap: 8px;
   padding: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   border-radius: var(--radius-md);
   background-color: var(--bg-tertiary);
   transition: all 0.15s;

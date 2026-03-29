@@ -77,6 +77,7 @@ export interface CoachHistoryRecord {
   role: 'user' | 'assistant'
   content: string         // raw unrendered content
   timestamp: number       // Date.now() at creation
+  sessionId?: string      // groups records into conversations; undefined for legacy records
 }
 
 export interface LLMRequestBody {

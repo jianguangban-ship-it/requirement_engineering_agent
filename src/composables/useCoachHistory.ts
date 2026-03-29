@@ -47,15 +47,72 @@ export const coachHistory = ref<CoachHistoryRecord[]>(loadFromStorage())
 export const recordCount = computed(() => coachHistory.value.length)
 export const isNearCap = computed(() => coachHistory.value.length >= WARN_THRESHOLD)
 
+// ─── Session tracking ──────────────────────────────────────────────────────
+
+export const currentSessionId = ref<string | null>(null)
+
+export function startNewSession(): void {
+  const existingIds = new Set(coachHistory.value.map(r => r.sessionId).filter(Boolean) as string[])
+  currentSessionId.value = generateHashId(existingIds)
+}
+
+export interface SessionGroup {
+  sessionId: string
+  records: CoachHistoryRecord[]       // chronological (oldest first)
+  firstTimestamp: number
+  lastTimestamp: number
+}
+
+export function getSessionGroups(records: CoachHistoryRecord[]): { grouped: SessionGroup[]; ungrouped: CoachHistoryRecord[] } {
+  const map = new Map<string, CoachHistoryRecord[]>()
+  const ungrouped: CoachHistoryRecord[] = []
+
+  for (const r of records) {
+    if (r.sessionId) {
+      let arr = map.get(r.sessionId)
+      if (!arr) { arr = []; map.set(r.sessionId, arr) }
+      arr.push(r)
+    } else {
+      ungrouped.push(r)
+    }
+  }
+
+  const grouped: SessionGroup[] = []
+  for (const [sessionId, recs] of map) {
+    // Sort chronological within session (oldest first)
+    recs.sort((a, b) => a.timestamp - b.timestamp)
+    grouped.push({
+      sessionId,
+      records: recs,
+      firstTimestamp: recs[0].timestamp,
+      lastTimestamp: recs[recs.length - 1].timestamp
+    })
+  }
+  // Sort sessions newest-first
+  grouped.sort((a, b) => b.lastTimestamp - a.lastTimestamp)
+
+  return { grouped, ungrouped }
+}
+
+export function getSessionRecords(sessionId: string): CoachHistoryRecord[] {
+  return coachHistory.value
+    .filter(r => r.sessionId === sessionId)
+    .sort((a, b) => a.timestamp - b.timestamp)
+}
+
 // ─── CRUD ───────────────────────────────────────────────────────────────────
 
 export function addRecord(role: 'user' | 'assistant', content: string): CoachHistoryRecord {
+  // Auto-generate session on first record if none active
+  if (!currentSessionId.value) startNewSession()
+
   const existingIds = new Set(coachHistory.value.map(r => r.id))
   const record: CoachHistoryRecord = {
     id: generateHashId(existingIds),
     role,
     content,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    sessionId: currentSessionId.value!
   }
   // Prepend (newest first), enforce cap
   coachHistory.value = [record, ...coachHistory.value].slice(0, MAX_RECORDS)
@@ -71,6 +128,7 @@ export function deleteRecords(ids: Set<string>): void {
 export function clearHistory(): void {
   coachHistory.value = []
   localStorage.removeItem(LS_KEY)
+  startNewSession()
 }
 
 // ─── Search & Filter ────────────────────────────────────────────────────────

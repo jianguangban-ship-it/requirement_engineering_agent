@@ -12,8 +12,8 @@
     <Transition name="modal">
       <div v-if="showConfirmModal" class="modal-overlay" ref="confirmModalRef" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" @click.self="showConfirmModal = false">
         <div class="modal-content">
-          <h3 id="confirm-modal-title" class="modal-title">{{ t('modal.confirmTitle') }}</h3>
-          <p class="modal-hint">{{ t('modal.confirmHint') }}</p>
+          <h3 id="confirm-modal-title" class="modal-title">{{ appMode === 'design' ? t('modal.confirmTitleDesign') : t('modal.confirmTitle') }}</h3>
+          <p class="modal-hint">{{ appMode === 'design' ? t('modal.confirmHintDesign') : t('modal.confirmHint') }}</p>
           <div class="modal-payload">
             <JsonViewer :data="jsonPayload" :copyable="true" />
           </div>
@@ -52,6 +52,7 @@
             @conflict-check="handleConflictCheck"
             @import-templates="handleTemplateImport"
             @replay="handleReplay"
+            @continue-session="handleContinueSession"
           />
         </div>
 
@@ -95,7 +96,6 @@
             :check-progress="checkProgress"
             @coach="handleCoachRequest"
             @analyze="handleAnalyze"
-            @deep-review="handleDeepReview"
             @create="handleCreateClick"
             @reset="handleReset"
             @cancel-coach="cancelCoach"
@@ -138,7 +138,7 @@
           />
 
           <JiraResponsePanel
-            v-show="appMode === 'task'"
+            v-show="appMode !== 'explore'"
             :response="jiraResponse"
             :is-creating="isSubmitting && currentAction === 'create'"
           />
@@ -198,7 +198,7 @@
 
           <ReviewDashboard v-show="appMode === 'task'" :stats="reviewStats" @clear="clearReviewHistory" />
 
-          <TicketHistoryPanel v-show="appMode === 'task'" />
+          <TicketHistoryPanel v-show="appMode !== 'explore'" />
         </div>
       </div>
     </main>
@@ -230,6 +230,7 @@ import { getTemplateContent, effectiveTemplates, setCustomTemplates, customTempl
 import type { TemplateDefinition } from '@/types/template'
 import { coachSkillModified, analyzeSkillModified } from '@/config/skills/index'
 import { getModel } from '@/config/llm'
+import { getSessionRecords, startNewSession } from '@/composables/useCoachHistory'
 
 import AppHeader from '@/components/layout/AppHeader.vue'
 import LLMSettings from '@/components/settings/LLMSettings.vue'
@@ -338,7 +339,7 @@ const {
 const {
   isCoachLoading, coachResponse, coachMessages, coachWasCancelled, coachHadError,
   coachStreamSpeed, coachBackoffSecs,
-  requestCoach, cancelCoach, retryCoach, clearCoachResponse,
+  requestCoach, cancelCoach, retryCoach, clearCoachResponse, restoreCoachMessages,
   isAnalyzeLoading, analyzeResponse, previousAnalyzeResponse, analyzeWasCancelled, analyzeHadError,
   analyzeStreamSpeed, analyzeBackoffSecs,
   requestAnalyze, cancelAnalyze, retryAnalyze, clearAnalyzeResponse,
@@ -678,6 +679,7 @@ async function handleBulkAnalyze() {
 
 function handleCreateClick() {
   if (appMode.value === 'task' && !canCoachSubmit.value) return
+  if (appMode.value === 'design' && !canSubmit.value) return
   showConfirmModal.value = true
   // Auto-check for duplicates before creating
   if (form.projectKey && computedSummary.value) {
@@ -821,6 +823,12 @@ function handleReplay(content: string) {
   nextTick(() => handleCoachRequest())
 }
 
+function handleContinueSession(sessionId: string) {
+  const records = getSessionRecords(sessionId)
+  if (records.length === 0) return
+  restoreCoachMessages(records)
+}
+
 async function handleCoachRetry() {
   errorMessage.value = ''
   const err = await retryCoach()
@@ -855,6 +863,7 @@ function handleReset() {
     form.description = ''
     modeDescriptions.explore = ''
     clearCoachResponse()
+    startNewSession()
   } else {
     // Design / Task reset: clear form, workflow, AI state — leave Explore description untouched
     cancelAnalyze()
@@ -866,6 +875,7 @@ function handleReset() {
     clearResponsesFromStorage()
     resetWorkflow()
     clearSearch()
+    startNewSession()
   }
 
   addToast('info', t('toast.draftCleared'))

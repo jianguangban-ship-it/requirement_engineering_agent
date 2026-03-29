@@ -3526,3 +3526,416 @@ In Task mode, the Analyze button was active before the user completed Task Guida
 | `src/i18n/zh.ts` | Add `coach.requestBtnTask: '任务指导'` |
 | `src/components/form/TaskForm.vue` | Mode-aware button label; Analyze gated by `hasCoachResponse` in task mode |
 | `src/App.vue` | Pass `has-coach-response` prop |
+
+---
+
+## v10.28 — Isolate Review Workflow State Per Mode
+
+### Design rationale
+The 5-step review workflow (`draft → ai-reviewed → peer-reviewed → approved → jira-created`) used a single global `reviewStatus` ref shared across all modes. Running Task Guidance, Analyze, or Create JIRA in Task mode would advance the review status visible in Design mode's ReviewStatusBar. Each mode should track its own review workflow independently — actions in Task mode must not affect Design mode's review pipeline, and vice versa.
+
+### Changes
+1. Added per-mode state stores (`modeReviewStatus`, `modeCheckedItems`) as reactive records keyed by `AppMode`
+2. `watch(appMode)` saves outgoing mode state and restores incoming mode state on switch (same pattern as `modeDescriptions` in App.vue)
+3. `advanceTo()`, `toggleCheck()`, and `resetWorkflow()` now sync both the active ref and the per-mode store
+
+| File | Change |
+|------|--------|
+| `src/composables/useReviewWorkflow.ts` | Per-mode review state isolation with save/restore on mode switch |
+| `src/components/layout/AppHeader.vue` | Version bump v10.27 → v10.28 |
+
+---
+
+## v10.29 — i18n: Task Coach Skill labels in DevTools
+
+### Design rationale
+The "Task Coach Skill" label in DevTools was hardcoded in English in two places (Agent State status row and the editable textarea accordion). Added proper i18n key `dev.taskCoachSkill` so the label displays correctly in both English and Chinese.
+
+### Changes
+1. Added `dev.taskCoachSkill` i18n key — EN: "Task Coach Skill", ZH: "任务 Coach 提示词"
+2. Replaced two hardcoded English strings in DevTools with `t('dev.taskCoachSkill')`
+
+| File | Change |
+|------|--------|
+| `src/i18n/en.ts` | Add `dev.taskCoachSkill: 'Task Coach Skill'` |
+| `src/i18n/zh.ts` | Add `dev.taskCoachSkill: '任务 Coach 提示词'` |
+| `src/components/dev/DevTools.vue` | Replace hardcoded labels with i18n calls |
+| `src/components/layout/AppHeader.vue` | Version bump v10.28 → v10.29 |
+
+---
+
+## v10.30 — Mode-adapted labels: Design Guidance & Requirement Decomposition
+
+### Design rationale
+In Design mode, the guidance button tooltip said "Writing Guidance" (generic) and the AI review panel title said "Task Analysis" (task-oriented). Both should reflect Design mode's focus on ASPICE/INCOSE requirement engineering: the button now says "Design Guidance" and the panel title shows "Requirement Decomposition" in Design mode while keeping "Task Analysis" in Task mode.
+
+### Changes
+1. Renamed `coach.requestBtn` from "Writing Guidance" → "Design Guidance" / "设计指导"
+2. Added `panel.aiAgentResponseDesign` — "Requirement Decomposition" / "需求分解"
+3. AIReviewPanel title is now mode-aware: shows design label in Design mode, task label otherwise
+
+| File | Change |
+|------|--------|
+| `src/i18n/en.ts` | `requestBtn` → "Design Guidance"; add `aiAgentResponseDesign` |
+| `src/i18n/zh.ts` | `requestBtn` → "设计指导"; add `aiAgentResponseDesign: '需求分解'` |
+| `src/components/panels/AIReviewPanel.vue` | Mode-aware panel title using `appMode` |
+| `src/components/layout/AppHeader.vue` | Version bump v10.29 → v10.30 |
+
+---
+
+## v10.31 — Four Mode-Specific Skill Settings with Decomposition Skill
+
+### Design rationale
+The LLM Settings previously had only two skill editors ("Coach Skill" and "Analyze Skill") that were not mode-specific. Now the settings page clearly separates skills by mode with section dividers:
+
+- **Design Mode**: Design Guidance Skill (coach) + Decomposition Skill (analyze — requirement decomposition per INCOSE/ASPICE)
+- **Task Mode**: Task Coach Skill (coach) + Task Analyze Skill (analyze — story points & subtasks)
+
+Each skill has its own localStorage key, import/export, and reset-to-default. The `getAnalyzeSkill()` function is now mode-aware: Design mode uses the decomposition skill, Task mode uses the task analyze skill.
+
+### Changes
+1. Created `decompose-skill-en.md` and `decompose-skill-zh.md` — INCOSE/ASPICE requirement decomposition prompts
+2. Added `decompose-skill` localStorage key with get/set/reset/modified functions
+3. Made `getAnalyzeSkill(mode, lang)` mode-aware: design→decompose, task→analyze
+4. LLM Settings now shows 4 skill editors with "Design Mode" / "Task Mode" section dividers
+5. All 4 skills have import/export .md and reset-to-default support
+6. DevTools Agent State panel shows all 4 skill modification statuses
+7. Renamed i18n keys: `coachSkill` → "Design Guidance Skill", `analyzeSkill` → "Task Analyze Skill"
+
+| File | Change |
+|------|--------|
+| `src/config/skills/decompose-skill-en.md` | New — INCOSE/ASPICE decomposition prompt (EN) |
+| `src/config/skills/decompose-skill-zh.md` | New — INCOSE/ASPICE decomposition prompt (ZH) |
+| `src/config/skills/index.ts` | Add decompose skill functions; make `getAnalyzeSkill` mode-aware |
+| `src/composables/useLLM.ts` | Pass `appMode.value` to `getAnalyzeSkill()` |
+| `src/components/settings/LLMSettings.vue` | 4 skill editors with mode section dividers |
+| `src/components/dev/DevTools.vue` | Show decompose skill status in Agent State |
+| `src/i18n/en.ts` | Add `decomposeSkill`, `taskCoachSkill`; rename `coachSkill`/`analyzeSkill` |
+| `src/i18n/zh.ts` | Add `decomposeSkill`, `taskCoachSkill`; rename `coachSkill`/`analyzeSkill` |
+| `src/components/layout/AppHeader.vue` | Version bump v10.30 → v10.31 |
+
+---
+
+## v10.32 — Design Mode: Relabel Buttons & Create Req Workflow
+
+### Design rationale
+Design mode now has its own button labels and creation workflow distinct from Task mode. The three action buttons under the description form are:
+- **Design** (coach guidance) — tooltip "Design Guidance" / "设计指导"
+- **Decompose** (analyze) — tooltip "Decompose" / "分解" (was "Analyze Task")
+- **Create Req** — sends form data to n8n webhook to create a requirement JIRA item (replaces the old "Deep Review" button)
+
+The "Create Req" button reuses the same `create` action/webhook pipeline as Task mode's "Create JIRA", so JIRA Response panel, Ticket History panel, and the confirm modal are now visible in Design mode too. The confirm modal title/hint adapts per mode ("Confirm Requirement Creation" vs "Confirm JIRA Creation").
+
+### Changes
+1. Relabeled Design mode buttons: coach → "Design Guidance", analyze → "Decompose", deep-review → "Create Req"
+2. Replaced Deep Review button with Create Req button — fires `create` emit (same webhook flow as Create JIRA)
+3. Removed `deepReview` emit from TaskForm (button removed)
+4. Removed `@deep-review` handler binding in App.vue
+5. JiraResponsePanel and TicketHistoryPanel now visible in Design mode (`v-show="appMode !== 'explore'"`)
+6. Confirm modal title/hint is mode-aware: "Confirm Requirement Creation" in Design mode
+7. `handleCreateClick` now allows Design mode (with `canSubmit` guard)
+
+| File | Change |
+|------|--------|
+| `src/components/form/TaskForm.vue` | Relabel buttons; replace Deep Review with Create Req; remove `deepReview` emit |
+| `src/App.vue` | Remove `@deep-review` binding; allow create in Design mode; show JiraResponsePanel/TicketHistoryPanel in Design mode; mode-aware confirm modal |
+| `src/i18n/en.ts` | Add `aiAnalyzeDesign`, `createReq`, `confirmTitleDesign`, `confirmHintDesign` |
+| `src/i18n/zh.ts` | Add `aiAnalyzeDesign`, `createReq`, `confirmTitleDesign`, `confirmHintDesign` |
+| `src/components/layout/AppHeader.vue` | Version bump v10.31 → v10.32 |
+
+---
+
+## v10.33 — Design Mode: Sequential Button Activation
+
+### Design rationale
+Design mode buttons now follow a strict sequential activation order matching the workflow: Design (coach) → Decompose (analyze) → Create Req. Each step only activates after the previous step's AI response completes.
+
+### Changes
+1. **Decompose** button: disabled until coach response is done (`hasCoachResponse`) — same gating now applies to both Design and Task modes
+2. **Create Req** button: only appears (`v-if`) after decomposition (analyze) response is done (`hasAiResponse`) — unified with Task mode's Create JIRA visibility logic
+
+| File | Change |
+|------|--------|
+| `src/components/form/TaskForm.vue` | Gate Decompose on `hasCoachResponse` in Design mode; Create Req appears only after `hasAiResponse` |
+| `src/components/layout/AppHeader.vue` | Version bump v10.32 → v10.33 |
+
+---
+
+## v10.34 — Design Mode: Shorten Button Tooltips & Rename DevTools Label
+
+### Changes
+1. Design Guidance button tooltip: "Design Guidance" → "Design" / "设计"
+2. Create Req button tooltip: "Create Req" → "Create" / "创建"
+3. DevTools editable skill accordion: "Task Coach Skill" → "Design System Prompt" / "设计系统提示词"
+
+| File | Change |
+|------|--------|
+| `src/i18n/en.ts` | `requestBtn` → "Design"; `createReq` → "Create"; add `designSystemPrompt` |
+| `src/i18n/zh.ts` | `requestBtn` → "设计"; `createReq` → "创建"; add `designSystemPrompt` |
+| `src/components/dev/DevTools.vue` | Accordion label uses `dev.designSystemPrompt` |
+| `src/components/layout/AppHeader.vue` | Version bump v10.33 → v10.34 |
+
+---
+
+## v10.35 — LLM Settings: Rename Skill Labels
+
+### Changes
+1. "Design Guidance Skill" → **"Design Skill"** / "设计提示词"
+2. "Task Coach Skill" → **"Task Skill"** / "任务提示词"
+3. "Task Analyze Skill" → **"Analyze Skill"** / "分析提示词"
+
+Labels updated in both `dev` and `settings` i18n sections (4 occurrences each).
+
+| File | Change |
+|------|--------|
+| `src/i18n/en.ts` | Rename `coachSkill`, `taskCoachSkill`, `analyzeSkill` labels |
+| `src/i18n/zh.ts` | Rename `coachSkill`, `taskCoachSkill`, `analyzeSkill` labels |
+| `src/components/layout/AppHeader.vue` | Version bump v10.34 → v10.35 |
+
+---
+
+## v10.36 — DevTools: Separate Design & Task System Prompt Panels
+
+### Design rationale
+The DevTools previously had one editable skill panel ("Design System Prompt") that incorrectly edited the task coach skill (`coach-skill-task`). Now there are two independent panels:
+- **Design System Prompt** — edits `coach-skill` localStorage (design mode coach)
+- **Task System Prompt** — edits `coach-skill-task` localStorage (task mode coach)
+
+Each panel has its own modified badge, reset button, and textarea, so Design and Task mode system prompts can be configured independently from the DevTools sidebar.
+
+### Changes
+1. Split single DevTools skill panel into two: Design System Prompt + Task System Prompt
+2. Design panel now correctly reads/writes `coach-skill` (was incorrectly using `coach-skill-task`)
+3. Added `dev.taskSystemPrompt` i18n key
+
+| File | Change |
+|------|--------|
+| `src/components/dev/DevTools.vue` | Two skill panels; import design coach skill functions; separate edit/reset handlers |
+| `src/i18n/en.ts` | Add `dev.taskSystemPrompt: 'Task System Prompt'` |
+| `src/i18n/zh.ts` | Add `dev.taskSystemPrompt: '任务系统提示词'` |
+| `src/components/layout/AppHeader.vue` | Version bump v10.35 → v10.36 |
+
+---
+
+## v10.37 — DevTools: Mode-scoped System Prompt Panels
+
+### Changes
+- Design System Prompt panel: only visible in Design mode (`v-show="appMode === 'design'"`)
+- Task System Prompt panel: only visible in Task mode (`v-show="appMode === 'task'"`)
+
+| File | Change |
+|------|--------|
+| `src/components/dev/DevTools.vue` | Add `v-show` mode gating; import `appMode` |
+| `src/components/layout/AppHeader.vue` | Version bump v10.36 → v10.37 |
+
+## v10.38 — Fix Explore mode domain contamination
+
+### Design rationale
+Explore mode is a constraint-free brainstorming mode. Domain knowledge (INCOSE rules, ASPICE mapping, domain warnings, traceability checks, vocabulary/standards injection) was leaking into Explore mode because `resolveMode()` mapped `'explore'` → `'design'`. This caused the LLM to receive automotive domain constraints and the form to show quality penalties, assumptions, and traceability warnings — defeating the purpose of a free brainstorm.
+
+### Changes
+- `resolveMode()` now returns `null` for explore mode; all `getModeXxx()` functions return empty/neutral values
+- `buildDomainContext()` skipped in Explore mode for Coach, Analyze, and Deep Review LLM prompts
+- `getModeTraceContext()` returns `''` in Explore mode (via resolveMode null guard)
+- `checkDomainWarnings()` returns `[]` for explore (previously only guarded task)
+- `detectAssumptions()` skipped in Explore mode
+- `getAspiceProfile()` returns `null` in Explore mode
+- Quality penalties (`getModeQualityCheck/Penalty`), review steps/checklists, trace gaps all return empty in Explore
+
+| File | Change |
+|------|--------|
+| `src/config/domain/mode-config.ts` | `resolveMode()` returns `null` for explore; all 8 `getModeXxx()` functions guard on null |
+| `src/config/domain/index.ts` | `checkDomainWarnings()` early-returns `[]` for explore mode |
+| `src/composables/useLLM.ts` | Guard `buildDomainContext()` with `appMode !== 'explore'` in Coach, Analyze, Deep Review |
+| `src/composables/useForm.ts` | Guard `detectAssumptions()` and `getAspiceProfile()` with `appMode !== 'explore'` |
+| `src/components/layout/AppHeader.vue` | Version bump v10.37 → v10.38 |
+
+## v10.39 — Fix role placeholder contamination in Explore & Task modes
+
+### Design rationale
+Each role defines domain-specific placeholder text in the description textarea (e.g. "Include: ASIL, traceability to parent requirement..." for System Architect). These design-oriented hints were shown in all three modes, contaminating Explore (constraint-free brainstorm) and Task (agile work items) with design-mode guidance. Now only Design mode shows role-specific placeholders; Explore and Task fall back to the generic `descriptionPlaceholder`.
+
+### Configuration location
+Role placeholder texts are defined in `src/composables/useRole.ts:19-75` — each `RoleDefinition` has `placeholderEn` / `placeholderZh` fields.
+
+### Changes
+- DescriptionEditor textarea `:placeholder` now checks `appMode === 'design'` before showing role-specific text
+- Explore & Task modes show the generic i18n `form.descriptionPlaceholder` instead
+
+| File | Change |
+|------|--------|
+| `src/components/form/DescriptionEditor.vue` | Guard `:placeholder` with `appMode === 'design'` conditional |
+| `src/components/layout/AppHeader.vue` | Version bump v10.38 → v10.39 |
+
+## v10.40 — Mode-specific description placeholders
+
+### Design rationale
+The generic `descriptionPlaceholder` ("Enter background info, design thoughts, acceptance criteria...") was shared between Task and Explore modes, contaminating Explore with task/design concepts. Each mode now gets its own distinct placeholder:
+- **Design mode**: role-specific placeholder (ASIL, traceability, interface specs — unchanged)
+- **Task mode**: task-oriented ("Describe the task scope, deliverables, and acceptance criteria...")
+- **Explore mode**: constraint-free ("Freely describe your idea, question, or topic — no format required. Brainstorm features, explore trade-offs...")
+
+### Configuration location
+- `src/i18n/en.ts:51-52` — `taskDescriptionPlaceholder` and `exploreDescriptionPlaceholder`
+- `src/i18n/zh.ts:51-52` — Chinese equivalents
+
+### Changes
+- Added `taskDescriptionPlaceholder` and `exploreDescriptionPlaceholder` to both i18n files
+- DescriptionEditor now uses a 3-way mode switch for placeholder text
+
+| File | Change |
+|------|--------|
+| `src/i18n/en.ts` | Add `taskDescriptionPlaceholder`, `exploreDescriptionPlaceholder` |
+| `src/i18n/zh.ts` | Add Chinese equivalents |
+| `src/components/form/DescriptionEditor.vue` | 3-way mode conditional for `:placeholder` |
+| `src/components/layout/AppHeader.vue` | Version bump v10.39 → v10.40 |
+
+## v10.41 — Restrict ASPICE suggestions to Design mode only
+
+### Design rationale
+ASPICE process mapping (required fields like ASIL level, parent requirement ID, verification method) is an automotive design concern. The guard only excluded Explore mode (`!== 'explore'`), allowing ASPICE suggestions to contaminate Task mode. Changed to `=== 'design'` so ASPICE is strictly Design-mode only.
+
+### Changes
+- `aspiceProfile` computed now returns `null` unless `appMode === 'design'`
+
+| File | Change |
+|------|--------|
+| `src/composables/useForm.ts` | ASPICE guard: `!== 'explore'` → `=== 'design'` |
+| `src/components/layout/AppHeader.vue` | Version bump v10.40 → v10.41 |
+
+## v10.42 — Explore mode empty-state colors match AI chat
+
+### Design rationale
+The initial guide text and icon in Explore mode (before user sends a message) used `var(--text-muted)` which looked faded and disconnected from the AI chat bubbles. Updated to match the AI chat palette: icon uses `var(--accent-blue)` (same as the assistant role label), hint text uses `var(--text-primary)` (same as chat body text), sub-hint keeps `var(--text-primary)` at 0.7 opacity for hierarchy.
+
+### Changes
+- Added `empty-state--explore` class to the empty-state container when in Explore mode
+- Icon: `var(--text-muted)` → `var(--accent-blue)`
+- Hint text: `var(--text-muted)` → `var(--text-primary)`
+- Sub-hint: `var(--text-muted)` → `var(--text-primary)` at 0.7 opacity
+
+| File | Change |
+|------|--------|
+| `src/components/panels/CoachPanel.vue` | Add `empty-state--explore` class + CSS overrides for icon/hint/sub colors |
+| `src/components/layout/AppHeader.vue` | Version bump v10.41 → v10.42 |
+
+## v10.43 — Unify empty-state guide colors across all modes
+
+### Design rationale
+The v10.42 fix only updated Explore mode's empty-state colors. The user wants Design and Task mode guides to also match their respective panel titles ("Design Coach" / "Task Coach"). Since the panel title color is `var(--text-primary)` across all modes, the fix is simpler: update the base `.empty-icon`, `.empty-hint`, `.empty-sub` styles directly — no mode-specific overrides needed.
+
+### Changes
+- `.empty-icon`: `var(--text-muted)` → `var(--accent-blue)` (matches assistant role label)
+- `.empty-hint`: `var(--text-muted)` → `var(--text-primary)` (matches panel title / chat body)
+- `.empty-sub`: `var(--text-muted)` → `var(--text-primary)` at 0.7 opacity
+- Removed the `empty-state--explore` class and its CSS overrides (no longer needed)
+
+| File | Change |
+|------|--------|
+| `src/components/panels/CoachPanel.vue` | Update base empty-state colors; remove explore-specific overrides |
+| `src/components/layout/AppHeader.vue` | Version bump v10.42 → v10.43 |
+
+## v10.44 — Explore mode: send Response Format in system prompt
+
+### Design rationale
+Explore mode previously sent an empty system prompt (`''`), meaning the LLM had no formatting guidance and could return inconsistent markdown/math syntax. The Response Format instructions (configured in LLM Settings) should apply to all modes so responses render correctly. Now Explore mode sends only the Response Format as the system prompt — no coach skill, no domain context, no role context, no traceability.
+
+### Final content sent per mode
+
+| Mode | System Prompt | User Message |
+|------|--------------|--------------|
+| **Design** | Role Context + Domain Context + Trace Context + Coach Skill + Response Format | Structured payload (project, type, summary, description, etc.) |
+| **Task** | Role Context + Domain Context + Task Trace Context + Task Coach Skill + Response Format | Structured payload |
+| **Explore** | Response Format only | Raw description text |
+
+### Changes
+- Import `getResponseFormat` in useLLM.ts
+- When `coachSkillEnabled` is false (Explore mode), return `getResponseFormat()` instead of `''`
+
+| File | Change |
+|------|--------|
+| `src/composables/useLLM.ts` | Import `getResponseFormat`; return it in explore early-exit path |
+| `src/components/layout/AppHeader.vue` | Version bump v10.43 → v10.44 |
+
+## v10.45 — Remove Role Context & Domain Context from Task mode system prompts
+
+### Design rationale
+Task mode coaching is role-agnostic — it focuses on actionability, scope, acceptance criteria, and effort estimation. The Role Context ("The user is a System Architect, focus on ASIL...") and Domain Context (automotive vocabulary, ISO 26262/ASPICE standards) are design-mode concerns that add noise to task coaching without improving output quality. Task Trace Context (epic→story→task hierarchy) remains because it directly helps the AI understand task scoping.
+
+### Final system prompt composition per mode
+
+| Mode | System Prompt Parts | Config File(s) |
+|------|-------------------|----------------|
+| **Design** | Role Context + Domain Context + Trace Context + Coach Skill + Response Format | `useRole.ts` (role context), `domain/vocabulary.ts` + `domain/standards.ts` (domain), `domain/traceability.design.ts` (trace), `skills/coach-skill-en.md` (skill), `skills/response-format.md` (format) |
+| **Task** | Task Trace Context + Task Coach Skill + Response Format | `domain/traceability.task.ts` (trace), `skills/coach-skill-task-en.md` (skill), `skills/response-format.md` (format) |
+| **Explore** | Response Format only | `skills/response-format.md` (format) |
+
+### Changes
+- Coach, Analyze, Deep Review: Role Context and Domain Context now gated on `isDesign` instead of `!== 'explore'`
+- All three flows follow the same pattern: Design gets full context, Task gets trace only, Explore gets nothing
+
+| File | Change |
+|------|--------|
+| `src/composables/useLLM.ts` | Gate `roleContext` and `domainContext` with `isDesign` in Coach, Analyze, Deep Review |
+| `src/components/layout/AppHeader.vue` | Version bump v10.44 → v10.45 |
+
+## v10.46 — Rename design coach skill files for clarity
+
+### Design rationale
+The design coach skill files (`coach-skill-en.md`, `coach-skill-zh.md`, `coach-skill.md`) had no "design" prefix, making them hard to distinguish from the task variants (`coach-skill-task-en.md`, `coach-skill-task-zh.md`). Renamed to `coach-skill-design-*` for consistency.
+
+### File renames
+| Before | After |
+|--------|-------|
+| `coach-skill.md` | `coach-skill-design.md` |
+| `coach-skill-en.md` | `coach-skill-design-en.md` |
+| `coach-skill-zh.md` | `coach-skill-design-zh.md` |
+
+| File | Change |
+|------|--------|
+| `src/config/skills/index.ts` | Update 3 import paths |
+| `src/components/settings/LLMSettings.vue` | Update download filename |
+| `src/components/layout/AppHeader.vue` | Version bump v10.45 → v10.46 |
+
+## v10.47 — Delete unused legacy skill template files
+
+### Changes
+- Deleted `coach-skill-design.md` (old `{lang}` template, replaced by `coach-skill-design-en.md` / `coach-skill-design-zh.md`)
+- Deleted `analyze-skill.md` (old `{lang}` template, replaced by `analyze-skill-en.md` / `analyze-skill-zh.md`)
+- Removed dead imports (`coachSkillDefault`, `analyzeSkillDefault`) and legacy export from `index.ts`
+
+| File | Change |
+|------|--------|
+| `src/config/skills/coach-skill-design.md` | Deleted |
+| `src/config/skills/analyze-skill.md` | Deleted |
+| `src/config/skills/index.ts` | Remove 2 dead imports + legacy export line |
+| `src/components/layout/AppHeader.vue` | Version bump v10.46 → v10.47 |
+
+## v10.48 — Conversation Replay (session-grouped coach history)
+
+### Design Rationale
+Coach history records were stored as a flat list with no conversation grouping. The existing "Replay" button re-sent a single user message as a standalone request. Users could not restore a full conversation and continue it — every coach interaction was stateless. Since `useLLM.ts` already sends all entries in `messages.value` to the LLM, pre-populating `messages.value` with historical records is sufficient to give the LLM full multi-turn context.
+
+### Changes
+- Added `sessionId` field to `CoachHistoryRecord` — optional for backward compat with legacy records
+- Session tracking: `currentSessionId` ref, `startNewSession()`, auto-generated on first `addRecord()` call
+- Session grouping: `getSessionGroups()` groups records by sessionId; `getSessionRecords()` retrieves a session in chronological order
+- Message restoration: `restoreCoachMessages()` in `useLLM` clears chat, populates `messages.value` from history records, and resumes the session ID
+- "Continue" button per session in history tab — restores full conversation context without auto-sending
+- History tab now shows records grouped by session as collapsible `<details>` elements
+- Search/filter mode falls back to flat list (results may span sessions)
+- Legacy records (no sessionId) appear under "Earlier Messages" section
+- Single-message Replay and all existing selection/delete/export still work unchanged
+- New i18n keys: `historyContinue`, `historySessionLabel`, `historyUngrouped` (EN + ZH)
+
+| File | Change |
+|------|--------|
+| `src/types/api.ts` | Add `sessionId?` to `CoachHistoryRecord` |
+| `src/composables/useCoachHistory.ts` | Session ID tracking, grouping utilities |
+| `src/composables/useLLM.ts` | Add `restoreCoachMessages`, import `currentSessionId` |
+| `src/App.vue` | `handleContinueSession`, wire event, `startNewSession` on reset |
+| `src/components/panels/CoachPanel.vue` | Bubble `continueSession` event |
+| `src/components/coach/CoachHistoryTab.vue` | Session-grouped UI with Continue button |
+| `src/i18n/en.ts` | New labels |
+| `src/i18n/zh.ts` | New labels |
+| `src/components/layout/AppHeader.vue` | Version bump v10.47 → v10.48 |

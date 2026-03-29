@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import type { LLMRequestBody, LLMStreamChunk, LLMChatMessage, WebhookPayload, ChatMessage } from '@/types/api'
 import { getProviderUrl, getApiKey, getModel } from '@/config/llm'
 import { ICONS } from '@/config/icons'
-import { getCoachSkill, getAnalyzeSkill } from '@/config/skills/index'
+import { getCoachSkill, getAnalyzeSkill, getResponseFormat } from '@/config/skills/index'
 import { SKILL_REGISTRY, resolveSystemPrompt } from '@/config/skills/registry'
 import type { SkillEntry } from '@/config/skills/registry'
 import { matchSkill } from '@/utils/skillMatcher'
@@ -13,7 +13,8 @@ import { useReviewHistory } from '@/composables/useReviewHistory'
 import type { RequirementLevel } from '@/config/domain'
 import type { TaskLevel } from '@/config/domain/traceability.task'
 import { useI18n } from '@/i18n'
-import { addRecord } from '@/composables/useCoachHistory'
+import { addRecord, currentSessionId } from '@/composables/useCoachHistory'
+import type { CoachHistoryRecord } from '@/types/api'
 
 const LS_KEY_COACH_SKILL_ENABLED = 'coach-skill-enabled'
 const LS_KEY_TASK_COACH_ENABLED = 'task-coach-enabled'
@@ -407,7 +408,8 @@ export function useLLM() {
     getSystemPrompt: (lang, payload) => {
       if (!coachSkillEnabled.value) {
         activeSkill.value = null
-        return ''
+        // Explore mode: response format only (no coach skill, no domain context)
+        return getResponseFormat()
       }
 
       const langKey = lang === 'zh' ? 'zh' as const : 'en' as const
@@ -431,14 +433,18 @@ export function useLLM() {
         basePrompt = getCoachSkill(appMode.value, lang)
       }
 
-      // Prepend role context + domain knowledge + traceability to the system prompt
-      const domainContext = buildDomainContext(currentRole.value, langKey)
+      // Prepend context layers based on mode:
+      // Design: role + domain + trace + coach skill + response format
+      // Task: trace + task coach skill + response format (no role/domain — task coaching is role-agnostic)
+      // Explore: response format only (handled above via early return)
+      const isDesign = appMode.value === 'design'
+      const domainContext = isDesign ? buildDomainContext(currentRole.value, langKey) : ''
       const traceCtx = getModeTraceContext(appMode.value,
         (payload.data.requirement_level || 'none') as RequirementLevel | TaskLevel,
         payload.data.parent_req_id || '',
         langKey
       )
-      const parts = [roleContext, domainContext, traceCtx, basePrompt].filter(Boolean)
+      const parts = [isDesign ? roleContext : '', domainContext, traceCtx, basePrompt].filter(Boolean)
       return parts.join('\n\n')
     },
     getUserMessage: (payload, zh) => {
@@ -469,14 +475,16 @@ export function useLLM() {
   const analyze = createStreamFlow({
     getSystemPrompt: (lang, payload) => {
       const langKey = lang === 'zh' ? 'zh' as const : 'en' as const
-      const domainCtx = buildDomainContext(currentRole.value, langKey)
+      // Design: role + domain + trace; Task: trace only; Explore: none
+      const isDesign = appMode.value === 'design'
+      const domainCtx = isDesign ? buildDomainContext(currentRole.value, langKey) : ''
       const traceCtx = getModeTraceContext(appMode.value,
         (payload.data.requirement_level || 'none') as RequirementLevel | TaskLevel,
         payload.data.parent_req_id || '',
         langKey
       )
       const learningCtx = buildLearningContext(langKey)
-      const parts = [getRoleContext(langKey), domainCtx, traceCtx, learningCtx, getAnalyzeSkill(lang)].filter(Boolean)
+      const parts = [isDesign ? getRoleContext(langKey) : '', domainCtx, traceCtx, learningCtx, getAnalyzeSkill(appMode.value, lang)].filter(Boolean)
       return parts.join('\n\n')
     },
     getUserMessage: (payload, zh) => buildUserMessage(payload, zh),
@@ -508,6 +516,24 @@ export function useLLM() {
       activeSkill.value = null
       ignoredSkillId.value = null
     },
+    restoreCoachMessages: (records: CoachHistoryRecord[]) => {
+      coach.clear()
+      activeSkill.value = null
+      ignoredSkillId.value = null
+      for (const r of records) {
+        coach.messages.value.push({
+          id: nextMsgId(),
+          role: r.role,
+          content: r.content,
+          timestamp: r.timestamp,
+          hashId: r.id
+        })
+      }
+      // Resume the session so new messages join the same group
+      if (records.length > 0 && records[0].sessionId) {
+        currentSessionId.value = records[0].sessionId
+      }
+    },
 
     // Analyze
     isAnalyzeLoading: analyze.isLoading,
@@ -532,7 +558,9 @@ export function useLLM() {
       isDeepReview.value = true
       // Override the analyze system prompt with multi-perspective review
       const langKey = isZh.value ? 'zh' as const : 'en' as const
-      const domainCtx = buildDomainContext(currentRole.value, langKey)
+      // Design: role + domain + trace; Task: trace only; Explore: none
+      const isDesign = appMode.value === 'design'
+      const domainCtx = isDesign ? buildDomainContext(currentRole.value, langKey) : ''
       const traceCtx = getModeTraceContext(appMode.value,
         (payload.data.requirement_level || 'none') as RequirementLevel | TaskLevel,
         payload.data.parent_req_id || '',
@@ -540,7 +568,7 @@ export function useLLM() {
       )
       const reviewPrompt = buildDeepReviewPrompt(currentRole.value, langKey)
       const learningCtx = buildLearningContext(langKey)
-      const parts = [getRoleContext(langKey), domainCtx, traceCtx, learningCtx, reviewPrompt].filter(Boolean)
+      const parts = [isDesign ? getRoleContext(langKey) : '', domainCtx, traceCtx, learningCtx, reviewPrompt].filter(Boolean)
       // Temporarily override getSystemPrompt for this request
       const originalGetSystemPrompt = analyze._config.getSystemPrompt
       analyze._config.getSystemPrompt = () => parts.join('\n\n')
